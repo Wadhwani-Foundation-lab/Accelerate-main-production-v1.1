@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Building2, Sparkles, TrendingUp, Loader2, Briefcase, Users, Target, Send, AlertTriangle, HelpCircle, Map, ChevronRight, Zap, CheckCircle, FileText } from 'lucide-react';
+import { Building2, Sparkles, TrendingUp, Loader2, Briefcase, Users, Target, Send, AlertTriangle, HelpCircle, Map, ChevronRight, Zap, CheckCircle, FileText, ChevronUp, Plus } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { InteractionsSection } from '../components/Interactions/InteractionsSection';
+import { STATUS_CONFIG } from '../components/StatusSelect';
 
 interface Venture {
     id: string;
@@ -30,6 +31,48 @@ interface Venture {
     venture_partner?: string;
     workbench_locked?: boolean;
 }
+
+const OtherDetailsReadOnlySection: React.FC<{ selectedVenture: any }> = ({ selectedVenture }) => {
+    const [open, setOpen] = useState(true);
+    return (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <button
+                onClick={() => setOpen(o => !o)}
+                className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition-colors"
+            >
+                <span className="text-base font-bold text-gray-700">Other support details the venture is seeking from the program</span>
+                <div className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:border-gray-400 transition-colors">
+                    {open ? <ChevronUp className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                </div>
+            </button>
+            {open && (
+                <div className="px-6 pb-6 space-y-4">
+                    {/* Venture's Support Request from Application Form */}
+                    <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
+                            Support Description (from application)
+                        </label>
+                        <div className="w-full min-h-[120px] rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+                            {selectedVenture.support_request || 'No support description provided'}
+                        </div>
+                    </div>
+
+                    {/* VSM Notes (Read-only) */}
+                    {selectedVenture.vsm_notes && (
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
+                                Screening Manager Notes
+                            </label>
+                            <div className="w-full min-h-[120px] rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 whitespace-pre-wrap">
+                                {selectedVenture.vsm_notes}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
 
 export const VentureManagerDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -228,148 +271,183 @@ export const VentureManagerDashboard: React.FC = () => {
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
             {/* Header */}
             {!selectedVenture && (
-                <div className="mb-8 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">
-                            Accelerate Applications <span className="text-gray-400 font-normal ml-2">({filteredVentures.length})</span>
-                        </h1>
-                        <p className="text-gray-500 mt-1">Review and manage Accelerate Prime ventures.</p>
+                <>
+                    <div className="mb-6 flex justify-between items-center">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900">
+                                Accelerate Applications <span className="text-gray-400 font-normal ml-2">({filteredVentures.length})</span>
+                            </h1>
+                            <p className="text-gray-500 mt-1">Review and manage Accelerate Prime ventures.</p>
+                        </div>
+
+                        {/* Status Filter */}
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium text-gray-700">Status:</label>
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            >
+                                <option value="all">All</option>
+                                <option value="Submitted">Submitted</option>
+                                <option value="Under Review">Under Review</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Rejected">Rejected</option>
+                            </select>
+                        </div>
                     </div>
 
-                    {/* Status Filter */}
-                    <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-gray-700">Status:</label>
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                        >
-                            <option value="all">All</option>
-                            <option value="Submitted">Submitted</option>
-                            <option value="Under Review">Under Review</option>
-                            <option value="Approved">Approved</option>
-                            <option value="Rejected">Rejected</option>
-                        </select>
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-3 gap-4 mb-8">
+                        {/* Total Applications */}
+                        <div className="bg-gradient-to-br from-purple-50 to-white rounded-2xl border border-purple-100 p-6">
+                            <div className="flex items-center gap-2 text-purple-600 mb-2">
+                                <Building2 className="w-5 h-5" />
+                                <span className="text-sm font-semibold">Total Applications</span>
+                            </div>
+                            <div className="text-4xl font-bold text-purple-900">{ventures.length}</div>
+                        </div>
+
+                        {/* Under Review */}
+                        <div className="bg-gradient-to-br from-amber-50 to-white rounded-2xl border border-amber-100 p-6">
+                            <div className="flex items-center gap-2 text-amber-600 mb-2">
+                                <TrendingUp className="w-5 h-5" />
+                                <span className="text-sm font-semibold">Under Review</span>
+                            </div>
+                            <div className="text-4xl font-bold text-amber-900">
+                                {ventures.filter(v => v.status === 'Under Review' || v.status === 'Submitted').length}
+                            </div>
+                        </div>
+
+                        {/* Approved */}
+                        <div className="bg-gradient-to-br from-green-50 to-white rounded-2xl border border-green-100 p-6">
+                            <div className="flex items-center gap-2 text-green-600 mb-2">
+                                <CheckCircle className="w-5 h-5" />
+                                <span className="text-sm font-semibold">Approved</span>
+                            </div>
+                            <div className="text-4xl font-bold text-green-900">
+                                {ventures.filter(v => v.status === 'Approved').length}
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </>
             )}
 
             {/* MASTER VIEW: Venture List (Big Cards) */}
             {!selectedVenture ? (
                 <div className="space-y-6">
-                {loading ? (
-                    <div className="flex justify-center p-12">
-                        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                    </div>
-                ) : filteredVentures.length === 0 ? (
-                    <div className="text-center p-12 bg-white rounded-2xl border border-gray-200 text-gray-400">
-                        <Building2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No applications found</h3>
-                        <p className="text-gray-500">
-                            Ventures recommended for Accelerate Prime will appear here
-                        </p>
-                    </div>
-                ) : (
-                    filteredVentures.map(v => (
-                        <div
-                            key={v.id}
-                            onClick={() => handleVentureSelect(v)}
-                            className="bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer p-8 flex items-center justify-between group"
-                        >
-                            {/* Left Column: Identity */}
-                            <div className="space-y-4 w-1/3">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-900 leading-tight group-hover:text-purple-700 transition-colors mb-1">
-                                        {v.name}
-                                    </h2>
-                                    <div className="flex items-center gap-2 text-gray-500 text-sm tracking-wide uppercase font-semibold">
-                                        <Target className="w-4 h-4" />
-                                        {v.location || v.growth_current?.city || v.city || 'Unknown City'}
+                    {loading ? (
+                        <div className="flex justify-center p-12">
+                            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                        </div>
+                    ) : filteredVentures.length === 0 ? (
+                        <div className="text-center p-12 bg-white rounded-2xl border border-gray-200 text-gray-400">
+                            <Building2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No applications found</h3>
+                            <p className="text-gray-500">
+                                Ventures recommended for Accelerate Prime will appear here
+                            </p>
+                        </div>
+                    ) : (
+                        filteredVentures.map(v => (
+                            <div
+                                key={v.id}
+                                onClick={() => handleVentureSelect(v)}
+                                className="bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer p-8 flex items-center justify-between group"
+                            >
+                                {/* Left Column: Identity */}
+                                <div className="space-y-4 w-1/3">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-gray-900 leading-tight group-hover:text-purple-700 transition-colors mb-1">
+                                            {v.name}
+                                        </h2>
+                                        <div className="flex items-center gap-2 text-gray-500 text-sm tracking-wide uppercase font-semibold">
+                                            <Target className="w-4 h-4" />
+                                            {v.location || v.growth_current?.city || v.city || 'Unknown City'}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                        <Users className="w-3.5 h-3.5" />
+                                        {v.founder_name || v.growth_current?.founder_name || 'FOUNDER'}
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-1.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                    <Users className="w-3.5 h-3.5" />
-                                    {v.founder_name || v.growth_current?.founder_name || 'FOUNDER'}
-                                </div>
-                            </div>
+                                {/* Divider */}
+                                <div className="w-px h-24 bg-gray-100 mx-4"></div>
 
-                            {/* Divider */}
-                            <div className="w-px h-24 bg-gray-100 mx-4"></div>
-
-                            {/* Middle Column: Program Status */}
-                            <div className="flex-1 px-8 flex items-center justify-center">
-                                <div className="text-center">
-                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-3">Program Status</span>
-                                    <div className={`px-5 py-2.5 rounded-full text-sm font-bold ${
-                                        v.program_recommendation
+                                {/* Middle Column: Program Status */}
+                                <div className="flex-1 px-8 flex items-center justify-center">
+                                    <div className="text-center">
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-3">Program Status</span>
+                                        <div className={`px-5 py-2.5 rounded-full text-sm font-bold ${v.program_recommendation
                                             ? 'bg-purple-50 text-purple-700 border border-purple-200'
                                             : 'bg-gray-50 text-gray-600 border border-gray-200'
-                                    }`}>
-                                        {v.program_recommendation || 'Pending Review'}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Divider */}
-                            <div className="w-px h-24 bg-gray-100 mx-4"></div>
-
-                            {/* Right Column: Revenue & Action */}
-                            <div className="flex items-center gap-6 w-1/4 justify-end pl-4">
-                                <div className="text-center">
-                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-3">Revenue (LTM)</span>
-                                    <div className="text-2xl font-bold text-gray-900">
-                                        {v.revenue_12m || v.commitment?.lastYearRevenue || v.commitment?.revenuePotential || 'N/A'}
+                                            }`}>
+                                            {v.program_recommendation || 'Pending Review'}
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-purple-600 group-hover:text-white transition-all transform group-hover:translate-x-1">
-                                    <Send className="w-6 h-6 rotate-0" />
-                                </div>
-                            </div>
-                        </div>
-                    ))
-                )}
+                                {/* Divider */}
+                                <div className="w-px h-24 bg-gray-100 mx-4"></div>
 
-                {/* Summary Stats */}
-                {!loading && filteredVentures.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-                        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-purple-600">Total Applications</p>
-                                    <p className="text-3xl font-bold text-purple-900 mt-1">{ventures.length}</p>
-                                </div>
-                                <Building2 className="w-12 h-12 text-purple-400" />
-                            </div>
-                        </div>
+                                {/* Right Column: Revenue & Action */}
+                                <div className="flex items-center gap-6 w-1/4 justify-end pl-4">
+                                    <div className="text-center">
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-3">Revenue (LTM)</span>
+                                        <div className="text-2xl font-bold text-gray-900">
+                                            {v.revenue_12m || v.commitment?.lastYearRevenue || v.commitment?.revenuePotential || 'N/A'}
+                                        </div>
+                                    </div>
 
-                        <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 border border-yellow-200">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-yellow-600">Under Review</p>
-                                    <p className="text-3xl font-bold text-yellow-900 mt-1">
-                                        {ventures.filter(v => v.status === 'Under Review').length}
-                                    </p>
+                                    <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-purple-600 group-hover:text-white transition-all transform group-hover:translate-x-1">
+                                        <Send className="w-6 h-6 rotate-0" />
+                                    </div>
                                 </div>
-                                <TrendingUp className="w-12 h-12 text-yellow-400" />
                             </div>
-                        </div>
+                        ))
+                    )}
 
-                        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-green-600">Approved</p>
-                                    <p className="text-3xl font-bold text-green-900 mt-1">
-                                        {ventures.filter(v => v.status === 'Approved').length}
-                                    </p>
+                    {/* Summary Stats */}
+                    {!loading && filteredVentures.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-purple-600">Total Applications</p>
+                                        <p className="text-3xl font-bold text-purple-900 mt-1">{ventures.length}</p>
+                                    </div>
+                                    <Building2 className="w-12 h-12 text-purple-400" />
                                 </div>
-                                <Sparkles className="w-12 h-12 text-green-400" />
+                            </div>
+
+                            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 border border-yellow-200">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-yellow-600">Under Review</p>
+                                        <p className="text-3xl font-bold text-yellow-900 mt-1">
+                                            {ventures.filter(v => v.status === 'Under Review').length}
+                                        </p>
+                                    </div>
+                                    <TrendingUp className="w-12 h-12 text-yellow-400" />
+                                </div>
+                            </div>
+
+                            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-green-600">Approved</p>
+                                        <p className="text-3xl font-bold text-green-900 mt-1">
+                                            {ventures.filter(v => v.status === 'Approved').length}
+                                        </p>
+                                    </div>
+                                    <Sparkles className="w-12 h-12 text-green-400" />
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
             ) : (
                 /* DETAIL VIEW: Screening Manager's Assessment */
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -518,15 +596,144 @@ export const VentureManagerDashboard: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* VSM Notes */}
-                        {selectedVenture.vsm_notes && (
-                            <div className="bg-white rounded-xl border border-gray-200 p-6">
-                                <h3 className="text-base font-bold text-gray-700 mb-4">Screening Manager Notes</h3>
-                                <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 whitespace-pre-wrap border border-gray-100">
-                                    {selectedVenture.vsm_notes}
-                                </div>
+                        {/* Growth Idea Support Status */}
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900 mb-4">
+                                Growth Idea Support Status
+                            </h2>
+                            <div className="grid grid-cols-3 gap-4">
+                                {/* Row 1 */}
+                                {['Product', 'Go-To-Market (GTM)', 'Capital Planning'].map(stream => {
+                                    const rawStatus = selectedVenture.needs.find((n: any) =>
+                                        n.stream === stream ||
+                                        (stream === 'Go-To-Market (GTM)' && n.stream === 'GTM') ||
+                                        (stream === 'Capital Planning' && n.stream === 'Funding')
+                                    )?.status || 'N/A';
+
+                                    const legacyMapping: Record<string, string> = {
+                                        'Not started': 'Need some guidance',
+                                        'Working on it': 'Need some guidance',
+                                        'On track': "Don't need help",
+                                        'Need some advice': 'Need some guidance',
+                                        'Need guidance': 'Need some guidance',
+                                        'Completed': "Don't need help",
+                                        'Done': "Don't need help",
+                                        'No help needed': "Don't need help"
+                                    };
+
+                                    const mappedStatus = legacyMapping[rawStatus] || rawStatus;
+                                    const normalizedStatus = Object.keys(STATUS_CONFIG).find(
+                                        key => key.toLowerCase() === mappedStatus?.toLowerCase()
+                                    ) || mappedStatus;
+
+                                    const config = STATUS_CONFIG[normalizedStatus] || {
+                                        icon: HelpCircle,
+                                        color: 'text-gray-400',
+                                        bg: 'bg-gray-50',
+                                        border: 'border-gray-200'
+                                    };
+
+                                    const Icon = config.icon;
+
+                                    return (
+                                        <div key={stream}>
+                                            <span className="text-sm font-semibold text-gray-900 block mb-2">{stream}</span>
+                                            <div className={`p-3 rounded-lg text-sm font-medium flex items-center gap-2 border ${config.bg} ${config.border} ${config.color}`}>
+                                                <Icon className="w-4 h-4" />
+                                                {normalizedStatus}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        )}
+                            <div className="grid grid-cols-3 gap-4 mt-4">
+                                {/* Row 2 */}
+                                {['Supply Chain', 'Operations', 'Team'].map(stream => {
+                                    const rawStatus = selectedVenture.needs.find((n: any) =>
+                                        n.stream === stream ||
+                                        (stream === 'Supply Chain' && n.stream === 'SupplyChain')
+                                    )?.status || 'N/A';
+
+                                    const legacyMapping: Record<string, string> = {
+                                        'Not started': 'Need some guidance',
+                                        'Working on it': 'Need some guidance',
+                                        'On track': "Don't need help",
+                                        'Need some advice': 'Need some guidance',
+                                        'Need guidance': 'Need some guidance',
+                                        'Completed': "Don't need help",
+                                        'Done': "Don't need help",
+                                        'No help needed': "Don't need help"
+                                    };
+
+                                    const mappedStatus = legacyMapping[rawStatus] || rawStatus;
+                                    const normalizedStatus = Object.keys(STATUS_CONFIG).find(
+                                        key => key.toLowerCase() === mappedStatus?.toLowerCase()
+                                    ) || mappedStatus;
+
+                                    const config = STATUS_CONFIG[normalizedStatus] || {
+                                        icon: HelpCircle,
+                                        color: 'text-gray-400',
+                                        bg: 'bg-gray-50',
+                                        border: 'border-gray-200'
+                                    };
+
+                                    const Icon = config.icon;
+
+                                    return (
+                                        <div key={stream}>
+                                            <span className="text-sm font-semibold text-gray-900 block mb-2">{stream}</span>
+                                            <div className={`p-3 rounded-lg text-sm font-medium flex items-center gap-2 border ${config.bg} ${config.border} ${config.color}`}>
+                                                <Icon className="w-4 h-4" />
+                                                {normalizedStatus}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Company Document */}
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900 mb-4">
+                                Company Document
+                            </h2>
+                            <div className="bg-white border border-gray-200 rounded-xl p-6">
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Corporate presentation uploaded by the venture (screening manager can download)
+                                </p>
+                                {(selectedVenture as any).document_url || (selectedVenture as any).corporate_presentation_url ? (
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex-1 flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                            <FileText className="w-5 h-5 text-blue-600" />
+                                            <span className="text-sm font-medium text-gray-900">
+                                                {(selectedVenture as any).document_name || 'Corporate Presentation.pdf'}
+                                            </span>
+                                        </div>
+                                        <a
+                                            href={(selectedVenture as any).document_url || (selectedVenture as any).corporate_presentation_url}
+                                            download
+                                            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm font-semibold"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            Download
+                                        </a>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200 text-gray-500">
+                                        <AlertTriangle className="w-5 h-5 text-amber-500" />
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-700">No document uploaded</p>
+                                            <p className="text-xs text-gray-500 mt-1">The venture did not upload a corporate presentation</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Other Support Details */}
+                        <OtherDetailsReadOnlySection selectedVenture={selectedVenture} />
 
                         {/* AI Analysis */}
                         {selectedVenture.ai_analysis && (
@@ -599,6 +806,9 @@ export const VentureManagerDashboard: React.FC = () => {
                             </div>
                         </div>
 
+                        {/* Interactions Section */}
+                        <InteractionsSection ventureId={selectedVenture.id} />
+
                         {/* Journey Roadmap */}
                         <div className="bg-gradient-to-br from-indigo-50 to-white rounded-2xl border border-indigo-200 p-8 shadow-sm">
                             <div className="flex items-center justify-between mb-4">
@@ -661,323 +871,320 @@ export const VentureManagerDashboard: React.FC = () => {
 
                             {roadmapGenerated && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {/* Product */}
-                                <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider">Product</h3>
-                                        <ChevronRight className="w-5 h-5 text-gray-300" />
+                                    {/* Product */}
+                                    <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider">Product</h3>
+                                            <ChevronRight className="w-5 h-5 text-gray-300" />
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Core API Specs</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Technical specifications for public and internal endpoints.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">UI Design System</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Global Figma library and component standards.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">V1.2 Integration</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Middleware bridge for legacy data retrofitting.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Infrastructure</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Multi-region cloud deployment strategy.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Unit Testing</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Standardized QA suite for core services.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Security Audit</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Third-party penetration testing and compliance.</p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="space-y-4">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Core API Specs</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Technical specifications for public and internal endpoints.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">UI Design System</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Global Figma library and component standards.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">V1.2 Integration</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Middleware bridge for legacy data retrofitting.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Infrastructure</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Multi-region cloud deployment strategy.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Unit Testing</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Standardized QA suite for core services.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Security Audit</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Third-party penetration testing and compliance.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                {/* GTM */}
-                                <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider">GTM</h3>
-                                        <ChevronRight className="w-5 h-5 text-gray-300" />
+                                    {/* GTM */}
+                                    <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider">GTM</h3>
+                                            <ChevronRight className="w-5 h-5 text-gray-300" />
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">ICP Definition</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Detailed profile of high-value manufacturing clients.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Distribution</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Partner channel mapping and commission structures.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Referral Program</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Incentive model for existing customer advocacy.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Partner Ecosystem</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Integration directory for third-party providers.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Pricing Strategy</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Tiered subscription and volume discount model.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Sales Launch</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Regional enablement kit for direct sales teams.</p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="space-y-4">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">ICP Definition</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Detailed profile of high-value manufacturing clients.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Distribution</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Partner channel mapping and commission structures.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Referral Program</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Incentive model for existing customer advocacy.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Partner Ecosystem</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Integration directory for third-party providers.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Pricing Strategy</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Tiered subscription and volume discount model.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Sales Launch</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Regional enablement kit for direct sales teams.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                {/* Funding */}
-                                <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider">Funding</h3>
-                                        <ChevronRight className="w-5 h-5 text-gray-300" />
+                                    {/* Funding */}
+                                    <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider">Funding</h3>
+                                            <ChevronRight className="w-5 h-5 text-gray-300" />
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Series A Pitch</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Updated narrative for institutional growth rounds.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Financial Metrics</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Historical performance and 24-month projections.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Data Room</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Encrypted document repository for due diligence.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Investor Outreach</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">CRM tracking for potential VC partners.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Financial Model</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Excel-based dynamic budget and burn calculator.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Exit Strategy</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">M&A landscape analysis and valuation benchmarks.</p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="space-y-4">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Series A Pitch</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Updated narrative for institutional growth rounds.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Financial Metrics</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Historical performance and 24-month projections.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Data Room</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Encrypted document repository for due diligence.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Investor Outreach</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">CRM tracking for potential VC partners.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Financial Model</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Excel-based dynamic budget and burn calculator.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Exit Strategy</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">M&A landscape analysis and valuation benchmarks.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                {/* Supply Chain */}
-                                <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider">Supply Chain</h3>
-                                        <ChevronRight className="w-5 h-5 text-gray-300" />
+                                    {/* Supply Chain */}
+                                    <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider">Supply Chain</h3>
+                                            <ChevronRight className="w-5 h-5 text-gray-300" />
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Lead Time Gap</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Analysis of hardware delays vs scaling targets.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Vendor Review</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Quarterly performance scorecard for key suppliers.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Inventory Forecast</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">AI-driven predictive stock requirements.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Logistics Audit</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Freight cost optimization and route analysis.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Compliance Review</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Regulatory certification status for global trade.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Safety Stock</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Buffering strategy for mission-critical components.</p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="space-y-4">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Lead Time Gap</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Analysis of hardware delays vs scaling targets.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Vendor Review</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Quarterly performance scorecard for key suppliers.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Inventory Forecast</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">AI-driven predictive stock requirements.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Logistics Audit</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Freight cost optimization and route analysis.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Compliance Review</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Regulatory certification status for global trade.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Safety Stock</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Buffering strategy for mission-critical components.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                {/* Operations */}
-                                <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider">Operations</h3>
-                                        <ChevronRight className="w-5 h-5 text-gray-300" />
+                                    {/* Operations */}
+                                    <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider">Operations</h3>
+                                            <ChevronRight className="w-5 h-5 text-gray-300" />
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">ERP Integration</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Centralized management of ops and finance.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Team Training</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Internal platform for onboarding new staff.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Automation</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Standardization of routine warehouse tasks.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Office Expansion</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Real estate planning for the EMEA headquarters.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Compliance Audit</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Internal review of data privacy and safety.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Disaster Recovery</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Backup protocols and emergency business plan.</p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="space-y-4">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">ERP Integration</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Centralized management of ops and finance.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Team Training</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Internal platform for onboarding new staff.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Automation</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Standardization of routine warehouse tasks.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Office Expansion</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Real estate planning for the EMEA headquarters.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Compliance Audit</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Internal review of data privacy and safety.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Disaster Recovery</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Backup protocols and emergency business plan.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                {/* Team */}
-                                <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider">Team</h3>
-                                        <ChevronRight className="w-5 h-5 text-gray-300" />
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Hiring Handbook</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Standardized interview and offer procedures.</p>
-                                            </div>
+                                    {/* Team */}
+                                    <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider">Team</h3>
+                                            <ChevronRight className="w-5 h-5 text-gray-300" />
                                         </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Appraisal Framework</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Semi-annual performance review methodology.</p>
+                                        <div className="space-y-4">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Hiring Handbook</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Standardized interview and offer procedures.</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Individual Metrics</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">KPI dashboards for all department leads.</p>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Appraisal Framework</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Semi-annual performance review methodology.</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Equity Program</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Option pool allocation and vesting schedules.</p>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Individual Metrics</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">KPI dashboards for all department leads.</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Culture Workshop</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Mission alignment for remote global teams.</p>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Equity Program</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Option pool allocation and vesting schedules.</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0 mt-2" />
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">Benefits Overhaul</p>
-                                                <p className="text-xs text-gray-500 italic mt-0.5">Comparison study of regional health plans.</p>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Culture Workshop</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Mission alignment for remote global teams.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0 mt-2" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">Benefits Overhaul</p>
+                                                    <p className="text-xs text-gray-500 italic mt-0.5">Comparison study of regional health plans.</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
                             )}
                         </div>
-
-                        {/* Interactions Section */}
-                        <InteractionsSection ventureId={selectedVenture.id} />
 
                         {/* Commitment & Approval Section */}
                         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">

@@ -208,10 +208,10 @@ const RecommendProgramSection: React.FC<{
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select a program</label>
                 <select className="w-full p-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none text-sm text-gray-800" value={program} onChange={e => setProgram(e.target.value)}>
                     <option value="">Select a program…</option>
-                    <option value="Selfserve">Self-Serve (Digital Only)</option>
-                    <option value="Accelerate Core">Accelerate Core (Early Stage)</option>
-                    <option value="Accelerate Select">Accelerate Select (Growth Stage)</option>
-                    <option value="Accelerate Prime">Accelerate Prime (Scaling)</option>
+                    <option value="Selfserve">Self-Serve</option>
+                    <option value="Accelerate Core">Accelerate Core</option>
+                    <option value="Accelerate Select">Accelerate Select</option>
+                    <option value="Accelerate Prime">Accelerate Prime</option>
                 </select>
             </div>
             {userRole === 'committee' && (
