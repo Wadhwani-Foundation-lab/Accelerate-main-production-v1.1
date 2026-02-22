@@ -562,15 +562,15 @@ export const NewApplication: React.FC = () => {
                             </p>
                             <div className="grid grid-cols-3 gap-3">
                                 {([
-                                    { key: 'product' as GrowthType, label: 'NEW PRODUCT/SERVICE' },
-                                    { key: 'segment' as GrowthType, label: 'NEW SEGMENT' },
-                                    { key: 'geography' as GrowthType, label: 'NEW GEOGRAPHY' },
+                                    { key: 'product' as GrowthType, label: 'New Product or Service' },
+                                    { key: 'segment' as GrowthType, label: 'New type of customer' },
+                                    { key: 'geography' as GrowthType, label: 'New place, city or country' },
                                 ]).map(({ key, label }) => (
                                     <button
                                         key={key}
                                         type="button"
                                         onClick={() => toggleGrowthType(key)}
-                                        className={`px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${selectedGrowthTypes.includes(key)
+                                        className={`px-4 py-3.5 rounded-xl text-xs font-bold tracking-wider transition-all border ${selectedGrowthTypes.includes(key)
                                             ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/25'
                                             : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                                             }`}
