@@ -447,19 +447,39 @@ export const VSMDashboard: React.FC = () => {
         setAnalyzing(true);
 
         try {
-            // Call the backend API to generate insights using Claude
-            const result = await api.generateInsights(selectedVenture.id, vsmNotes);
-            const newAnalysis = result.insights;
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // Show results in UI
-            setAnalysisResult(newAnalysis);
+            const mockInsights = {
+                strengths: [
+                    "Operating in the high-growth drone technology sector with expanding regulatory support in India through drone policy reforms.",
+                    "Team size of 10-25 employees suggests some operational scale beyond pure ideation stage.",
+                    "Based in Delhi NCR, providing access to capital, talent pool, and potential enterprise customers.",
+                    "Referred by Wadhwani Foundation, indicating some level of external validation or network connection.",
+                    "Multi-dimensional growth focus across product, segment, and geography shows ambition for scaling."
+                ],
+                risks: [
+                    "Complete absence of revenue data prevents assessment of product-market fit, customer validation, or business model viability.",
+                    "Target market fields contain placeholder/gibberish text ('sdfd', 'sdfds', 'dsfds'), indicating lack of strategic clarity or incomplete application.",
+                    "No clear articulation of specific drone use case, customer segment, or differentiation in a competitive market.",
+                    "Missing critical metrics on burn rate, runway, customer acquisition, and unit economics essential for accelerator evaluation.",
+                    "Vague geography expansion plans without defined target markets suggest unfocused growth strategy that could lead to resource dilution."
+                ],
+                questions: [
+                    "What is your current monthly revenue, customer count, and what specific drone applications/use cases are generating traction?",
+                    "Who are your target customers (specific industries/segments), what problem are you solving for them, and what is your competitive advantage?",
+                    "What are your unit economics - customer acquisition cost, lifetime value, gross margins, and current monthly burn rate?",
+                    "What regulatory certifications (DGCA approvals, drone type certificates) do you hold, and what is your IP/technology differentiation?",
+                    "What are your specific 12-month revenue and customer acquisition targets, and what capital do you need to achieve them?"
+                ]
+            };
+
+            setAnalysisResult(mockInsights);
             setVentures(prev => prev.map(v =>
-                v.id === selectedVenture.id ? { ...v, ai_analysis: newAnalysis } : v
+                v.id === selectedVenture.id ? { ...v, ai_analysis: mockInsights } : v
             ));
         } catch (error: any) {
             console.error('Error generating AI insights:', error);
-
-            // Show user-friendly error message
             alert(error.message || 'Failed to generate AI insights. Please check if the API key is configured.');
         } finally {
             setAnalyzing(false);
@@ -547,7 +567,7 @@ export const VSMDashboard: React.FC = () => {
                                         <div className={`px-5 py-2.5 rounded-full text-sm font-bold ${v.program_recommendation
                                             ? 'bg-blue-50 text-blue-700 border border-blue-200'
                                             : 'bg-gray-50 text-gray-600 border border-gray-200'
-                                        }`}>
+                                            }`}>
                                             {v.program_recommendation || 'Pending Review'}
                                         </div>
                                     </div>

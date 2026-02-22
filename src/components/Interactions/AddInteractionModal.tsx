@@ -13,7 +13,6 @@ export const AddInteractionModal: React.FC<AddInteractionModalProps> = ({ onClos
         title: '',
         transcript: '',
         interaction_date: new Date().toISOString().slice(0, 16), // Format for datetime-local
-        duration_minutes: undefined,
         participants: []
     });
     const [participantInput, setParticipantInput] = useState('');
@@ -120,11 +119,10 @@ export const AddInteractionModal: React.FC<AddInteractionModalProps> = ({ onClos
                                             key={type}
                                             type="button"
                                             onClick={() => setFormData({ ...formData, interaction_type: type })}
-                                            className={`p-3 rounded-lg border-2 flex flex-col items-center gap-2 transition-all ${
-                                                isSelected
+                                            className={`p-3 rounded-lg border-2 flex flex-col items-center gap-2 transition-all ${isSelected
                                                     ? 'border-purple-500 bg-purple-50'
                                                     : 'border-gray-200 hover:border-gray-300'
-                                            }`}
+                                                }`}
                                         >
                                             <Icon className={`w-5 h-5 ${isSelected ? 'text-purple-600' : 'text-gray-400'}`} />
                                             <span className={`text-xs font-semibold capitalize ${isSelected ? 'text-purple-900' : 'text-gray-600'}`}>
@@ -150,32 +148,17 @@ export const AddInteractionModal: React.FC<AddInteractionModalProps> = ({ onClos
                             />
                         </div>
 
-                        {/* Date and Duration */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Date & Time
-                                </label>
-                                <input
-                                    type="datetime-local"
-                                    value={formData.interaction_date}
-                                    onChange={(e) => setFormData({ ...formData, interaction_date: e.target.value })}
-                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-100 focus:border-purple-300 outline-none"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Duration <span className="text-gray-400 font-normal">(minutes)</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    value={formData.duration_minutes || ''}
-                                    onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value ? parseInt(e.target.value) : undefined })}
-                                    placeholder="30"
-                                    min="1"
-                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-100 focus:border-purple-300 outline-none"
-                                />
-                            </div>
+                        {/* Date and Time */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Date & Time
+                            </label>
+                            <input
+                                type="datetime-local"
+                                value={formData.interaction_date}
+                                onChange={(e) => setFormData({ ...formData, interaction_date: e.target.value })}
+                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-100 focus:border-purple-300 outline-none"
+                            />
                         </div>
 
                         {/* Participants */}

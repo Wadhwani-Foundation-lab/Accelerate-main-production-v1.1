@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Phone, Video, Mail, FileText, Calendar, Clock, Users as UsersIcon, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Phone, Video, Mail, FileText, Calendar, Users as UsersIcon, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Interaction } from '../../types/interactions';
 
 interface InteractionCardProps {
@@ -64,13 +64,6 @@ export const InteractionCard: React.FC<InteractionCardProps> = ({ interaction, o
                                     <Calendar className="w-3.5 h-3.5" />
                                     {formatDate(interaction.interaction_date)}
                                 </div>
-
-                                {interaction.duration_minutes && (
-                                    <div className="flex items-center gap-1.5">
-                                        <Clock className="w-3.5 h-3.5" />
-                                        {interaction.duration_minutes} min
-                                    </div>
-                                )}
 
                                 {interaction.participants && interaction.participants.length > 0 && (
                                     <div className="flex items-center gap-1.5">

@@ -1147,12 +1147,12 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Commitment & Approval Section */}
+                        {/* Finalize Program Section */}
                         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
                                 <div className="flex items-center gap-2">
                                     <CheckCircle className="w-5 h-5 text-gray-400" />
-                                    <span className="text-base font-bold text-gray-700">Commitment & Approval</span>
+                                    <span className="text-base font-bold text-gray-700">Finalize Program</span>
                                 </div>
                                 {selectedVenture.status === 'Agreement Sent' && (
                                     <span className="text-xs text-green-600 font-medium bg-green-50 px-3 py-1 rounded-full border border-green-200">

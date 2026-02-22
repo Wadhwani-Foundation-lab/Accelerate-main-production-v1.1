@@ -13,7 +13,6 @@ const createInteractionSchema = z.object({
     title: z.string().optional(),
     transcript: z.string().min(1, 'Transcript/notes cannot be empty'),
     interaction_date: z.string().optional(),
-    duration_minutes: z.number().optional(),
     participants: z.array(z.string()).optional()
 });
 
@@ -22,7 +21,6 @@ const updateInteractionSchema = z.object({
     title: z.string().optional(),
     transcript: z.string().optional(),
     interaction_date: z.string().optional(),
-    duration_minutes: z.number().optional(),
     participants: z.array(z.string()).optional()
 });
 

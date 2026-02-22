@@ -8,7 +8,6 @@ export interface Interaction {
     created_at: string;
     updated_at: string;
     interaction_date: string;
-    duration_minutes?: number;
     participants?: string[];
     deleted_at?: string | null;
     created_by_user?: {
@@ -22,7 +21,6 @@ export interface CreateInteractionInput {
     title?: string;
     transcript: string;
     interaction_date?: string;
-    duration_minutes?: number;
     participants?: string[];
 }
 
@@ -31,6 +29,5 @@ export interface UpdateInteractionInput {
     title?: string;
     transcript?: string;
     interaction_date?: string;
-    duration_minutes?: number;
     participants?: string[];
 }
