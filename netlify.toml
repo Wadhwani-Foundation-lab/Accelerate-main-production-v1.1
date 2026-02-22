@@ -5,6 +5,8 @@
 # Disable secrets scanning for documentation and example files
 [build.environment]
   SECRETS_SCAN_OMIT_PATHS = ".env,.env.example,backend/.env,backend/.env.example,*.md,docs/**,scripts/**,backend/API_TESTING.md,README.md,SETUP.md,DEPLOYMENT.md,API_CONFIGURATION.md"
+  # Omit public frontend keys from secrets scanning (these SHOULD be in the build)
+  SECRETS_SCAN_OMIT_KEYS = "VITE_API_URL,VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY"
 
 [[redirects]]
   from = "/*"
