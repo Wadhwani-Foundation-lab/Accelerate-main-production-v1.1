@@ -258,6 +258,32 @@ class ApiClient {
 
         if (error) throw error;
     }
+
+    // ============ AI INSIGHTS ENDPOINTS ============
+
+    async generateInsights(ventureId: string, vsmNotes?: string) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+        const response = await fetch(`${API_URL}/api/ventures/${ventureId}/generate-insights`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ vsm_notes: vsmNotes })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to generate AI insights');
+        }
+
+        const data = await response.json();
+        return data; // Returns { message, insights }
+    }
 }
 
 export const api = new ApiClient();

@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import * as ventureService from '../services/ventureService';
+import * as aiService from '../services/aiService';
 import { authenticateUser } from '../middleware/auth';
 import { validateBody, validateQuery } from '../middleware/validate';
 import { createAuthenticatedClient } from '../config/supabase';
@@ -175,6 +176,76 @@ router.post(
             });
         } catch (error) {
             next(error);
+        }
+    }
+);
+
+/**
+ * POST /api/ventures/:id/generate-insights
+ * Generate AI insights for a venture using Claude API
+ */
+router.post(
+    '/:id/generate-insights',
+    authenticateUser,
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { supabase, role } = await getContext(req);
+
+            // Only screening managers, venture managers, and committee members can generate insights
+            if (!['success_mgr', 'venture_mgr', 'committee_member', 'admin'].includes(role)) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Only screening managers and above can generate AI insights'
+                });
+            }
+
+            // Get the venture data
+            const { data: venture, error: fetchError } = await supabase
+                .from('ventures')
+                .select('*')
+                .eq('id', req.params.id)
+                .single();
+
+            if (fetchError || !venture) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Venture not found'
+                });
+            }
+
+            // Get VSM notes from request body (optional)
+            const vsmNotes = req.body.vsm_notes || venture.vsm_notes || '';
+
+            // Generate insights using Claude API
+            const insights = await aiService.generateVentureInsights(venture, vsmNotes);
+
+            // Save insights to database
+            const { error: updateError } = await supabase
+                .from('ventures')
+                .update({
+                    ai_analysis: insights,
+                    vsm_reviewed_at: new Date().toISOString()
+                })
+                .eq('id', req.params.id);
+
+            if (updateError) {
+                console.error('Error saving insights to database:', updateError);
+                // Return insights anyway, even if DB save fails
+            }
+
+            successResponse(res, {
+                message: 'AI insights generated successfully',
+                insights
+            });
+        } catch (error: any) {
+            console.error('Error generating AI insights:', error);
+
+            // Return user-friendly error message
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to generate AI insights',
+                error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            });
         }
     }
 );

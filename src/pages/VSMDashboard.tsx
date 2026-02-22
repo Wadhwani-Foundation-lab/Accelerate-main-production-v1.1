@@ -446,46 +446,24 @@ export const VSMDashboard: React.FC = () => {
         if (!selectedVenture) return;
         setAnalyzing(true);
 
-        // Simulate Context-Aware Analysis based on transcript
-        setTimeout(async () => {
-            const newAnalysis = {
-                recommendation: 'Accelerate Core',
-                generated_at: new Date().toISOString(),
-                summary: `Evaluated "${selectedVenture.name}" targeting ${selectedVenture.growth_focus}. The venture shows strong traction with ${selectedVenture.revenue_12m || 'N/A'} revenue but faces risks in the ${selectedVenture.growth_target?.geography || 'target region'}. Founder notes indicate: "${vsmNotes.substring(0, 50)}..."`,
-                context: "Sector Analysis: High growth potential in this vertical.",
-                strengths: [
-                    "Strong revenue base (LTM).",
-                    `Clear focus on ${selectedVenture.growth_focus}.`,
-                    "Experienced team structure."
-                ],
-                risks: [
-                    "Competitive landscape in new geography.",
-                    "Capital efficiency concern.",
-                    "Go-to-market strategy needs refinement."
-                ],
-                questions: [
-                    "How do you plan to acquire the first 10 customers in the new segment?",
-                    "What is the breakdown of the 3-year revenue potential?",
-                    "Can you elaborate on the specific compliance hurdles?",
-                    "What is the burn rate impact of the new hiring plan?",
-                    "How does the current product adapt to the new market?"
-                ]
-            };
+        try {
+            // Call the backend API to generate insights using Claude
+            const result = await api.generateInsights(selectedVenture.id, vsmNotes);
+            const newAnalysis = result.insights;
 
-            // Show results in UI immediately regardless of DB save outcome
+            // Show results in UI
             setAnalysisResult(newAnalysis);
             setVentures(prev => prev.map(v =>
                 v.id === selectedVenture.id ? { ...v, ai_analysis: newAnalysis } : v
             ));
-            setAnalyzing(false);
+        } catch (error: any) {
+            console.error('Error generating AI insights:', error);
 
-            // Try to persist to DB in the background (non-blocking)
-            try {
-                await api.updateVenture(selectedVenture.id, { ai_analysis: newAnalysis });
-            } catch (err) {
-                console.warn("Could not persist AI analysis to DB (non-critical):", err);
-            }
-        }, 2000);
+            // Show user-friendly error message
+            alert(error.message || 'Failed to generate AI insights. Please check if the API key is configured.');
+        } finally {
+            setAnalyzing(false);
+        }
     };
 
     const saveProfileChanges = async () => {

@@ -570,7 +570,7 @@ export const NewApplication: React.FC = () => {
                                         key={key}
                                         type="button"
                                         onClick={() => toggleGrowthType(key)}
-                                        className={`px-4 py-3.5 rounded-xl text-xs font-bold tracking-wider transition-all border ${selectedGrowthTypes.includes(key)
+                                        className={`px-3 py-3.5 rounded-xl text-[11px] font-bold tracking-wide transition-all border ${selectedGrowthTypes.includes(key)
                                             ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/25'
                                             : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                                             }`}
