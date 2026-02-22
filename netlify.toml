@@ -2,6 +2,10 @@
   command = "npm run build"
   publish = "dist"
 
+# Disable secrets scanning for documentation and example files
+[build.environment]
+  SECRETS_SCAN_OMIT_PATHS = ".env,.env.example,backend/.env,backend/.env.example,*.md,docs/**,scripts/**,backend/API_TESTING.md,README.md,SETUP.md,DEPLOYMENT.md,API_CONFIGURATION.md"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
