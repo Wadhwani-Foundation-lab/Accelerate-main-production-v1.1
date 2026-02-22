@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
-import { ArrowLeft, CheckCircle, FileText, Loader2, PenTool, Lock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, FileText, Loader2, Lock, AlertCircle, Zap, Users, ShieldCheck, ArrowUpRight, Search, Clock } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { StatusSelect } from '../components/StatusSelect';
 
@@ -172,85 +172,229 @@ export const VentureWorkbench = () => {
 
                 {!isSigned ? (
                     // SIGNING VIEW
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden max-w-4xl mx-auto">
-                        <div className="p-8 border-b border-gray-100 bg-gray-50/50">
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                    <FileText className="w-6 h-6 text-blue-600" />
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-gray-900">Partnership Agreement</h2>
-                                    <p className="text-gray-500">Please review the terms and milestones for the {venture.final_program || venture.program} program.</p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div className="bg-white p-3 rounded border border-gray-200">
-                                    <span className="text-gray-500 block text-xs uppercase font-bold mb-1">Venture Partner</span>
-                                    <span className="font-medium text-gray-900">{venture.venture_partner || 'Pending Assignment'}</span>
-                                </div>
-                                <div className="bg-white p-3 rounded border border-gray-200">
-                                    <span className="text-gray-500 block text-xs uppercase font-bold mb-1">Program Tier</span>
-                                    <span className="font-medium text-blue-600">{venture.final_program || venture.program}</span>
-                                </div>
-                            </div>
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden max-w-5xl mx-auto">
+                        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-gray-900">Review contract</h2>
                         </div>
 
-                        <div className="p-8 space-y-8">
-                            <div className="prose prose-sm max-w-none text-gray-600">
-                                <h3 className="text-gray-900 font-bold">1. Program Milestones</h3>
-                                <p>The following milestones have been defined for your engagement:</p>
-
-                                <div className="space-y-4 mt-4">
-                                    {Object.keys(milestonesByCategory).length > 0 ? (
-                                        Object.entries(milestonesByCategory).map(([category, items]: [string, any]) => (
-                                            <div key={category} className="border border-gray-100 rounded-lg p-4 bg-gray-50">
-                                                <h4 className="font-bold text-gray-800 mb-2">{category}</h4>
-                                                <ul className="list-disc pl-5 space-y-1">
-                                                    {(items as string[]).map((item, i) => (
-                                                        <li key={i}>{item}</li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <p className="italic text-gray-400">No specific milestones defined yet.</p>
-                                    )}
+                        <div className="divide-y divide-gray-200">
+                            {/* Roadmap */}
+                            <div className="flex flex-col md:flex-row">
+                                <div className="md:w-1/4 bg-gray-50/50 p-6 font-semibold text-gray-700 md:border-r border-gray-200 flex items-start">
+                                    Roadmap
                                 </div>
-
-                                <h3 className="text-gray-900 font-bold mt-8">2. Terms & Conditions</h3>
-                                <p>By accepting this agreement, you commit to actively participating in the program, attending scheduled sessions with your Venture Partner, and working towards the defined milestones.</p>
+                                <div className="md:w-3/4 p-6">
+                                    {/* Roadmap Content */}
+                                    <div className="space-y-4">
+                                        {Object.keys(milestonesByCategory).length > 0 ? (
+                                            Object.entries(milestonesByCategory).map(([category, items]: [string, any]) => (
+                                                <div key={category} className="border border-gray-100 rounded-lg p-4 bg-gray-50/50">
+                                                    <h4 className="font-bold text-gray-800 mb-2">{category}</h4>
+                                                    <ul className="list-disc pl-5 space-y-1">
+                                                        {(items as string[]).map((item, i) => (
+                                                            <li key={i} className="text-gray-600 text-sm">{item}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="italic text-gray-400">No specific roadmap milestones defined yet.</p>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="border-t border-gray-100 pt-6">
-                                <label className="flex items-center gap-3 cursor-pointer group">
-                                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${accepted ? 'bg-blue-600 border-blue-600' : 'border-gray-300 group-hover:border-blue-400'}`}>
-                                        {accepted && <CheckCircle className="w-3.5 h-3.5 text-white" />}
-                                    </div>
-                                    <input
-                                        type="checkbox"
-                                        className="hidden"
-                                        checked={accepted}
-                                        onChange={(e) => setAccepted(e.target.checked)}
-                                    />
-                                    <span className="text-sm font-medium text-gray-700">I have read and agree to the partnership terms and milestones.</span>
-                                </label>
+                            {/* Support provided */}
+                            <div className="flex flex-col md:flex-row border-t border-gray-200">
+                                <div className="md:w-1/4 bg-gray-50/50 p-6 font-semibold text-gray-700 md:border-r border-gray-200 flex items-start">
+                                    Support provided
+                                </div>
+                                <div className="md:w-3/4 p-6">
+                                    {/* Support Provided Content */}
+                                    <div className="bg-slate-50/50 rounded-xl p-6 border border-slate-100">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center">
+                                                <Zap className="w-4 h-4 text-white" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-black text-gray-900 text-sm tracking-wide">SUPPORT PROVIDED</h3>
+                                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Resources & Advisory Access</p>
+                                            </div>
+                                        </div>
 
-                                <Button
-                                    className="w-full mt-6 bg-blue-600 hover:bg-blue-700 h-12 text-base"
-                                    disabled={!accepted || signing}
-                                    onClick={handleSignAgreement}
-                                >
-                                    {signing ? (
-                                        <span className="flex items-center gap-2">
-                                            <Loader2 className="w-4 h-4 animate-spin" /> Signing...
-                                        </span>
-                                    ) : (
-                                        <span className="flex items-center gap-2">
-                                            <PenTool className="w-4 h-4" /> Sign & Accept Agreement
-                                        </span>
-                                    )}
-                                </Button>
+                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                                                <Zap className="w-5 h-5 text-blue-500 mb-3" />
+                                                <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Virtual Growth Accelerator</h4>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed group-hover:text-gray-700">Full access to our digital scaling environment.</p>
+                                            </div>
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                                                <Users className="w-5 h-5 text-blue-500 mb-3" />
+                                                <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Masterclasses</h4>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed">Expert-led sessions with industry-specific training.</p>
+                                            </div>
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                                                <FileText className="w-5 h-5 text-blue-500 mb-3" />
+                                                <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Stream Overviews</h4>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed">Strategy & tips developed by experts for each department.</p>
+                                            </div>
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                                                <FileText className="w-5 h-5 text-blue-500 mb-3" />
+                                                <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Deliverable Playbooks</h4>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed">Step-by-step guides for every project milestone.</p>
+                                            </div>
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col min-h-[140px]">
+                                                <Clock className="w-5 h-5 text-blue-500 mb-3" />
+                                                <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Expert Hours (Sprint)</h4>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed mb-4">First 60 days of intensive support.</p>
+                                                <div className="mt-auto">
+                                                    <div className="text-[8px] font-bold text-blue-600 uppercase mb-1">Specified Hours</div>
+                                                    <div className="bg-gray-50 rounded px-2 py-1 text-xs font-bold flex justify-between">
+                                                        40 <span className="text-gray-400">HRS</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col min-h-[140px]">
+                                                <Clock className="w-5 h-5 text-blue-500 mb-3" />
+                                                <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Expert Hours (Journey)</h4>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed mb-4">Ongoing strategic advisory.</p>
+                                                <div className="mt-auto">
+                                                    <div className="text-[8px] font-bold text-blue-600 uppercase mb-1">Specified Hours</div>
+                                                    <div className="bg-gray-50 rounded px-2 py-1 text-xs font-bold flex justify-between">
+                                                        120 <span className="text-gray-400">HRS</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col">
+                                                <ArrowUpRight className="w-5 h-5 text-blue-500 mb-3" />
+                                                <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Provider Referrals</h4>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed">Vetted network of verified service providers.</p>
+                                            </div>
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col">
+                                                <Search className="w-5 h-5 text-blue-500 mb-3" />
+                                                <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Research Reports</h4>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed">In-depth market and stream analytics documents.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Venture commitment */}
+                            <div className="flex flex-col md:flex-row border-t border-gray-200">
+                                <div className="md:w-1/4 bg-gray-50/50 p-6 font-semibold text-gray-700 md:border-r border-gray-200 flex items-start">
+                                    Venture commitment
+                                </div>
+                                <div className="md:w-3/4 p-6">
+                                    <div className="bg-slate-50/50 rounded-xl p-6 border border-slate-100">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="w-8 h-8 rounded bg-red-600 flex items-center justify-center">
+                                                <ShieldCheck className="w-4 h-4 text-white" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-black text-gray-900 text-sm tracking-wide uppercase">Venture Commitment</h3>
+                                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Requirements for participation</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
+                                            <div className="flex gap-3">
+                                                <div className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <CheckCircle className="w-3 h-3 text-red-500" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-900 uppercase mb-1">Journey Progression</h4>
+                                                    <p className="text-[10px] text-gray-500 leading-relaxed">Committed to progressing through all journey items as relevant.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <div className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <CheckCircle className="w-3 h-3 text-red-500" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-900 uppercase mb-1">Stream SPOCs</h4>
+                                                    <p className="text-[10px] text-gray-500 leading-relaxed">Dedicated points of contact for each functional stream.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <div className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <CheckCircle className="w-3 h-3 text-red-500" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-900 uppercase mb-1">Monthly Check-ins</h4>
+                                                    <p className="text-[10px] text-gray-500 leading-relaxed">Regular strategy alignment with Venture Partners.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <div className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <CheckCircle className="w-3 h-3 text-red-500" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-900 uppercase mb-1">Direct Funding</h4>
+                                                    <p className="text-[10px] text-gray-500 leading-relaxed">Budget allocation for additional expert requirements.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <div className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <CheckCircle className="w-3 h-3 text-red-500" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-900 uppercase mb-1">Testimonials</h4>
+                                                    <p className="text-[10px] text-gray-500 leading-relaxed">Willingness to share success stories and case studies.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <div className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <CheckCircle className="w-3 h-3 text-red-500" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-900 uppercase mb-1">Impact Data</h4>
+                                                    <p className="text-[10px] text-gray-500 leading-relaxed">Growth and jobs inputs for our impact reporting team.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Checkbox */}
+                            <div className="flex border-t border-gray-200">
+                                <div className="p-6 w-full flex items-center gap-4">
+                                    <label className="flex items-center gap-4 cursor-pointer group">
+                                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${accepted ? 'bg-black border-black text-white' : 'border-gray-300 group-hover:border-gray-500 bg-white text-transparent'}`}>
+                                            <CheckCircle className="w-3.5 h-3.5" strokeWidth={3} />
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            className="hidden"
+                                            checked={accepted}
+                                            onChange={(e) => setAccepted(e.target.checked)}
+                                        />
+                                        <span className="text-base font-bold text-gray-900">I accept the terms and conditions</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex border-t border-gray-200">
+                                <div className="w-1/2 p-4 border-r border-gray-200 flex justify-center">
+                                    <Button variant="outline" className="w-full max-w-[200px] text-gray-700 border-gray-300 font-bold hover:bg-gray-100 hover:text-gray-900">
+                                        Decline
+                                    </Button>
+                                </div>
+                                <div className="w-1/2 p-4 flex justify-center">
+                                    <Button
+                                        className="w-full max-w-[200px] font-bold text-white bg-black hover:bg-gray-800 disabled:bg-gray-300 disabled:text-gray-500"
+                                        disabled={!accepted || signing}
+                                        onClick={handleSignAgreement}
+                                    >
+                                        {signing ? (
+                                            <span className="flex items-center justify-center gap-2">
+                                                <Loader2 className="w-4 h-4 animate-spin" /> Processing...
+                                            </span>
+                                        ) : 'Join Program'}
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </div>

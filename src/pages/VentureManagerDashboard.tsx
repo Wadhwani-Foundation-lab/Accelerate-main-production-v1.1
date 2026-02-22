@@ -408,45 +408,6 @@ export const VentureManagerDashboard: React.FC = () => {
                             </div>
                         ))
                     )}
-
-                    {/* Summary Stats */}
-                    {!loading && filteredVentures.length > 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-                            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium text-purple-600">Total Applications</p>
-                                        <p className="text-3xl font-bold text-purple-900 mt-1">{ventures.length}</p>
-                                    </div>
-                                    <Building2 className="w-12 h-12 text-purple-400" />
-                                </div>
-                            </div>
-
-                            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 border border-yellow-200">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium text-yellow-600">Under Review</p>
-                                        <p className="text-3xl font-bold text-yellow-900 mt-1">
-                                            {ventures.filter(v => v.status === 'Under Review').length}
-                                        </p>
-                                    </div>
-                                    <TrendingUp className="w-12 h-12 text-yellow-400" />
-                                </div>
-                            </div>
-
-                            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium text-green-600">Approved</p>
-                                        <p className="text-3xl font-bold text-green-900 mt-1">
-                                            {ventures.filter(v => v.status === 'Approved').length}
-                                        </p>
-                                    </div>
-                                    <Sparkles className="w-12 h-12 text-green-400" />
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
             ) : (
                 /* DETAIL VIEW: Screening Manager's Assessment */
