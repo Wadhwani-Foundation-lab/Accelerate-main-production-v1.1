@@ -88,24 +88,28 @@ class ApiClient {
     }
 
     async createVenture(data: any) {
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Not authenticated');
+        // Call backend API instead of Supabase directly
+        // Backend will split data between ventures and venture_applications tables
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const session = await supabase.auth.getSession();
 
-        const ventureData = {
-            ...data,
-            user_id: user.id,
-            status: 'draft' // Default status
-        };
+        const response = await fetch(`${API_URL}/api/ventures`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.data.session?.access_token}`
+            },
+            body: JSON.stringify(data)
+        });
 
-        const { data: venture, error } = await supabase
-            .from('ventures')
-            .insert(ventureData)
-            .select()
-            .single();
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to create venture');
+        }
 
-        if (error) throw error;
-        return { venture };
+        const result = await response.json();
+        // Backend returns { venture: ... } directly, not wrapped in data
+        return { venture: result.venture };
     }
 
     async getVenture(id: string) {
@@ -195,15 +199,26 @@ class ApiClient {
     }
 
     async submitVenture(id: string) {
-        const { data, error} = await supabase
-            .from('ventures')
-            .update({ status: 'Submitted' })
-            .eq('id', id)
-            .select()
-            .single();
+        // Call backend API to submit venture
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const session = await supabase.auth.getSession();
 
-        if (error) throw error;
-        return { venture: data };
+        const response = await fetch(`${API_URL}/api/ventures/${id}/submit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.data.session?.access_token}`
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to submit venture');
+        }
+
+        const result = await response.json();
+        // Backend returns { message: '...', venture: ... } directly
+        return { venture: result.venture };
     }
 
     // ============ INTERACTION ENDPOINTS ============

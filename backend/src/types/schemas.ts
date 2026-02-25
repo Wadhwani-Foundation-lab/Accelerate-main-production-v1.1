@@ -13,20 +13,31 @@ export const loginSchema = z.object({
     password: z.string().min(1, 'Password is required'),
 });
 
-// Growth data schema
+// Growth data schema (permissive - accepts any fields)
 const growthDataSchema = z.object({
     product: z.string().optional(),
     geography: z.string().optional(),
     segment: z.string().optional(),
     revenue: z.string().optional(),
-}).optional();
+    city: z.string().optional(),
+    state: z.string().optional(),
+    business_type: z.string().optional(),
+    referred_by: z.string().optional(),
+    employees: z.union([z.string(), z.number()]).optional(),
+    role: z.string().optional(),
+    email: z.string().optional(),
+    phone: z.string().optional(),
+}).passthrough().optional(); // passthrough allows additional fields
 
-// Commitment data schema
+// Commitment data schema (permissive - accepts any fields)
 const commitmentDataSchema = z.object({
-    investment: z.string().optional(),
+    investment: z.union([z.string(), z.number()]).optional(),
     teamSize: z.union([z.string(), z.number()]).optional(),
     progress: z.string().optional(),
-}).optional();
+    incrementalHiring: z.union([z.string(), z.number()]).optional(),
+    revenuePotential: z.union([z.string(), z.number()]).optional(),
+    lastYearRevenue: z.union([z.string(), z.number()]).optional(),
+}).passthrough().optional(); // passthrough allows additional fields
 
 // Venture schemas
 export const createVentureSchema = z.object({

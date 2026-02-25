@@ -162,10 +162,18 @@ export const NewApplication: React.FC = () => {
             });
 
             // 2. Create Venture Streams via API
+            // Map frontend status values to database constraint values
+            const statusMapping: Record<string, string> = {
+                "Don't need help": "Not started",
+                "Need some guidance": "Need some advice",
+                "Need deep support": "Need deep support"
+            };
+
             for (const ws of formData.workstreamStatuses) {
+                const dbStatus = statusMapping[ws.status] || "Not started";
                 await api.createStream(venture.id, {
                     stream_name: ws.stream,
-                    status: ws.status,
+                    status: dbStatus,
                 });
             }
 
