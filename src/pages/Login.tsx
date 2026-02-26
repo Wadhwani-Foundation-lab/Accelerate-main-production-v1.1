@@ -165,14 +165,14 @@ export const Login: React.FC = () => {
                             className="w-full bg-white border border-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center justify-center gap-2"
                         >
                             <Briefcase className="w-4 h-4 text-purple-600" />
-                            Venture Manager
+                            Panel (Prime)
                         </button>
                         <button
                             onClick={() => handleDemoLogin('committee_member')}
                             className="w-full bg-white border border-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center justify-center gap-2"
                         >
                             <Users className="w-4 h-4 text-indigo-600" />
-                            Selection Committee
+                            Panel (Core, Select)
                         </button>
 
                     </div>
@@ -180,8 +180,8 @@ export const Login: React.FC = () => {
                     <div className="text-center text-xs text-gray-400 space-y-1">
                         <div>Venture: vipul@wadhwani.com / password</div>
                         <div>Screening Mgr: rajesh@wadhwani.com / password</div>
-                        <div>Venture Mgr: ravi@wadhwani.com / password</div>
-                        <div>Committee: meetul@wadhwani.com / password</div>
+                        <div>Panel (Prime): ravi@wadhwani.com / password</div>
+                        <div>Panel (Core, Select): meetul@wadhwani.com / password</div>
                     </div>
                 </div>
 

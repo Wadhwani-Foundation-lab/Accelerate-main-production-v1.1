@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, Loader2, Mic, Info, CheckCircle2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { StatusSelect } from '../components/StatusSelect';
+import { PhoneInput } from '../components/PhoneInput';
 
 // Steps configuration - matching the reference screens exactly
 const STEPS = [
@@ -58,6 +59,7 @@ export const NewApplication: React.FC = () => {
         focusSegment: '',
         focusGeography: '',
         revenuePotential12m: '',
+        targetJobs: '',
         requestedInvestmentLimit: '',
         incrementalHiring: '',
         city: '',
@@ -79,11 +81,32 @@ export const NewApplication: React.FC = () => {
     const validateField = (field: string, value: string): string => {
         switch (field) {
             case 'phone':
-                // Remove spaces, dashes, and +91 prefix for validation
-                const cleanPhone = value.replace(/[\s\-+]/g, '');
-                const phoneDigits = cleanPhone.replace(/^91/, ''); // Remove country code if present
-                if (value && !/^\d{10}$/.test(phoneDigits)) {
-                    return 'Phone number must be 10 digits';
+                // Phone validation - format is now "+91 9876543210"
+                if (!value) return '';
+
+                // Extract country code and phone number part
+                const phoneMatch = value.match(/\+(\d{1,4})\s+(\d+)/);
+                if (!phoneMatch) {
+                    return 'Please enter a valid phone number';
+                }
+
+                const countryCode = `+${phoneMatch[1]}`;
+                const phoneDigits = phoneMatch[2];
+
+                // Define expected digits per country (matching PhoneInput component)
+                const expectedDigits: Record<string, number> = {
+                    '+91': 10,  // India
+                    '+1': 10,   // United States
+                    '+44': 10,  // United Kingdom
+                    '+971': 9,  // UAE
+                    '+65': 8,   // Singapore
+                };
+
+                const requiredLength = expectedDigits[countryCode] || 10;
+
+                if (phoneDigits.length !== requiredLength) {
+                    const countryName = countryCode === '+91' ? 'India' : 'this country';
+                    return `Phone number must be exactly ${requiredLength} digits for ${countryName}`;
                 }
                 break;
             case 'email':
@@ -122,6 +145,27 @@ export const NewApplication: React.FC = () => {
         setFormData(prev => ({ ...prev, growthFocus: updated }));
     };
 
+    // Auto-update target jobs based on revenue selection
+    useEffect(() => {
+        let jobs = '';
+        switch (formData.revenuePotential12m) {
+            case '5Cr - 15 Cr':
+                jobs = '5';
+                break;
+            case '15Cr - 50Cr':
+                jobs = '20';
+                break;
+            case '50Cr+':
+                jobs = '30';
+                break;
+            default:
+                jobs = '';
+        }
+        if (formData.targetJobs !== jobs) {
+            setFormData(prev => ({ ...prev, targetJobs: jobs }));
+        }
+    }, [formData.revenuePotential12m]);
+
     const handleSubmit = async () => {
         if (!user) return;
         setIsSubmitting(true);
@@ -154,8 +198,9 @@ export const NewApplication: React.FC = () => {
                 commitment: {
                     investment: formData.requestedInvestmentLimit,
                     incrementalHiring: formData.incrementalHiring,
-                    revenuePotential: formData.revenuePotential12m,
                     lastYearRevenue: formData.lastYearRevenue,
+                    revenuePotential: formData.revenuePotential12m, // Question asks "next 3 years"
+                    targetJobs: formData.targetJobs,
                 },
                 blockers: '',
                 support_request: formData.supportDescription,
@@ -375,18 +420,12 @@ export const NewApplication: React.FC = () => {
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">
                                 Mobile
                             </label>
-                            <input
-                                type="tel"
-                                className={`w-full rounded-xl border ${validationErrors.phone ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'} px-4 py-3.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all`}
-                                placeholder="E.g., +91 98765 43210"
+                            <PhoneInput
                                 value={formData.phone}
-                                onChange={e => updateField('phone', e.target.value)}
+                                onChange={(value) => updateField('phone', value)}
+                                error={validationErrors.phone}
+                                placeholder="9876543210"
                             />
-                            {validationErrors.phone && (
-                                <p className="text-xs text-red-600 flex items-center gap-1">
-                                    <span>⚠</span> {validationErrors.phone}
-                                </p>
-                            )}
                         </div>
 
                         {/* 5. Registered company name */}
@@ -570,15 +609,15 @@ export const NewApplication: React.FC = () => {
                             </p>
                             <div className="grid grid-cols-3 gap-3">
                                 {([
-                                    { key: 'product' as GrowthType, label: 'New Product or Service' },
-                                    { key: 'segment' as GrowthType, label: 'New type of customer' },
-                                    { key: 'geography' as GrowthType, label: 'New place, city or country' },
+                                    { key: 'product' as GrowthType, label: 'NEW PRODUCT OR SERVICE' },
+                                    { key: 'segment' as GrowthType, label: 'NEW TYPE OF CUSTOMER' },
+                                    { key: 'geography' as GrowthType, label: 'NEW PLACE, CITY OR COUNTRY' },
                                 ]).map(({ key, label }) => (
                                     <button
                                         key={key}
                                         type="button"
                                         onClick={() => toggleGrowthType(key)}
-                                        className={`px-3 py-3.5 rounded-xl text-[11px] font-bold tracking-wide transition-all border ${selectedGrowthTypes.includes(key)
+                                        className={`px-2.5 py-3.5 rounded-xl text-[10px] font-bold tracking-wide transition-all border whitespace-nowrap ${selectedGrowthTypes.includes(key)
                                             ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/25'
                                             : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                                             }`}
@@ -656,6 +695,21 @@ export const NewApplication: React.FC = () => {
                                 <option value="15Cr - 50Cr">15Cr - 50Cr</option>
                                 <option value="50Cr+">50Cr+</option>
                             </select>
+                        </div>
+
+                        {/* Target Jobs */}
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                Target Jobs
+                            </label>
+                            <input
+                                type="text"
+                                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3.5 text-sm text-gray-700 focus:outline-none cursor-not-allowed"
+                                value={formData.targetJobs}
+                                readOnly
+                                disabled
+                                placeholder="Auto-filled based on revenue"
+                            />
                         </div>
 
                         {/* Funding Plan */}

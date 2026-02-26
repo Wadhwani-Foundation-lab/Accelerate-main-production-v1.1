@@ -148,7 +148,7 @@ export const VentureWorkbench = () => {
                                     <h3 className="text-lg font-bold text-orange-900">Action Required: Review Contract</h3>
                                 </div>
                                 <p className="text-sm text-orange-800 mb-4">
-                                    Your Venture Manager has sent a contract for your review. Please review the contract terms and sign to unlock your workbench and continue with the program.
+                                    Your Panel Manager has sent a contract for your review. Please review the contract terms and sign to unlock your workbench and continue with the program.
                                 </p>
                                 <div className="flex items-center gap-3">
                                     <Button

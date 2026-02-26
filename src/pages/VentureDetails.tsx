@@ -81,29 +81,29 @@ export const VentureDetails: React.FC = () => {
                         <div className="space-y-4">
                             <div>
                                 <div className="text-xs font-medium text-gray-400 uppercase">Product</div>
-                                <div className="font-medium text-gray-900">{venture.growth_current?.product || 'N/A'}</div>
+                                <div className="font-medium text-gray-900">{venture.what_do_you_sell || 'N/A'}</div>
                             </div>
                             <div>
                                 <div className="text-xs font-medium text-gray-400 uppercase">Segment</div>
-                                <div className="font-medium text-gray-900">{venture.growth_current?.segment || 'N/A'}</div>
+                                <div className="font-medium text-gray-900">{venture.who_do_you_sell_to || 'N/A'}</div>
                             </div>
                             <div>
                                 <div className="text-xs font-medium text-gray-400 uppercase">Geography</div>
-                                <div className="font-medium text-gray-900">{venture.growth_current?.geography || 'N/A'}</div>
+                                <div className="font-medium text-gray-900">{venture.which_regions || 'N/A'}</div>
                             </div>
                             <div>
                                 <div className="text-xs font-medium text-gray-400 uppercase">Revenue (Last 12 Months)</div>
-                                <div className="font-medium text-gray-900">₹{venture.revenue_12m || venture.commitment?.lastYearRevenue || 'N/A'}</div>
+                                <div className="font-medium text-gray-900">₹{venture.revenue_12m || 'N/A'}</div>
                             </div>
                             <div>
                                 <div className="text-xs font-medium text-gray-400 uppercase">Full-Time Employees</div>
-                                <div className="font-medium text-gray-900">{venture.full_time_employees || venture.growth_current?.employees || 'N/A'}</div>
+                                <div className="font-medium text-gray-900">{venture.full_time_employees || 'N/A'}</div>
                             </div>
                             <div>
                                 <div className="text-xs font-medium text-gray-400 uppercase">City, State</div>
                                 <div className="font-medium text-gray-900">
-                                    {venture.city || venture.growth_current?.city ?
-                                        `${venture.city || venture.growth_current?.city}, ${venture.growth_current?.state || ''}` :
+                                    {venture.city ?
+                                        `${venture.city}${venture.state ? `, ${venture.state}` : ''}` :
                                         'N/A'}
                                 </div>
                             </div>
@@ -129,7 +129,7 @@ export const VentureDetails: React.FC = () => {
                             </div>
                             <div>
                                 <div className="text-xs font-medium text-gray-400 uppercase">Revenue Potential (3 Years)</div>
-                                <div className="font-medium text-gray-900">₹{venture.revenue_potential_3y || venture.commitment?.revenuePotential || 'N/A'}</div>
+                                <div className="font-medium text-gray-900">₹{venture.revenue_potential_3y || 'N/A'}</div>
                             </div>
                             <div>
                                 <div className="text-xs font-medium text-gray-400 uppercase">Incremental Hiring</div>
@@ -150,27 +150,27 @@ export const VentureDetails: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                         <div className="text-xs font-medium text-gray-400 uppercase mb-1">Founder Name</div>
-                        <div className="font-medium text-gray-900">{venture.founder_name || venture.growth_current?.founder_name || user?.user_metadata?.full_name || 'N/A'}</div>
+                        <div className="font-medium text-gray-900">{venture.founder_name || user?.user_metadata?.full_name || 'N/A'}</div>
                     </div>
                     <div>
                         <div className="text-xs font-medium text-gray-400 uppercase mb-1">Role in Business</div>
-                        <div className="font-medium text-gray-900">{venture.growth_current?.role || 'N/A'}</div>
+                        <div className="font-medium text-gray-900">{venture.founder_designation || 'N/A'}</div>
                     </div>
                     <div>
                         <div className="text-xs font-medium text-gray-400 uppercase mb-1">Business Type</div>
-                        <div className="font-medium text-gray-900">{venture.growth_current?.business_type || 'N/A'}</div>
+                        <div className="font-medium text-gray-900">{venture.company_type || 'N/A'}</div>
                     </div>
                     <div>
                         <div className="text-xs font-medium text-gray-400 uppercase mb-1">Referred By</div>
-                        <div className="font-medium text-gray-900">{venture.growth_current?.referred_by || 'N/A'}</div>
+                        <div className="font-medium text-gray-900">{venture.referred_by || 'N/A'}</div>
                     </div>
                     <div>
                         <div className="text-xs font-medium text-gray-400 uppercase mb-1">Email</div>
-                        <div className="font-medium text-gray-900">{venture.growth_current?.email || user?.email || 'N/A'}</div>
+                        <div className="font-medium text-gray-900">{venture.founder_email || user?.email || 'N/A'}</div>
                     </div>
                     <div>
                         <div className="text-xs font-medium text-gray-400 uppercase mb-1">Phone</div>
-                        <div className="font-medium text-gray-900">{venture.growth_current?.phone || 'N/A'}</div>
+                        <div className="font-medium text-gray-900">{venture.founder_phone || 'N/A'}</div>
                     </div>
                 </div>
             </div>
@@ -181,15 +181,15 @@ export const VentureDetails: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div>
                         <div className="text-xs font-medium text-gray-400 uppercase mb-1">Last Year Revenue</div>
-                        <div className="font-medium text-gray-900 text-lg">₹{venture.revenue_12m || venture.commitment?.lastYearRevenue || 'N/A'}</div>
+                        <div className="font-medium text-gray-900 text-lg">₹{venture.revenue_12m || 'N/A'}</div>
                     </div>
                     <div>
                         <div className="text-xs font-medium text-gray-400 uppercase mb-1">3-Year Revenue Potential</div>
-                        <div className="font-medium text-gray-900 text-lg">₹{venture.revenue_potential_3y || venture.commitment?.revenuePotential || 'N/A'}</div>
+                        <div className="font-medium text-gray-900 text-lg">₹{venture.revenue_potential_3y || 'N/A'}</div>
                     </div>
                     <div>
                         <div className="text-xs font-medium text-gray-400 uppercase mb-1">Minimum Investment Needed</div>
-                        <div className="font-medium text-gray-900 text-lg">₹{venture.min_investment || venture.commitment?.investment || 'N/A'}</div>
+                        <div className="font-medium text-gray-900 text-lg">₹{venture.min_investment || 'N/A'}</div>
                     </div>
                 </div>
             </div>
@@ -200,11 +200,11 @@ export const VentureDetails: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                         <div className="text-xs font-medium text-gray-400 uppercase mb-1">Current Full-Time Employees</div>
-                        <div className="font-medium text-gray-900 text-lg">{venture.full_time_employees || venture.growth_current?.employees || 'N/A'}</div>
+                        <div className="font-medium text-gray-900 text-lg">{venture.full_time_employees || 'N/A'}</div>
                     </div>
                     <div>
                         <div className="text-xs font-medium text-gray-400 uppercase mb-1">Planned Incremental Hiring</div>
-                        <div className="font-medium text-gray-900 text-lg">+{venture.incremental_hiring || venture.commitment?.incrementalHiring || 'N/A'} new hires</div>
+                        <div className="font-medium text-gray-900 text-lg">+{venture.incremental_hiring || 'N/A'} new hires</div>
                     </div>
                     <div className="col-span-2">
                         <div className="text-xs font-medium text-gray-400 uppercase mb-1">Growth Focus Areas</div>

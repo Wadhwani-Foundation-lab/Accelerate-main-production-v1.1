@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Building2, Sparkles, TrendingUp, Loader2, Briefcase, Users, Target, Send, AlertTriangle, HelpCircle, Map, ChevronRight, Zap, CheckCircle, FileText, ChevronUp, Plus } from 'lucide-react';
+import { Sparkles, TrendingUp, Loader2, Briefcase, Users, Target, AlertTriangle, HelpCircle, Map, ChevronRight, Zap, CheckCircle, FileText, ChevronUp, Plus } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
@@ -79,7 +79,6 @@ export const SelectionCommitteeDashboard: React.FC = () => {
     const [ventures, setVentures] = useState<Venture[]>([]);
     const [selectedVenture, setSelectedVenture] = useState<Venture | null>(null);
     const [loading, setLoading] = useState(true);
-    const [statusFilter, setStatusFilter] = useState<string>('all');
     const [generatingRoadmap, setGeneratingRoadmap] = useState(false);
     const [roadmapGenerated, setRoadmapGenerated] = useState(false);
 
@@ -140,17 +139,6 @@ export const SelectionCommitteeDashboard: React.FC = () => {
         try {
             const { venture: freshVenture, streams } = await api.getVenture(venture.id);
 
-            // Extract fields from JSONB
-            if (freshVenture.commitment) {
-                freshVenture.revenue_12m = freshVenture.commitment.lastYearRevenue || '0';
-                freshVenture.revenue_potential_3y = freshVenture.commitment.revenuePotential || '0';
-                freshVenture.incremental_hiring = freshVenture.commitment.incrementalHiring || 'TBD';
-            }
-
-            if (freshVenture.growth_current) {
-                freshVenture.full_time_employees = freshVenture.growth_current.employees || '0';
-            }
-
             // Map streams to needs format
             const mappedNeeds = (streams || []).map((s: any) => ({
                 id: s.id,
@@ -189,7 +177,7 @@ export const SelectionCommitteeDashboard: React.FC = () => {
         try {
             const updatePayload: any = {
                 status: newStatus,
-                venture_partner: user?.email || 'Selection Committee',
+                venture_partner: user?.email || 'Panel (Core, Select)',
             };
 
             // If status is Contract Sent, lock the workbench
@@ -230,7 +218,7 @@ export const SelectionCommitteeDashboard: React.FC = () => {
 
             const updatePayload: any = {
                 status: newStatus,
-                venture_partner: user?.email || 'Selection Committee',
+                venture_partner: user?.email || 'Panel (Core, Select)',
                 // Store commitment data if needed
             };
 
@@ -263,154 +251,122 @@ export const SelectionCommitteeDashboard: React.FC = () => {
         }
     };
 
-    const filteredVentures = statusFilter === 'all'
-        ? ventures
-        : ventures.filter(v => v.status === statusFilter);
+    const [revenueFilter, setRevenueFilter] = useState<string>('all');
+
+    const filteredVentures = ventures.filter(v => {
+        if (revenueFilter === 'all') return true;
+        return String(v.revenue_12m) === revenueFilter;
+    });
 
     return (
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
             {/* Header */}
             {!selectedVenture && (
-                <>
-                    <div className="mb-6 flex justify-between items-center">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">
-                                Accelerate Applications <span className="text-gray-400 font-normal ml-2">({filteredVentures.length})</span>
-                            </h1>
-                            <p className="text-gray-500 mt-1">Review and manage Accelerate ventures (Core, Select).</p>
-                        </div>
+                <div className="mb-8 flex justify-between items-center">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">
+                            Core & Select Applications <span className="text-gray-400 font-normal ml-2">
+                                ({filteredVentures.length})
+                            </span>
+                        </h1>
+                        <p className="text-gray-500 mt-1">Review and assess venture applications.</p>
+                    </div>
+                </div>
+            )}
 
-                        {/* Status Filter */}
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium text-gray-700">Status:</label>
+            {/* MASTER VIEW: Venture List */}
+            {!selectedVenture ? (
+                <div className="space-y-3">
+                    {/* Column Headers - always visible */}
+                    <div className="grid grid-cols-12 gap-4 px-8 pb-3 border-b border-gray-200 items-center">
+                        <div className="col-span-5">
+                            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Applications</span>
+                        </div>
+                        <div className="col-span-2 text-center">
+                            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Date of Submission</span>
+                        </div>
+                        <div className="col-span-3 text-center">
+                            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Status</span>
+                        </div>
+                        <div className="col-span-2 text-right">
                             <select
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                value={revenueFilter}
+                                onChange={(e) => setRevenueFilter(e.target.value)}
+                                className="text-sm font-semibold text-gray-500 uppercase tracking-wider border border-gray-200 rounded-md px-3 py-1.5 bg-white hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                             >
-                                <option value="all">All</option>
-                                <option value="Submitted">Submitted</option>
-                                <option value="Under Review">Under Review</option>
-                                <option value="Approved">Approved</option>
-                                <option value="Rejected">Rejected</option>
+                                <option value="all">Revenue</option>
+                                <option value="1Cr-5Cr">1Cr - 5Cr</option>
+                                <option value="5Cr-25Cr">5Cr - 25Cr</option>
+                                <option value="25Cr-75Cr">25Cr - 75Cr</option>
+                                <option value=">75Cr">&gt;75Cr</option>
                             </select>
                         </div>
                     </div>
 
-                    {/* Stats Cards */}
-                    <div className="grid grid-cols-3 gap-4 mb-8">
-                        {/* Total Applications */}
-                        <div className="bg-gradient-to-br from-purple-50 to-white rounded-2xl border border-purple-100 p-6">
-                            <div className="flex items-center gap-2 text-purple-600 mb-2">
-                                <Building2 className="w-5 h-5" />
-                                <span className="text-sm font-semibold">Total Applications</span>
-                            </div>
-                            <div className="text-4xl font-bold text-purple-900">{ventures.length}</div>
-                        </div>
-
-                        {/* Under Review */}
-                        <div className="bg-gradient-to-br from-amber-50 to-white rounded-2xl border border-amber-100 p-6">
-                            <div className="flex items-center gap-2 text-amber-600 mb-2">
-                                <TrendingUp className="w-5 h-5" />
-                                <span className="text-sm font-semibold">Under Review</span>
-                            </div>
-                            <div className="text-4xl font-bold text-amber-900">
-                                {ventures.filter(v => v.status === 'Under Review' || v.status === 'Submitted').length}
-                            </div>
-                        </div>
-
-                        {/* Approved */}
-                        <div className="bg-gradient-to-br from-green-50 to-white rounded-2xl border border-green-100 p-6">
-                            <div className="flex items-center gap-2 text-green-600 mb-2">
-                                <CheckCircle className="w-5 h-5" />
-                                <span className="text-sm font-semibold">Approved</span>
-                            </div>
-                            <div className="text-4xl font-bold text-green-900">
-                                {ventures.filter(v => v.status === 'Approved').length}
-                            </div>
-                        </div>
-                    </div>
-                </>
-            )}
-
-            {/* MASTER VIEW: Venture List (Big Cards) */}
-            {!selectedVenture ? (
-                <div className="space-y-6">
                     {loading ? (
-                        <div className="flex justify-center p-12">
-                            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                        </div>
+                        <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>
                     ) : filteredVentures.length === 0 ? (
-                        <div className="text-center p-12 bg-white rounded-2xl border border-gray-200 text-gray-400">
-                            <Building2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">No applications found</h3>
-                            <p className="text-gray-500">
-                                Ventures recommended for Accelerate Core or Select will appear here
-                            </p>
+                        <div className="text-center p-12 bg-white rounded-xl border border-gray-200 text-gray-500 text-base">
+                            No applications found.
                         </div>
                     ) : (
-                        filteredVentures.map(v => (
-                            <div
-                                key={v.id}
-                                onClick={() => handleVentureSelect(v)}
-                                className="bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer p-8 flex items-center justify-between group"
-                            >
-                                {/* Left Column: Identity */}
-                                <div className="space-y-4 w-1/3">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-gray-900 leading-tight group-hover:text-indigo-700 transition-colors mb-1">
-                                            {v.name}
-                                        </h2>
-                                        <div className="flex items-center gap-2 text-gray-500 text-sm tracking-wide uppercase font-semibold">
-                                            <Target className="w-4 h-4" />
-                                            {v.location || v.growth_current?.city || v.city || 'Unknown City'}
+                        <div className="space-y-3">
+                                {filteredVentures.map(v => (
+                                    <div
+                                        key={v.id}
+                                        onClick={() => handleVentureSelect(v)}
+                                        className="bg-white rounded-xl border border-gray-200 hover:border-purple-300 shadow-sm hover:shadow-md transition-all cursor-pointer px-8 py-6 grid grid-cols-12 gap-4 items-center group"
+                                    >
+                                        {/* Venture Info */}
+                                        <div className="col-span-5 space-y-2">
+                                            <h2 className="text-xl font-bold text-gray-900 leading-snug group-hover:text-purple-700 transition-colors">
+                                                {v.name}
+                                            </h2>
+                                            <div className="flex items-center gap-2 text-gray-500 text-base">
+                                                <Target className="w-4 h-4" />
+                                                {v.location || v.city || 'Unknown City'}
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-sm font-medium text-gray-400 uppercase tracking-wider">
+                                                <Users className="w-3.5 h-3.5" />
+                                                {v.founder_name || 'N/A'}
+                                            </div>
+                                        </div>
+
+                                        {/* Date of Submission */}
+                                        <div className="col-span-2 text-center border-l border-gray-200 pl-4">
+                                            <div className="text-base font-medium text-gray-700">
+                                                {v.created_at ? new Date(v.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }).replace(/ /g, '-') : 'N/A'}
+                                            </div>
+                                        </div>
+
+                                        {/* Status */}
+                                        <div className="col-span-3 text-center border-l border-gray-200 pl-4">
+                                            <span className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${v.program_recommendation
+                                                ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                                : 'bg-gray-50 text-gray-500 border border-gray-200'
+                                                }`}>
+                                                {v.program_recommendation || 'To be reviewed'}
+                                            </span>
+                                        </div>
+
+                                        {/* Revenue & Arrow */}
+                                        <div className="col-span-2 flex items-center justify-end gap-3 border-l border-gray-200 pl-4">
+                                            <div className="text-right">
+                                                <div className="text-base font-semibold text-gray-800 whitespace-nowrap">
+                                                    {v.revenue_12m || 'N/A'}
+                                                </div>
+                                            </div>
+                                            <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 group-hover:bg-purple-600 group-hover:text-white transition-all flex-shrink-0">
+                                                <ChevronRight className="w-5 h-5" />
+                                            </div>
                                         </div>
                                     </div>
-
-                                    <div className="flex items-center gap-1.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                        <Users className="w-3.5 h-3.5" />
-                                        {v.founder_name || v.growth_current?.founder_name || 'FOUNDER'}
-                                    </div>
-                                </div>
-
-                                {/* Divider */}
-                                <div className="w-px h-24 bg-gray-100 mx-4"></div>
-
-                                {/* Middle Column: Program Status */}
-                                <div className="flex-1 px-8 flex items-center justify-center">
-                                    <div className="text-center">
-                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-3">Program Status</span>
-                                        <div className={`px-5 py-2.5 rounded-full text-sm font-bold ${v.program_recommendation
-                                            ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                                            : 'bg-gray-50 text-gray-600 border border-gray-200'
-                                            }`}>
-                                            {v.program_recommendation || 'Pending Review'}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Divider */}
-                                <div className="w-px h-24 bg-gray-100 mx-4"></div>
-
-                                {/* Right Column: Revenue & Action */}
-                                <div className="flex items-center gap-6 w-1/4 justify-end pl-4">
-                                    <div className="text-center">
-                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-3">Revenue (LTM)</span>
-                                        <div className="text-2xl font-bold text-gray-900">
-                                            {v.revenue_12m || v.commitment?.lastYearRevenue || v.commitment?.revenuePotential || 'N/A'}
-                                        </div>
-                                    </div>
-
-                                    <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-indigo-600 group-hover:text-white transition-all transform group-hover:translate-x-1">
-                                        <Send className="w-6 h-6 rotate-0" />
-                                    </div>
-                                </div>
+                                ))}
                             </div>
-                        ))
                     )}
                 </div>
             ) : (
-                /* DETAIL VIEW: Same as Venture Manager Dashboard */
+                /* DETAIL VIEW: Same as Panel (Prime) Dashboard */
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     {/* Back Button */}
                     <div className="border-b border-gray-100 px-6 py-3 bg-gray-50">
@@ -445,7 +401,7 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                         </div>
 
                         {/* Dashboard Metrics */}
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-4 gap-4">
                             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Current Revenue</span>
                                 <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
@@ -467,6 +423,19 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                                     {selectedVenture.full_time_employees || '0'}
                                 </div>
                             </div>
+                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Jobs</span>
+                                <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
+                                    <Users className="w-4 h-4 text-gray-400" />
+                                    {(() => {
+                                        const revenuePotential = String(selectedVenture.revenue_potential_3y || '');
+                                        if (revenuePotential === '5Cr - 15 Cr') return '5';
+                                        if (revenuePotential === '15Cr - 50Cr') return '20';
+                                        if (revenuePotential === '50Cr+') return '30';
+                                        return '0';
+                                    })()}
+                                </div>
+                            </div>
                         </div>
 
                         {/* Venture Context */}
@@ -474,13 +443,13 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                             <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 mb-6 space-y-4">
                                 <div className="grid grid-cols-3 gap-6">
                                     <div>
-                                        <span className="text-sm text-gray-600 block mb-1">Name: <span className="font-semibold text-gray-900">{selectedVenture.founder_name || selectedVenture.growth_current?.founder_name || 'N/A'}</span></span>
+                                        <span className="text-sm text-gray-600 block mb-1">Name: <span className="font-semibold text-gray-900">{selectedVenture.founder_name || 'N/A'}</span></span>
                                     </div>
                                     <div>
-                                        <span className="text-sm text-gray-600 block mb-1">Mobile: <span className="font-semibold text-gray-900">{selectedVenture.growth_current?.phone || selectedVenture.growth_current?.mobile || 'N/A'}</span></span>
+                                        <span className="text-sm text-gray-600 block mb-1">Mobile: <span className="font-semibold text-gray-900">{(selectedVenture as any).founder_phone || 'N/A'}</span></span>
                                     </div>
                                     <div>
-                                        <span className="text-sm text-gray-600 block mb-1">Email: <span className="font-semibold text-gray-900">{selectedVenture.growth_current?.email || 'N/A'}</span></span>
+                                        <span className="text-sm text-gray-600 block mb-1">Email: <span className="font-semibold text-gray-900">{(selectedVenture as any).founder_email || 'N/A'}</span></span>
                                     </div>
                                     <div>
                                         <span className="text-sm text-gray-600 block mb-1">Registered company name</span>
@@ -488,23 +457,23 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                                     </div>
                                     <div>
                                         <span className="text-sm text-gray-600 block mb-1">Designation (Your role in the company)</span>
-                                        <div className="font-medium text-gray-900">{selectedVenture.growth_current?.role || 'N/A'}</div>
+                                        <div className="font-medium text-gray-900">{(selectedVenture as any).founder_designation || 'N/A'}</div>
                                     </div>
                                     <div>
                                         <span className="text-sm text-gray-600 block mb-1">Company type:</span>
-                                        <div className="font-medium text-gray-900">{selectedVenture.growth_current?.business_type || 'N/A'}</div>
+                                        <div className="font-medium text-gray-900">{(selectedVenture as any).company_type || 'N/A'}</div>
                                     </div>
                                     <div>
                                         <span className="text-sm text-gray-600 block mb-1">Which city is your company primarily based in</span>
-                                        <div className="font-medium text-gray-900">{selectedVenture.growth_current?.city || selectedVenture.city || 'N/A'}</div>
+                                        <div className="font-medium text-gray-900">{selectedVenture.city || 'N/A'}</div>
                                     </div>
                                     <div>
                                         <span className="text-sm text-gray-600 block mb-1">State in which your company is located</span>
-                                        <div className="font-medium text-gray-900">{selectedVenture.growth_current?.state || 'N/A'}</div>
+                                        <div className="font-medium text-gray-900">{(selectedVenture as any).state || 'N/A'}</div>
                                     </div>
                                     <div>
                                         <span className="text-sm text-gray-600 block mb-1">How did I hear about us:</span>
-                                        <div className="font-medium text-gray-900">{selectedVenture.growth_current?.referred_by || 'N/A'}</div>
+                                        <div className="font-medium text-gray-900">{(selectedVenture as any).referred_by || 'N/A'}</div>
                                     </div>
                                 </div>
                             </div>
@@ -520,15 +489,15 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                                         <div className="space-y-5">
                                             <div>
                                                 <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Product / Service</span>
-                                                <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{selectedVenture.growth_current?.product || 'N/A'}</p>
+                                                <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{(selectedVenture as any).what_do_you_sell || 'N/A'}</p>
                                             </div>
                                             <div>
                                                 <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Customer Segment</span>
-                                                <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{selectedVenture.growth_current?.segment || 'N/A'}</p>
+                                                <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{(selectedVenture as any).who_do_you_sell_to || 'N/A'}</p>
                                             </div>
                                             <div>
                                                 <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Region</span>
-                                                <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{selectedVenture.growth_current?.geography || 'N/A'}</p>
+                                                <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{(selectedVenture as any).which_regions || 'N/A'}</p>
                                             </div>
                                         </div>
                                     </div>

@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import {
     Briefcase,
+    ChevronRight,
     Edit3,
     Loader2,
     Save,
-    Send,
     Sparkles,
     Target,
     TrendingUp,
@@ -40,6 +40,8 @@ interface Venture {
     growth_target: any; // { product, segment, geography } (descriptions)
     commitment?: any; // Added commitment object
     needs: { id?: string; stream: string; status: string }[]; // mapped from streams
+    target_jobs?: number;
+    revenue_potential_12m?: string;
     status: string;
     program_recommendation?: string;
     agreement_status?: string; // 'Sent', 'Signed', etc.
@@ -173,11 +175,14 @@ const RecommendProgramSection: React.FC<{
     userRole: string | null;
     selectedPartner: string;
     setSelectedPartner: (v: string) => void;
+    panelists: any[];
+    selectedPanelist: string;
+    setSelectedPanelist: (v: string) => void;
     saving: boolean;
     onSave: () => void;
     isAlreadySubmitted: boolean;
     reviewedAt?: string;
-}> = ({ program, setProgram, internalComments, setInternalComments, userRole, selectedPartner, setSelectedPartner, saving, onSave, isAlreadySubmitted, reviewedAt }) => (
+}> = ({ program, setProgram, internalComments, setInternalComments, userRole, selectedPartner, setSelectedPartner, panelists, selectedPanelist, setSelectedPanelist, saving, onSave, isAlreadySubmitted, reviewedAt }) => (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -214,6 +219,26 @@ const RecommendProgramSection: React.FC<{
                     <option value="Accelerate Prime">Accelerate Prime</option>
                 </select>
             </div>
+            {panelists.length > 0 && (
+                <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Panelist</label>
+                    <select
+                        className="w-full p-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-100 focus:border-green-300 outline-none text-sm text-gray-800"
+                        value={selectedPanelist}
+                        onChange={e => setSelectedPanelist(e.target.value)}
+                    >
+                        <option value="">Select a panelist…</option>
+                        {panelists.map((panelist) => (
+                            <option key={panelist.id} value={panelist.id}>
+                                {panelist.name} ({panelist.email})
+                            </option>
+                        ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-2">
+                        The application will be sent to this panelist for review
+                    </p>
+                </div>
+            )}
             {userRole === 'committee' && (
                 <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Assign Venture Partner</label>
@@ -253,8 +278,15 @@ export const VSMDashboard: React.FC = () => {
     const [internalComments, setInternalComments] = useState('');
     const [saving, setSaving] = useState(false);
 
+    // Filter State
+    const [revenueFilter, setRevenueFilter] = useState<string>('all');
+
     // Venture Partner State
     const [selectedPartner, setSelectedPartner] = useState('');
+
+    // Panelist State
+    const [panelists, setPanelists] = useState<any[]>([]);
+    const [selectedPanelist, setSelectedPanelist] = useState('');
 
     // Edit Profile State
     const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -274,6 +306,38 @@ export const VSMDashboard: React.FC = () => {
         }
     }, [userRole]);
 
+    // Fetch panelists when program changes
+    useEffect(() => {
+        const fetchPanelists = async () => {
+            if (!program) {
+                setPanelists([]);
+                setSelectedPanelist('');
+                return;
+            }
+
+            // Map program names to panelist program types
+            let programType = '';
+            if (program === 'Accelerate Prime') programType = 'Prime';
+            else if (program === 'Accelerate Core') programType = 'Core';
+            else if (program === 'Accelerate Select') programType = 'Select';
+            else {
+                setPanelists([]);
+                setSelectedPanelist('');
+                return;
+            }
+
+            try {
+                const data = await api.getPanelistsByProgram(programType);
+                setPanelists(data);
+            } catch (error) {
+                console.error('Error fetching panelists:', error);
+                setPanelists([]);
+            }
+        };
+
+        fetchPanelists();
+    }, [program]);
+
     const checkUserRole = () => {
         if (!user) {
             setUserRole('not-logged-in');
@@ -281,7 +345,7 @@ export const VSMDashboard: React.FC = () => {
         }
 
         const email = user.email || '';
-        // Check for Venture Manager first (arun@admin.com)
+        // Check for Panel (Prime) first (arun@admin.com)
         if (email.includes('arun')) {
             setUserRole('venture_mgr');
             return;
@@ -341,23 +405,6 @@ export const VSMDashboard: React.FC = () => {
         // Fetch fresh details with streams
         try {
             const { venture: freshVenture, streams } = await api.getVenture(venture.id);
-
-            // ── Data Correction: extract fields from JSONB BEFORE building fullVenture ──
-
-            // Financials (inside commitment JSON)
-            if (freshVenture.commitment) {
-                freshVenture.revenue_12m = freshVenture.commitment.lastYearRevenue || '0';
-                freshVenture.revenue_potential_3y = freshVenture.commitment.revenuePotential || '0';
-                freshVenture.min_investment = freshVenture.commitment.investment || '0';
-                freshVenture.incremental_hiring = freshVenture.commitment.incrementalHiring || 'TBD';
-            }
-
-            // Employees (inside growth_current JSON)
-            if (freshVenture.growth_current) {
-                freshVenture.full_time_employees = freshVenture.growth_current.employees || '0';
-            }
-
-            // ─────────────────────────────────────────────────────────────────
 
             // Map streams to needs format
             const mappedNeeds = (streams || []).map((s: any) => ({
@@ -516,79 +563,113 @@ export const VSMDashboard: React.FC = () => {
                         <h1 className="text-2xl font-bold text-gray-900">
                             {userRole === 'venture_mgr' ? 'Prime Applications' :
                                 userRole === 'committee' ? 'Core & Select Apps' :
-                                    'Applications'} <span className="text-gray-400 font-normal ml-2">({ventures.length})</span>
+                                    'Applications'} <span className="text-gray-400 font-normal ml-2">
+                                ({revenueFilter === 'all' ? ventures.length : ventures.filter(v => {
+                                    const revenue = v.revenue_12m || v.commitment?.lastYearRevenue || '';
+                                    return revenue === revenueFilter;
+                                }).length})
+                            </span>
                         </h1>
                         <p className="text-gray-500 mt-1">Review and assess venture applications.</p>
                     </div>
                 </div>
             )}
 
-            {/* MASTER VIEW: Venture List (Big Cards) */}
+            {/* MASTER VIEW: Venture List (Cards) */}
             {!selectedVenture ? (
-                <div className="space-y-6">
+                <div className="space-y-3">
+                    {/* Column Headers - always visible */}
+                    <div className="grid grid-cols-12 gap-4 px-8 pb-3 border-b border-gray-200 items-center">
+                        <div className="col-span-5">
+                            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Applications</span>
+                        </div>
+                        <div className="col-span-2 text-center">
+                            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Date of Submission</span>
+                        </div>
+                        <div className="col-span-3 text-center">
+                            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Status</span>
+                        </div>
+                        <div className="col-span-2 text-right">
+                            <select
+                                value={revenueFilter}
+                                onChange={(e) => setRevenueFilter(e.target.value)}
+                                className="text-sm font-semibold text-gray-500 uppercase tracking-wider border border-gray-200 rounded-md px-3 py-1.5 bg-white hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                            >
+                                <option value="all">Revenue</option>
+                                <option value="1Cr-5Cr">1Cr - 5Cr</option>
+                                <option value="5Cr-25Cr">5Cr - 25Cr</option>
+                                <option value="25Cr-75Cr">25Cr - 75Cr</option>
+                                <option value=">75Cr">&gt;75Cr</option>
+                            </select>
+                        </div>
+                    </div>
+
                     {loading ? (
                         <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>
                     ) : ventures.length === 0 ? (
-                        <div className="text-center p-12 bg-white rounded-2xl border border-gray-200 text-gray-400">
+                        <div className="text-center p-12 bg-white rounded-xl border border-gray-200 text-gray-500 text-base">
                             No applications found.
                         </div>
                     ) : (
-                        ventures.map(v => (
-                            <div
-                                key={v.id}
-                                onClick={() => handleVentureSelect(v)}
-                                className="bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer p-8 flex items-center justify-between group"
-                            >
-                                {/* Left Column: Identity */}
-                                <div className="space-y-4 w-1/3">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-gray-900 leading-tight group-hover:text-blue-700 transition-colors mb-1">
-                                            {v.name}
-                                        </h2>
-                                        <div className="flex items-center gap-2 text-gray-500 text-sm tracking-wide uppercase font-semibold">
-                                            <Target className="w-4 h-4" />
-                                            {v.location || v.growth_current?.city || 'Unknown City'}
+                        <div className="space-y-3">
+                                {ventures
+                                    .filter(v => {
+                                        if (revenueFilter === 'all') return true;
+                                        const revenue = String(v.revenue_12m || v.commitment?.lastYearRevenue || '');
+                                        return revenue === revenueFilter;
+                                    })
+                                    .map(v => (
+                                    <div
+                                        key={v.id}
+                                        onClick={() => handleVentureSelect(v)}
+                                        className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md transition-all cursor-pointer px-8 py-6 grid grid-cols-12 gap-4 items-center group"
+                                    >
+                                        {/* Venture Info */}
+                                        <div className="col-span-5 space-y-2">
+                                            <h2 className="text-xl font-bold text-gray-900 leading-snug group-hover:text-blue-700 transition-colors">
+                                                {v.name}
+                                            </h2>
+                                            <div className="flex items-center gap-2 text-gray-500 text-base">
+                                                <Target className="w-4 h-4" />
+                                                {v.location || v.city || 'Unknown City'}
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-sm font-medium text-gray-400 uppercase tracking-wider">
+                                                <Users className="w-3.5 h-3.5" />
+                                                {v.founder_name || 'N/A'}
+                                            </div>
+                                        </div>
+
+                                        {/* Date of Submission */}
+                                        <div className="col-span-2 text-center border-l border-gray-200 pl-4">
+                                            <div className="text-base font-medium text-gray-700">
+                                                {v.created_at ? new Date(v.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }).replace(/ /g, '-') : 'N/A'}
+                                            </div>
+                                        </div>
+
+                                        {/* Status */}
+                                        <div className="col-span-3 text-center border-l border-gray-200 pl-4">
+                                            <span className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${v.program_recommendation
+                                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                                : 'bg-gray-50 text-gray-500 border border-gray-200'
+                                                }`}>
+                                                {v.program_recommendation || 'To be reviewed'}
+                                            </span>
+                                        </div>
+
+                                        {/* Revenue & Arrow */}
+                                        <div className="col-span-2 flex items-center justify-end gap-3 border-l border-gray-200 pl-4">
+                                            <div className="text-right">
+                                                <div className="text-base font-semibold text-gray-800 whitespace-nowrap">
+                                                    {v.revenue_12m || 'N/A'}
+                                                </div>
+                                            </div>
+                                            <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all flex-shrink-0">
+                                                <ChevronRight className="w-5 h-5" />
+                                            </div>
                                         </div>
                                     </div>
-
-                                    <div className="flex items-center gap-1.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                        <Users className="w-3.5 h-3.5" />
-                                        {v.founder_name || v.growth_current?.founder_name || 'FOUNDER'}
-                                    </div>
-                                </div>
-
-                                {/* Divider */}
-                                <div className="w-px h-24 bg-gray-100 mx-4"></div>
-
-                                {/* Middle Column: Program Status */}
-                                <div className="flex-1 px-8 flex items-center justify-center">
-                                    <div className="text-center">
-                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-3">Program Status</span>
-                                        <div className={`px-5 py-2.5 rounded-full text-sm font-bold ${v.program_recommendation
-                                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                            : 'bg-gray-50 text-gray-600 border border-gray-200'
-                                            }`}>
-                                            {v.program_recommendation || 'Pending Review'}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Divider */}
-                                <div className="w-px h-24 bg-gray-100 mx-4"></div>
-
-                                {/* Right Column: Revenue & Action */}
-                                <div className="flex items-center gap-6 w-1/4 justify-end pl-4">
-                                    <div className="text-center">
-                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-3">Revenue (LTM)</span>
-                                        <div className="text-2xl font-bold text-gray-900">{v.revenue_12m || v.commitment?.lastYearRevenue || v.commitment?.revenuePotential || 'N/A'}</div>
-                                    </div>
-
-                                    <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all transform group-hover:translate-x-1">
-                                        <Send className="w-6 h-6 rotate-0" /> {/* Using Send as arrow/chevron replacement or just arrow right if available */}
-                                    </div>
-                                </div>
+                                ))}
                             </div>
-                        ))
                     )}
                 </div>
             ) : (
@@ -612,7 +693,7 @@ export const VSMDashboard: React.FC = () => {
 
                     <div className="p-8 space-y-8">
                         {/* Section 1: Dashboard Metrics */}
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-4 gap-4">
                             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Current Revenue</span>
                                 <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
@@ -632,6 +713,19 @@ export const VSMDashboard: React.FC = () => {
                                 <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
                                     <Users className="w-4 h-4 text-gray-400" />
                                     {selectedVenture.full_time_employees || '0'}
+                                </div>
+                            </div>
+                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Jobs</span>
+                                <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
+                                    <Users className="w-4 h-4 text-gray-400" />
+                                    {selectedVenture.target_jobs || (() => {
+                                        const revenuePotential = selectedVenture.revenue_potential_12m;
+                                        if (revenuePotential === '5Cr - 15 Cr') return '5';
+                                        if (revenuePotential === '15Cr - 50Cr') return '20';
+                                        if (revenuePotential === '50Cr+') return '30';
+                                        return '0';
+                                    })()}
                                 </div>
                             </div>
                         </div>
@@ -654,13 +748,13 @@ export const VSMDashboard: React.FC = () => {
                             <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 mb-6 space-y-4">
                                 <div className="grid grid-cols-3 gap-6">
                                     <div>
-                                        <span className="text-sm text-gray-600 block mb-1">Name: <span className="font-semibold text-gray-900">{selectedVenture.founder_name || selectedVenture.growth_current?.founder_name || 'N/A'}</span></span>
+                                        <span className="text-sm text-gray-600 block mb-1">Name: <span className="font-semibold text-gray-900">{selectedVenture.founder_name || 'N/A'}</span></span>
                                     </div>
                                     <div>
-                                        <span className="text-sm text-gray-600 block mb-1">Mobile: <span className="font-semibold text-gray-900">{selectedVenture.growth_current?.phone || selectedVenture.growth_current?.mobile || 'N/A'}</span></span>
+                                        <span className="text-sm text-gray-600 block mb-1">Mobile: <span className="font-semibold text-gray-900">{(selectedVenture as any).founder_phone || 'N/A'}</span></span>
                                     </div>
                                     <div>
-                                        <span className="text-sm text-gray-600 block mb-1">Email: <span className="font-semibold text-gray-900">{selectedVenture.growth_current?.email || 'N/A'}</span></span>
+                                        <span className="text-sm text-gray-600 block mb-1">Email: <span className="font-semibold text-gray-900">{(selectedVenture as any).founder_email || 'N/A'}</span></span>
                                     </div>
                                     <div>
                                         <span className="text-sm text-gray-600 block mb-1">Registered company name</span>
@@ -668,23 +762,23 @@ export const VSMDashboard: React.FC = () => {
                                     </div>
                                     <div>
                                         <span className="text-sm text-gray-600 block mb-1">Designation (Your role in the company)</span>
-                                        <div className="font-medium text-gray-900">{selectedVenture.growth_current?.role || 'N/A'}</div>
+                                        <div className="font-medium text-gray-900">{(selectedVenture as any).founder_designation || 'N/A'}</div>
                                     </div>
                                     <div>
                                         <span className="text-sm text-gray-600 block mb-1">Company type:</span>
-                                        <div className="font-medium text-gray-900">{selectedVenture.growth_current?.business_type || 'N/A'}</div>
+                                        <div className="font-medium text-gray-900">{(selectedVenture as any).company_type || 'N/A'}</div>
                                     </div>
                                     <div>
                                         <span className="text-sm text-gray-600 block mb-1">Which city is your company primarily based in</span>
-                                        <div className="font-medium text-gray-900">{selectedVenture.growth_current?.city || selectedVenture.city || 'N/A'}</div>
+                                        <div className="font-medium text-gray-900">{selectedVenture.city || 'N/A'}</div>
                                     </div>
                                     <div>
                                         <span className="text-sm text-gray-600 block mb-1">State in which your company is located</span>
-                                        <div className="font-medium text-gray-900">{selectedVenture.growth_current?.state || 'N/A'}</div>
+                                        <div className="font-medium text-gray-900">{(selectedVenture as any).state || 'N/A'}</div>
                                     </div>
                                     <div>
                                         <span className="text-sm text-gray-600 block mb-1">How did I hear about us:</span>
-                                        <div className="font-medium text-gray-900">{selectedVenture.growth_current?.referred_by || 'N/A'}</div>
+                                        <div className="font-medium text-gray-900">{(selectedVenture as any).referred_by || 'N/A'}</div>
                                     </div>
                                 </div>
                             </div>
@@ -702,15 +796,15 @@ export const VSMDashboard: React.FC = () => {
                                         <div className="space-y-5">
                                             <div>
                                                 <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Product / Service</span>
-                                                <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{selectedVenture.growth_current?.product || 'N/A'}</p>
+                                                <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{(selectedVenture as any).what_do_you_sell || 'N/A'}</p>
                                             </div>
                                             <div>
                                                 <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Customer Segment</span>
-                                                <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{selectedVenture.growth_current?.segment || 'N/A'}</p>
+                                                <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{(selectedVenture as any).who_do_you_sell_to || 'N/A'}</p>
                                             </div>
                                             <div>
                                                 <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Region</span>
-                                                <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{selectedVenture.growth_current?.geography || 'N/A'}</p>
+                                                <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{(selectedVenture as any).which_regions || 'N/A'}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -919,6 +1013,9 @@ export const VSMDashboard: React.FC = () => {
                             userRole={userRole}
                             selectedPartner={selectedPartner}
                             setSelectedPartner={setSelectedPartner}
+                            panelists={panelists}
+                            selectedPanelist={selectedPanelist}
+                            setSelectedPanelist={setSelectedPanelist}
                             saving={saving}
                             onSave={handleSave}
                             isAlreadySubmitted={!!selectedVenture?.program_recommendation}

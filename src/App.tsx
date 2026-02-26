@@ -88,12 +88,12 @@ function App() {
             <Route index element={<VSMDashboard />} />
           </Route>
 
-          {/* Venture Manager Dashboard Routes */}
+          {/* Panel (Prime) Dashboard Routes */}
           <Route path="/vmanager/dashboard" element={<VSMDashboardLayout />}>
             <Route index element={<VentureManagerDashboard />} />
           </Route>
 
-          {/* Selection Committee Dashboard Routes */}
+          {/* Panel (Core, Select) Dashboard Routes */}
           <Route path="/committee/dashboard" element={<VSMDashboardLayout />}>
             <Route index element={<SelectionCommitteeDashboard />} />
           </Route>

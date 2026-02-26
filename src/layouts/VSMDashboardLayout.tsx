@@ -16,13 +16,13 @@ export const VSMDashboardLayout: React.FC = () => {
     // Determine Role Label
     const getRoleLabel = () => {
         if (!user?.email) return 'Screening Manager';
-        if (user.email.includes('ravi')) return 'Venture Manager';
-        if (user.email.includes('meetul') || user.email.includes('committee')) return 'Selection Committee';
+        if (user.email.includes('ravi')) return 'Panel (Prime)';
+        if (user.email.includes('meetul') || user.email.includes('committee')) return 'Panel (Core, Select)';
         return 'Screening Manager';
     };
 
     const roleLabel = getRoleLabel();
-    const dashboardLabel = roleLabel === 'Selection Committee' ? 'Committee Dashboard' : `${roleLabel} Dashboard`;
+    const dashboardLabel = roleLabel === 'Panel (Core, Select)' ? 'Panel (Core, Select) Dashboard' : `${roleLabel} Dashboard`;
 
 
     return (
