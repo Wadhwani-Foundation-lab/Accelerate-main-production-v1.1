@@ -48,32 +48,35 @@ export const MyVentures: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">My Ventures</h1>
-                    <p className="text-gray-500 mt-1 flex items-center gap-2">
+                    <h1 className="text-2xl font-bold text-gray-900">My Ventures</h1>
+                    <p className="text-sm text-gray-500 mt-1 flex items-center gap-3">
                         Manage your applications and growth programs.
                         {user && (
-                            <span className="text-xs bg-gray-100 px-2 py-0.5 rounded flex items-center gap-1">
+                            <span className="text-xs bg-brand-50 border border-brand-100 px-2.5 py-1 rounded-lg flex items-center gap-1.5 text-brand-700 font-medium">
                                 <User className="w-3 h-3" />
-                                Viewing as: {user.user_metadata?.full_name || user.email}
+                                {user.user_metadata?.full_name || user.email}
                             </span>
                         )}
                     </p>
                 </div>
-                <Button onClick={() => navigate('/dashboard/new-application')} className="bg-blue-600 hover:bg-blue-700">
-                    <Plus className="w-5 h-5 mr-2" />
+                <button
+                    onClick={() => navigate('/dashboard/new-application')}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 transition-colors shadow-sm shadow-brand-500/20"
+                >
+                    <Plus className="w-4 h-4" />
                     New Application
-                </Button>
+                </button>
             </div>
 
             {/* Content */}
             {loading ? (
                 <div className="flex justify-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                    <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
                 </div>
             ) : ventures.length === 0 ? (
                 <div className="bg-white rounded-2xl p-12 text-center border border-gray-200 shadow-sm min-h-[400px] flex flex-col items-center justify-center space-y-4">
-                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
-                        <FileText className="w-8 h-8 text-blue-600" />
+                    <div className="w-16 h-16 bg-brand-50 rounded-full flex items-center justify-center mb-4">
+                        <FileText className="w-8 h-8 text-brand-600" />
                     </div>
                     <h2 className="text-xl font-bold text-gray-900">No Ventures Yet</h2>
                     <p className="text-gray-500 max-w-sm">

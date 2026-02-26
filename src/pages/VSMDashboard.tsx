@@ -556,44 +556,26 @@ export const VSMDashboard: React.FC = () => {
     return (
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
 
-            {/* Header / Title */}
-            {!selectedVenture && (
-                <div className="mb-8 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">
-                            {userRole === 'venture_mgr' ? 'Prime Applications' :
-                                userRole === 'committee' ? 'Core & Select Apps' :
-                                    'Applications'} <span className="text-gray-400 font-normal ml-2">
-                                ({revenueFilter === 'all' ? ventures.length : ventures.filter(v => {
-                                    const revenue = v.revenue_12m || v.commitment?.lastYearRevenue || '';
-                                    return revenue === revenueFilter;
-                                }).length})
-                            </span>
-                        </h1>
-                        <p className="text-gray-500 mt-1">Review and assess venture applications.</p>
-                    </div>
-                </div>
-            )}
 
             {/* MASTER VIEW: Venture List (Cards) */}
             {!selectedVenture ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                     {/* Column Headers - always visible */}
-                    <div className="grid grid-cols-12 gap-4 px-8 pb-3 border-b border-gray-200 items-center">
+                    <div className="grid grid-cols-12 gap-4 px-8 pb-4 border-b border-gray-200 items-end">
                         <div className="col-span-5">
-                            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Applications</span>
+                            <span className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide">Venture</span>
                         </div>
                         <div className="col-span-2 text-center">
-                            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Date of Submission</span>
+                            <span className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide">Submitted</span>
                         </div>
                         <div className="col-span-3 text-center">
-                            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Status</span>
+                            <span className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide">Program</span>
                         </div>
                         <div className="col-span-2 text-right">
                             <select
                                 value={revenueFilter}
                                 onChange={(e) => setRevenueFilter(e.target.value)}
-                                className="text-sm font-semibold text-gray-500 uppercase tracking-wider border border-gray-200 rounded-md px-3 py-1.5 bg-white hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide border border-gray-200 rounded-lg px-3 py-1.5 bg-white hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer appearance-none pr-7 bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_8px_center] bg-no-repeat"
                             >
                                 <option value="all">Revenue</option>
                                 <option value="1Cr-5Cr">1Cr - 5Cr</option>
@@ -605,10 +587,14 @@ export const VSMDashboard: React.FC = () => {
                     </div>
 
                     {loading ? (
-                        <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>
+                        <div className="flex flex-col items-center justify-center p-16 gap-3">
+                            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                            <span className="text-sm text-gray-400">Loading applications...</span>
+                        </div>
                     ) : ventures.length === 0 ? (
-                        <div className="text-center p-12 bg-white rounded-xl border border-gray-200 text-gray-500 text-base">
-                            No applications found.
+                        <div className="text-center p-16 bg-white rounded-2xl border border-dashed border-gray-300 text-gray-400">
+                            <div className="text-lg font-medium mb-1">No applications yet</div>
+                            <div className="text-sm">New venture applications will appear here once submitted.</div>
                         </div>
                     ) : (
                         <div className="space-y-3">
@@ -622,48 +608,48 @@ export const VSMDashboard: React.FC = () => {
                                     <div
                                         key={v.id}
                                         onClick={() => handleVentureSelect(v)}
-                                        className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md transition-all cursor-pointer px-8 py-6 grid grid-cols-12 gap-4 items-center group"
+                                        className="bg-white rounded-2xl border border-gray-200 hover:border-blue-400 shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer px-8 py-6 grid grid-cols-12 gap-4 items-center group"
                                     >
                                         {/* Venture Info */}
-                                        <div className="col-span-5 space-y-2">
-                                            <h2 className="text-xl font-bold text-gray-900 leading-snug group-hover:text-blue-700 transition-colors">
+                                        <div className="col-span-5 space-y-1.5">
+                                            <h2 className="text-[17px] font-semibold text-gray-900 leading-snug group-hover:text-blue-600 transition-colors">
                                                 {v.name}
                                             </h2>
-                                            <div className="flex items-center gap-2 text-gray-500 text-base">
-                                                <Target className="w-4 h-4" />
-                                                {v.location || v.city || 'Unknown City'}
+                                            <div className="flex items-center gap-2 text-gray-500 text-[13px]">
+                                                <Target className="w-3.5 h-3.5 text-gray-400" />
+                                                {v.location || v.city || 'Location not provided'}
                                             </div>
-                                            <div className="flex items-center gap-1.5 text-sm font-medium text-gray-400 uppercase tracking-wider">
+                                            <div className="flex items-center gap-1.5 text-[13px] text-gray-400">
                                                 <Users className="w-3.5 h-3.5" />
-                                                {v.founder_name || 'N/A'}
+                                                {v.founder_name || 'Founder not listed'}
                                             </div>
                                         </div>
 
                                         {/* Date of Submission */}
-                                        <div className="col-span-2 text-center border-l border-gray-200 pl-4">
-                                            <div className="text-base font-medium text-gray-700">
+                                        <div className="col-span-2 text-center border-l border-gray-100 pl-4">
+                                            <div className="text-[14px] font-medium text-gray-600">
                                                 {v.created_at ? new Date(v.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }).replace(/ /g, '-') : 'N/A'}
                                             </div>
                                         </div>
 
                                         {/* Status */}
-                                        <div className="col-span-3 text-center border-l border-gray-200 pl-4">
-                                            <span className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${v.program_recommendation
-                                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                                : 'bg-gray-50 text-gray-500 border border-gray-200'
+                                        <div className="col-span-3 text-center border-l border-gray-100 pl-4">
+                                            <span className={`inline-block px-4 py-1.5 rounded-full text-[13px] font-semibold ${v.program_recommendation
+                                                ? 'bg-blue-50 text-blue-700'
+                                                : 'bg-amber-50 text-amber-600'
                                                 }`}>
-                                                {v.program_recommendation || 'To be reviewed'}
+                                                {v.program_recommendation || 'Awaiting review'}
                                             </span>
                                         </div>
 
                                         {/* Revenue & Arrow */}
-                                        <div className="col-span-2 flex items-center justify-end gap-3 border-l border-gray-200 pl-4">
+                                        <div className="col-span-2 flex items-center justify-end gap-3 border-l border-gray-100 pl-4">
                                             <div className="text-right">
-                                                <div className="text-base font-semibold text-gray-800 whitespace-nowrap">
-                                                    {v.revenue_12m || 'N/A'}
+                                                <div className="text-[15px] font-semibold text-gray-800 whitespace-nowrap">
+                                                    {v.revenue_12m || '--'}
                                                 </div>
                                             </div>
-                                            <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all flex-shrink-0">
+                                            <div className="w-9 h-9 rounded-full flex items-center justify-center text-gray-300 group-hover:bg-blue-600 group-hover:text-white transition-all duration-200 flex-shrink-0">
                                                 <ChevronRight className="w-5 h-5" />
                                             </div>
                                         </div>
