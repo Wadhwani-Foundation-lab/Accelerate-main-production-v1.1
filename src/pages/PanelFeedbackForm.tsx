@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Loader2, Send } from 'lucide-react';
+import { ArrowLeft, Loader2, Send, CheckCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { StarRating } from '../components/ui/StarRating';
@@ -103,6 +103,7 @@ export const PanelFeedbackForm: React.FC = () => {
 
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
     const [ventureName, setVentureName] = useState('');
     const [smeName, setSmeName] = useState('');
 
@@ -288,8 +289,8 @@ export const PanelFeedbackForm: React.FC = () => {
             }
 
             await api.createPanelFeedback(ventureId!, payload);
-            alert('Feedback submitted successfully!');
-            navigate(-1);
+            setSubmitted(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (err: any) {
             console.error('Error submitting feedback:', err);
             alert('Failed to submit feedback: ' + err.message);
@@ -304,6 +305,31 @@ export const PanelFeedbackForm: React.FC = () => {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+            </div>
+        );
+    }
+
+    if (submitted) {
+        return (
+            <div className="max-w-2xl mx-auto py-20 px-4">
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-6">
+                        <CheckCircle className="w-8 h-8 text-green-600" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-gray-900 mb-3">Thank You!</h1>
+                    <p className="text-gray-600 mb-2">
+                        Your panel interview feedback for <span className="font-semibold text-gray-800">{ventureName}</span> has been submitted successfully.
+                    </p>
+                    <p className="text-sm text-gray-500 mb-8">
+                        The feedback has been recorded and will be reviewed by the team.
+                    </p>
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="px-8 py-3 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors shadow-sm"
+                    >
+                        Back to Dashboard
+                    </button>
+                </div>
             </div>
         );
     }

@@ -366,7 +366,7 @@ class ApiClient {
     async getInteractions(ventureId: string) {
         const { data, error } = await supabase
             .from('venture_interactions')
-            .select('*, created_by_user:users!venture_interactions_created_by_fkey(id, email)')
+            .select('*')
             .eq('venture_id', ventureId)
             .is('deleted_at', null)
             .order('interaction_date', { ascending: false });

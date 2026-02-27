@@ -632,7 +632,7 @@ export const VSMDashboard: React.FC = () => {
                                         <div className="col-span-2 flex items-center justify-end gap-3 border-l border-gray-100 pl-4">
                                             <div className="text-right">
                                                 <div className="text-[15px] font-semibold text-gray-800 whitespace-nowrap">
-                                                    {v.revenue_12m || '--'}
+                                                    {v.revenue_12m ? `₹${v.revenue_12m} Cr` : '--'}
                                                 </div>
                                             </div>
                                             <div className="w-9 h-9 rounded-full flex items-center justify-center text-gray-300 group-hover:bg-blue-600 group-hover:text-white transition-all duration-200 flex-shrink-0">
@@ -670,14 +670,14 @@ export const VSMDashboard: React.FC = () => {
                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Current Revenue</span>
                                 <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
                                     <span className="text-sm text-gray-400">₹</span>
-                                    {selectedVenture.revenue_12m || '0'}
+                                    {selectedVenture.revenue_12m || '0'}<span className="text-sm text-gray-400 ml-0.5">Cr</span>
                                 </div>
                             </div>
                             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Revenue (3Y)</span>
                                 <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
                                     <span className="text-sm text-gray-400">₹</span>
-                                    {selectedVenture.revenue_potential_3y || selectedVenture.commitment?.revenuePotential || '0'}
+                                    {selectedVenture.revenue_potential_3y || selectedVenture.commitment?.revenuePotential || '0'}<span className="text-sm text-gray-400 ml-0.5">Cr</span>
                                 </div>
                             </div>
                             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
@@ -692,10 +692,16 @@ export const VSMDashboard: React.FC = () => {
                                 <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
                                     <Users className="w-4 h-4 text-gray-400" />
                                     {selectedVenture.target_jobs || (() => {
-                                        const revenuePotential = selectedVenture.revenue_potential_12m;
-                                        if (revenuePotential === '5Cr - 15 Cr') return '5';
-                                        if (revenuePotential === '15Cr - 50Cr') return '20';
-                                        if (revenuePotential === '50Cr+') return '30';
+                                        const rev = String(selectedVenture.revenue_potential_12m || selectedVenture.revenue_potential_3y || '');
+                                        if (rev === '5Cr - 15 Cr') return '5';
+                                        if (rev === '15Cr - 50Cr') return '20';
+                                        if (rev === '50Cr+') return '30';
+                                        const num = parseFloat(rev);
+                                        if (!isNaN(num)) {
+                                            if (num < 15) return '5';
+                                            if (num < 50) return '20';
+                                            return '30';
+                                        }
                                         return '0';
                                     })()}
                                 </div>
