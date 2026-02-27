@@ -440,6 +440,37 @@ class ApiClient {
         return data; // Returns { message, insights }
     }
 
+    // ============ PANEL FEEDBACK ENDPOINTS ============
+
+    async getPanelFeedback(ventureId: string) {
+        const { data, error } = await supabase
+            .from('panel_feedback')
+            .select('*')
+            .eq('venture_id', ventureId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return { feedback: data || [] };
+    }
+
+    async createPanelFeedback(ventureId: string, data: any) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        const { data: feedback, error } = await supabase
+            .from('panel_feedback')
+            .insert({
+                venture_id: ventureId,
+                submitted_by: user.id,
+                ...data
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { feedback };
+    }
+
     async getPanelistsByProgram(program: string) {
         const { data, error } = await supabase
             .from('panelists')
