@@ -13,7 +13,7 @@ export const Welcome: React.FC = () => {
         setApplying(true);
         try {
             // Auto-login with demo entrepreneur account → go straight to application form
-            await signIn('rajesh@example.com', 'password');
+            await signIn('vipul@wadhwani.com', 'password');
             navigate('/dashboard/new-application');
         } catch {
             // If auto-login fails, fall back to login page
