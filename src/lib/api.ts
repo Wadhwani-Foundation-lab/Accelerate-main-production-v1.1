@@ -414,6 +414,52 @@ class ApiClient {
         if (error) throw error;
     }
 
+    // ============ ROADMAP ENDPOINTS ============
+
+    async generateRoadmap(ventureId: string) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+        const response = await fetch(`${API_URL}/api/ventures/${ventureId}/generate-roadmap`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to generate roadmap');
+        }
+
+        const data = await response.json();
+        return data; // Returns { roadmap }
+    }
+
+    async getRoadmap(ventureId: string) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+        const response = await fetch(`${API_URL}/api/ventures/${ventureId}/roadmap`, {
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to fetch roadmap');
+        }
+
+        const data = await response.json();
+        return data; // Returns { roadmap }
+    }
+
     // ============ AI INSIGHTS ENDPOINTS ============
 
     async generateInsights(ventureId: string, vsmNotes?: string) {

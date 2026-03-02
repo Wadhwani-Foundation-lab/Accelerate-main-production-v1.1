@@ -250,6 +250,149 @@ router.post(
     }
 );
 
+// ============ ROADMAP ROUTES ============
+
+/**
+ * POST /api/ventures/:id/generate-roadmap
+ * Generate AI-powered journey roadmap for a venture
+ */
+router.post(
+    '/:id/generate-roadmap',
+    authenticateUser,
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { supabase, role } = await getContext(req);
+
+            if (!['venture_mgr', 'committee_member', 'admin'].includes(role)) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Only venture managers, committee members, and admins can generate roadmaps'
+                });
+            }
+
+            // Get venture with application and assessment data
+            const { data: venture, error: ventureError } = await supabase
+                .from('ventures')
+                .select(`
+                    *,
+                    application:venture_applications(*),
+                    assessments:venture_assessments(*)
+                `)
+                .eq('id', req.params.id)
+                .single();
+
+            if (ventureError || !venture) {
+                return res.status(404).json({ success: false, message: 'Venture not found' });
+            }
+
+            const app = venture.application?.[0] || venture.application || {};
+            const assessment = (venture.assessments || []).find((a: any) => a.is_current) || venture.assessments?.[0] || {};
+
+            // Build venture data with application fields
+            const ventureData = {
+                ...venture,
+                revenue_12m: app.revenue_12m,
+                revenue_potential_3y: app.revenue_potential_3y,
+                full_time_employees: app.full_time_employees,
+                growth_focus: app.growth_focus,
+                what_do_you_sell: app.what_do_you_sell,
+                who_do_you_sell_to: app.who_do_you_sell_to,
+                which_regions: app.which_regions,
+                focus_product: app.focus_product,
+                focus_segment: app.focus_segment,
+                focus_geography: app.focus_geography,
+                blockers: app.blockers,
+                support_request: app.support_request,
+                incremental_hiring: app.incremental_hiring,
+            };
+
+            const startTime = Date.now();
+
+            // Generate roadmap via Claude
+            const roadmapData = await aiService.generateVentureRoadmap(ventureData, {
+                vsmNotes: assessment.notes || '',
+                aiAnalysis: assessment.ai_analysis || null,
+            });
+
+            const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+
+            // Mark old roadmaps as not current
+            await supabase
+                .from('venture_roadmaps')
+                .update({ is_current: false })
+                .eq('venture_id', req.params.id)
+                .eq('is_current', true);
+
+            // Get version number
+            const { count } = await supabase
+                .from('venture_roadmaps')
+                .select('*', { count: 'exact', head: true })
+                .eq('venture_id', req.params.id);
+
+            // Insert new roadmap
+            const { data: savedRoadmap, error: insertError } = await supabase
+                .from('venture_roadmaps')
+                .insert({
+                    venture_id: req.params.id,
+                    generated_by: req.user.id,
+                    generation_source: 'ai_generated',
+                    based_on_assessment_id: assessment.id || null,
+                    roadmap_data: roadmapData,
+                    roadmap_version: (count || 0) + 1,
+                    is_current: true,
+                    generation_duration_seconds: durationSeconds,
+                    generation_model: 'claude-sonnet-4-5-20250929',
+                })
+                .select()
+                .single();
+
+            if (insertError) {
+                console.error('Error saving roadmap:', insertError);
+                // Return data even if save fails
+                return successResponse(res, { roadmap: { roadmap_data: roadmapData }, saved: false });
+            }
+
+            successResponse(res, { roadmap: savedRoadmap });
+        } catch (error: any) {
+            console.error('Error generating roadmap:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to generate roadmap',
+            });
+        }
+    }
+);
+
+/**
+ * GET /api/ventures/:id/roadmap
+ * Get the current roadmap for a venture
+ */
+router.get(
+    '/:id/roadmap',
+    authenticateUser,
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { supabase } = await getContext(req);
+
+            const { data: roadmap, error } = await supabase
+                .from('venture_roadmaps')
+                .select('*')
+                .eq('venture_id', req.params.id)
+                .eq('is_current', true)
+                .maybeSingle();
+
+            if (error) {
+                console.error('Error fetching roadmap:', error);
+                return res.status(500).json({ success: false, message: 'Failed to fetch roadmap' });
+            }
+
+            successResponse(res, { roadmap: roadmap || null });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
 // ============ STREAM ROUTES ============
 
 /**
