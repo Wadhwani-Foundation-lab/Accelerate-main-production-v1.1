@@ -103,7 +103,7 @@ export const PanelFeedbackForm: React.FC = () => {
 
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
-    const [submitted, setSubmitted] = useState(false);
+    const [, setSubmitted] = useState(false);
     const [readOnly, setReadOnly] = useState(false);
     const [ventureName, setVentureName] = useState('');
     const [smeName, setSmeName] = useState('');

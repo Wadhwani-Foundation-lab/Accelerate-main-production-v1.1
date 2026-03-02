@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, User, Loader2, Link2 } from 'lucide-react';
+import { X, Calendar, Loader2, Link2 } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface Venture {

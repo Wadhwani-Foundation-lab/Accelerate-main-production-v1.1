@@ -151,7 +151,7 @@ export const OpsManagerDashboard: React.FC = () => {
     }, []);
 
     const getCallCount = (ventureId: string) => {
-        return callCounts.find(c => c.venture_id === ventureId) || { total: 0, completed: 0 };
+        return callCounts.find(c => c.venture_id === ventureId) || { total: 0, completed: 0, latest_meet_link: undefined };
     };
 
     // Filter ventures
