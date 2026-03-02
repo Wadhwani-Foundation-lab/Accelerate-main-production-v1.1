@@ -54,6 +54,35 @@ interface Venture {
     vsm_reviewed_at?: string; // Timestamp when VSM reviewed
 }
 
+function getVentureDisplayStatus(venture: Venture): { label: string; color: string; bg: string } {
+    const status = venture.status;
+    const rec = venture.program_recommendation;
+
+    if (status === 'Panel Review' && rec?.includes('Prime')) {
+        return { label: 'Pending with Panel (Prime)', color: 'text-purple-700', bg: 'bg-purple-50' };
+    }
+    if (status === 'Panel Review') {
+        const prog = rec?.replace('Accelerate ', '') || 'Core/Select';
+        return { label: `Pending with Panel (${prog})`, color: 'text-indigo-700', bg: 'bg-indigo-50' };
+    }
+    if (status === 'Approved') {
+        return { label: 'Accepted by Business', color: 'text-green-700', bg: 'bg-green-50' };
+    }
+    if (status === 'Rejected') {
+        return { label: 'Declined by Business', color: 'text-red-700', bg: 'bg-red-50' };
+    }
+    if (status === 'Under Review') {
+        return { label: 'Under Review', color: 'text-blue-700', bg: 'bg-blue-50' };
+    }
+    if (status === 'Submitted') {
+        return { label: 'Pending with Screening Manager', color: 'text-amber-700', bg: 'bg-amber-50' };
+    }
+    if (status === 'Draft') {
+        return { label: 'Draft', color: 'text-gray-600', bg: 'bg-gray-50' };
+    }
+    return { label: status, color: 'text-gray-700', bg: 'bg-gray-50' };
+}
+
 const OtherDetailsSection: React.FC<{ selectedVenture: any; vsmNotes: string; setVsmNotes: (v: string) => void }> = ({ selectedVenture, vsmNotes, setVsmNotes }) => {
     const [open, setOpen] = useState(true);
     return (
@@ -188,7 +217,8 @@ const RecommendProgramSection: React.FC<{
     onSave: () => void;
     isAlreadySubmitted: boolean;
     reviewedAt?: string;
-}> = ({ program, setProgram, internalComments, setInternalComments, userRole, selectedPartner, setSelectedPartner, panelists, selectedPanelist, setSelectedPanelist, saving, onSave, isAlreadySubmitted, reviewedAt }) => (
+    venture?: Venture;
+}> = ({ program, setProgram, internalComments, setInternalComments, userRole, selectedPartner, setSelectedPartner, panelists, selectedPanelist, setSelectedPanelist, saving, onSave, isAlreadySubmitted, reviewedAt, venture }) => (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -213,6 +243,19 @@ const RecommendProgramSection: React.FC<{
                         <p className="text-sm font-semibold text-blue-900">Already Reviewed</p>
                         <p className="text-xs text-blue-700 mt-1">You can update your recommendation below if needed.</p>
                     </div>
+                </div>
+            )}
+            {venture && isAlreadySubmitted && (
+                <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Current Status:</span>
+                    {(() => {
+                        const ds = getVentureDisplayStatus(venture);
+                        return (
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${ds.bg} ${ds.color}`}>
+                                {ds.label}
+                            </span>
+                        );
+                    })()}
                 </div>
             )}
             <div>
@@ -481,7 +524,7 @@ export const VSMDashboard: React.FC = () => {
             setSelectedVenture(prev => prev ? { ...prev, ...updatePayload } : null);
 
             // Success feedback
-            alert('✓ Recommendation submitted successfully!\n\nStatus: ' + updatePayload.status + '\nProgram: ' + program);
+            alert('✓ Recommendation submitted successfully!\n\nStatus: Pending with Panel\nProgram: ' + program);
 
             // Navigate back to list after 1 second
             setTimeout(() => {
@@ -617,7 +660,7 @@ export const VSMDashboard: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        {/* Status */}
+                                        {/* Program */}
                                         <div className="col-span-3 text-center border-l border-gray-100 pl-4">
                                             <span className={`inline-block px-4 py-1.5 rounded-full text-[13px] font-semibold ${v.program_recommendation
                                                 ? 'bg-blue-50 text-blue-700'
@@ -657,9 +700,14 @@ export const VSMDashboard: React.FC = () => {
                     {/* Header: Company Name Left, Status Right */}
                     <div className="border-b border-gray-100 px-6 py-5 bg-white flex items-center justify-between sticky top-0 z-20">
                         <h2 className="text-2xl font-bold text-gray-900">{selectedVenture.name}</h2>
-                        <span className="px-4 py-1.5 rounded-full bg-gray-100 text-gray-700 text-sm font-bold">
-                            {selectedVenture.status}
-                        </span>
+                        {(() => {
+                            const ds = getVentureDisplayStatus(selectedVenture);
+                            return (
+                                <span className={`px-4 py-1.5 rounded-full text-sm font-bold ${ds.bg} ${ds.color}`}>
+                                    {ds.label}
+                                </span>
+                            );
+                        })()}
                     </div>
 
                     <div className="p-8 space-y-8">
@@ -995,6 +1043,7 @@ export const VSMDashboard: React.FC = () => {
                             onSave={handleSave}
                             isAlreadySubmitted={!!selectedVenture?.program_recommendation}
                             reviewedAt={(selectedVenture as any)?.vsm_reviewed_at}
+                            venture={selectedVenture || undefined}
                         />
                     </div>
                 </div>

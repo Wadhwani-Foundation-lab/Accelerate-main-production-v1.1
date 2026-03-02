@@ -12,6 +12,13 @@ import {
     Link2,
     ExternalLink,
     MoreHorizontal,
+    X,
+    MapPin,
+    Briefcase,
+    TrendingUp,
+    Target,
+    Mail,
+    PhoneCall,
 } from 'lucide-react';
 import { ScheduleCallModal } from '../components/ScheduleCallModal';
 
@@ -74,6 +81,21 @@ export const OpsManagerDashboard: React.FC = () => {
     const [programFilter, setProgramFilter] = useState<ProgramFilter>('');
     const [callStatusFilter, setCallStatusFilter] = useState<CallStatusFilter>('');
     const [scheduleModalVenture, setScheduleModalVenture] = useState<Venture | null>(null);
+    const [profileVenture, setProfileVenture] = useState<any | null>(null);
+    const [profileLoading, setProfileLoading] = useState(false);
+
+    const openVentureProfile = async (venture: Venture) => {
+        setProfileLoading(true);
+        setProfileVenture({ name: venture.name, founder_name: venture.founder_name });
+        try {
+            const { venture: full } = await api.getVenture(venture.id);
+            setProfileVenture(full);
+        } catch (err) {
+            console.error('Error fetching venture profile:', err);
+        } finally {
+            setProfileLoading(false);
+        }
+    };
 
     const fetchData = async () => {
         setLoading(true);
@@ -281,8 +303,13 @@ export const OpsManagerDashboard: React.FC = () => {
                                     return (
                                         <tr key={venture.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                                             <td className="px-4 py-3">
-                                                <div className="font-medium text-gray-900">{venture.name}</div>
-                                                <div className="text-xs text-gray-400">{venture.founder_name}</div>
+                                                <button
+                                                    onClick={() => openVentureProfile(venture)}
+                                                    className="text-left group"
+                                                >
+                                                    <div className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">{venture.name}</div>
+                                                    <div className="text-xs text-gray-400">{venture.founder_name}</div>
+                                                </button>
                                             </td>
                                             <td className="px-4 py-3">
                                                 {venture.program_recommendation ? (
@@ -385,9 +412,157 @@ export const OpsManagerDashboard: React.FC = () => {
                     }}
                 />
             )}
+
+            {/* Venture Profile Drawer */}
+            {profileVenture && (
+                <>
+                    <div
+                        className="fixed inset-0 z-40 bg-black/30 transition-opacity"
+                        onClick={() => setProfileVenture(null)}
+                    />
+                    <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200">
+                        {/* Drawer Header */}
+                        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+                            <h2 className="text-lg font-bold text-gray-900">Business Profile</h2>
+                            <button
+                                onClick={() => setProfileVenture(null)}
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {profileLoading ? (
+                            <div className="flex items-center justify-center h-64">
+                                <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+                            </div>
+                        ) : (
+                            <div className="p-6 space-y-6">
+                                {/* Company Header */}
+                                <div className="flex items-start gap-4">
+                                    <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                        <Briefcase className="w-6 h-6 text-indigo-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="text-xl font-bold text-gray-900">{profileVenture.name}</h3>
+                                        {profileVenture.city && (
+                                            <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-1">
+                                                <MapPin className="w-3.5 h-3.5" />
+                                                {profileVenture.city}{profileVenture.location ? `, ${profileVenture.location}` : ''}
+                                            </div>
+                                        )}
+                                        {profileVenture.program_recommendation && (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 mt-2 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700">
+                                                {profileVenture.program_recommendation}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Founder Info */}
+                                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Founder</h4>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                                            <Users className="w-5 h-5 text-indigo-600" />
+                                        </div>
+                                        <div>
+                                            <div className="font-semibold text-gray-900">{profileVenture.founder_name || 'N/A'}</div>
+                                            {profileVenture.founder_designation && (
+                                                <div className="text-xs text-gray-500">{profileVenture.founder_designation}</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {(profileVenture.founder_email || profileVenture.founder_phone) && (
+                                        <div className="flex flex-col gap-1.5 pt-2 border-t border-gray-200">
+                                            {profileVenture.founder_email && (
+                                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                    <Mail className="w-3.5 h-3.5 text-gray-400" />
+                                                    {profileVenture.founder_email}
+                                                </div>
+                                            )}
+                                            {profileVenture.founder_phone && (
+                                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                    <PhoneCall className="w-3.5 h-3.5 text-gray-400" />
+                                                    {profileVenture.founder_phone}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Key Metrics */}
+                                <div>
+                                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Key Metrics</h4>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <MetricCard label="Revenue (12M)" value={profileVenture.revenue_12m} icon={<TrendingUp className="w-4 h-4 text-green-600" />} />
+                                        <MetricCard label="Revenue Target (3Y)" value={profileVenture.revenue_potential_3y} icon={<Target className="w-4 h-4 text-blue-600" />} />
+                                        <MetricCard label="Employees" value={profileVenture.full_time_employees} icon={<Users className="w-4 h-4 text-purple-600" />} />
+                                        <MetricCard label="Target Jobs" value={profileVenture.target_jobs} icon={<Briefcase className="w-4 h-4 text-amber-600" />} />
+                                    </div>
+                                </div>
+
+                                {/* Business Details */}
+                                <div>
+                                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Business Details</h4>
+                                    <div className="space-y-3">
+                                        {profileVenture.what_do_you_sell && (
+                                            <DetailRow label="What they sell" value={profileVenture.what_do_you_sell} />
+                                        )}
+                                        {profileVenture.who_do_you_sell_to && (
+                                            <DetailRow label="Who they sell to" value={profileVenture.who_do_you_sell_to} />
+                                        )}
+                                        {profileVenture.which_regions && (
+                                            <DetailRow label="Regions" value={profileVenture.which_regions} />
+                                        )}
+                                        {profileVenture.company_type && (
+                                            <DetailRow label="Company type" value={profileVenture.company_type} />
+                                        )}
+                                        {profileVenture.growth_focus && (
+                                            <DetailRow label="Growth focus" value={profileVenture.growth_focus} />
+                                        )}
+                                        {profileVenture.description && (
+                                            <DetailRow label="Description" value={profileVenture.description} />
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Screening Notes */}
+                                {profileVenture.vsm_notes && (
+                                    <div>
+                                        <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Screening Notes</h4>
+                                        <div className="bg-amber-50 border border-amber-100 rounded-lg p-4 text-sm text-gray-700 whitespace-pre-wrap">
+                                            {profileVenture.vsm_notes}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
         </div>
     );
 };
+
+// Metric Card for Profile Drawer
+const MetricCard: React.FC<{ label: string; value: any; icon: React.ReactNode }> = ({ label, value, icon }) => (
+    <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+        <div className="flex items-center gap-2 mb-1">
+            {icon}
+            <span className="text-xs text-gray-500">{label}</span>
+        </div>
+        <div className="text-sm font-bold text-gray-900">{value || 'N/A'}</div>
+    </div>
+);
+
+// Detail Row for Profile Drawer
+const DetailRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+    <div className="bg-white border border-gray-100 rounded-lg px-4 py-3">
+        <div className="text-xs text-gray-500 mb-0.5">{label}</div>
+        <div className="text-sm text-gray-800">{value}</div>
+    </div>
+);
 
 // Summary Card Component
 const SummaryCard: React.FC<{
