@@ -93,7 +93,7 @@ export const VentureDetails: React.FC = () => {
                             </div>
                             <div>
                                 <div className="text-xs font-medium text-gray-400 uppercase">Revenue (Last 12 Months)</div>
-                                <div className="font-medium text-gray-900">₹{venture.revenue_12m || 'N/A'}</div>
+                                <div className="font-medium text-gray-900">{venture.revenue_12m || 'N/A'}</div>
                             </div>
                             <div>
                                 <div className="text-xs font-medium text-gray-400 uppercase">Full-Time Employees</div>
@@ -129,7 +129,7 @@ export const VentureDetails: React.FC = () => {
                             </div>
                             <div>
                                 <div className="text-xs font-medium text-gray-400 uppercase">Revenue Potential (3 Years)</div>
-                                <div className="font-medium text-gray-900">₹{venture.revenue_potential_3y || 'N/A'}</div>
+                                <div className="font-medium text-gray-900">{venture.revenue_potential_3y || 'N/A'}</div>
                             </div>
                             <div>
                                 <div className="text-xs font-medium text-gray-400 uppercase">Incremental Hiring</div>
@@ -181,11 +181,11 @@ export const VentureDetails: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div>
                         <div className="text-xs font-medium text-gray-400 uppercase mb-1">Last Year Revenue</div>
-                        <div className="font-medium text-gray-900 text-lg">₹{venture.revenue_12m || 'N/A'}</div>
+                        <div className="font-medium text-gray-900 text-lg">{venture.revenue_12m || 'N/A'}</div>
                     </div>
                     <div>
                         <div className="text-xs font-medium text-gray-400 uppercase mb-1">3-Year Revenue Potential</div>
-                        <div className="font-medium text-gray-900 text-lg">₹{venture.revenue_potential_3y || 'N/A'}</div>
+                        <div className="font-medium text-gray-900 text-lg">{venture.revenue_potential_3y || 'N/A'}</div>
                     </div>
                     <div>
                         <div className="text-xs font-medium text-gray-400 uppercase mb-1">Minimum Investment Needed</div>

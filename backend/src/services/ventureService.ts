@@ -192,13 +192,13 @@ export async function createVenture(
         founder_phone: growthCurrent.phone || null,
         founder_designation: growthCurrent.role || null,
 
-        // Financial metrics (convert to numeric)
-        revenue_12m: commitment.lastYearRevenue ? parseFloat(commitment.lastYearRevenue.toString().replace(/,/g, '')) : null,
-        revenue_potential_3y: commitment.revenuePotential ? parseFloat(commitment.revenuePotential.toString().replace(/,/g, '')) : null,
+        // Financial metrics (store as original string values)
+        revenue_12m: commitment.lastYearRevenue ? commitment.lastYearRevenue.toString() : null,
+        revenue_potential_3y: commitment.revenuePotential ? commitment.revenuePotential.toString() : null,
         min_investment: commitment.investment ? parseFloat(commitment.investment.toString().replace(/,/g, '')) : null,
 
-        // Team metrics (convert to integer)
-        full_time_employees: growthCurrent.employees ? parseInt(growthCurrent.employees.toString()) : null,
+        // Team metrics (store as original string value)
+        full_time_employees: growthCurrent.employees ? growthCurrent.employees.toString() : null,
         incremental_hiring: commitment.incrementalHiring ? parseInt(commitment.incrementalHiring.toString()) : null,
 
         // Growth focus (convert to array)
@@ -326,7 +326,7 @@ export async function updateVenture(
     if (growthCurrent.email !== undefined) applicationUpdates.founder_email = growthCurrent.email;
     if (growthCurrent.phone !== undefined) applicationUpdates.founder_phone = growthCurrent.phone;
     if (growthCurrent.role !== undefined) applicationUpdates.founder_designation = growthCurrent.role;
-    if (growthCurrent.employees !== undefined) applicationUpdates.full_time_employees = parseInt(growthCurrent.employees.toString());
+    if (growthCurrent.employees !== undefined) applicationUpdates.full_time_employees = growthCurrent.employees.toString();
     if (growthCurrent.referred_by !== undefined) applicationUpdates.referred_by = growthCurrent.referred_by;
     if (growthCurrent.state !== undefined) applicationUpdates.state = growthCurrent.state;
 
@@ -344,10 +344,10 @@ export async function updateVenture(
 
     // Commitment fields
     if (commitment.lastYearRevenue !== undefined) {
-        applicationUpdates.revenue_12m = parseFloat(commitment.lastYearRevenue.toString().replace(/,/g, ''));
+        applicationUpdates.revenue_12m = commitment.lastYearRevenue.toString();
     }
     if (commitment.revenuePotential !== undefined) {
-        applicationUpdates.revenue_potential_3y = parseFloat(commitment.revenuePotential.toString().replace(/,/g, ''));
+        applicationUpdates.revenue_potential_3y = commitment.revenuePotential.toString();
     }
     if (commitment.investment !== undefined) {
         applicationUpdates.min_investment = parseFloat(commitment.investment.toString().replace(/,/g, ''));
@@ -357,11 +357,11 @@ export async function updateVenture(
     }
 
     // Direct field mappings
-    if (updateData.revenue_12m !== undefined) applicationUpdates.revenue_12m = parseFloat(updateData.revenue_12m.toString().replace(/,/g, ''));
-    if (updateData.revenue_potential_3y !== undefined) applicationUpdates.revenue_potential_3y = parseFloat(updateData.revenue_potential_3y.toString().replace(/,/g, ''));
+    if (updateData.revenue_12m !== undefined) applicationUpdates.revenue_12m = updateData.revenue_12m.toString();
+    if (updateData.revenue_potential_3y !== undefined) applicationUpdates.revenue_potential_3y = updateData.revenue_potential_3y.toString();
     if (updateData.min_investment !== undefined) applicationUpdates.min_investment = parseFloat(updateData.min_investment.toString().replace(/,/g, ''));
     if (updateData.incremental_hiring !== undefined) applicationUpdates.incremental_hiring = parseInt(updateData.incremental_hiring.toString());
-    if (updateData.full_time_employees !== undefined) applicationUpdates.full_time_employees = parseInt(updateData.full_time_employees.toString());
+    if (updateData.full_time_employees !== undefined) applicationUpdates.full_time_employees = updateData.full_time_employees.toString();
     if (updateData.blockers !== undefined) applicationUpdates.blockers = updateData.blockers;
     if (updateData.support_request !== undefined) applicationUpdates.support_request = updateData.support_request;
 

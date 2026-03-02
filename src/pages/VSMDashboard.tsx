@@ -669,22 +669,20 @@ export const VSMDashboard: React.FC = () => {
                             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Current Revenue</span>
                                 <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
-                                    <span className="text-sm text-gray-400">₹</span>
-                                    {selectedVenture.revenue_12m || '0'}<span className="text-sm text-gray-400 ml-0.5">Cr</span>
+                                    {selectedVenture.revenue_12m || 'N/A'}
                                 </div>
                             </div>
                             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Revenue (3Y)</span>
                                 <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
-                                    <span className="text-sm text-gray-400">₹</span>
-                                    {selectedVenture.revenue_potential_3y || selectedVenture.commitment?.revenuePotential || '0'}<span className="text-sm text-gray-400 ml-0.5">Cr</span>
+                                    {selectedVenture.revenue_potential_3y || selectedVenture.commitment?.revenuePotential || 'N/A'}
                                 </div>
                             </div>
                             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Current Full Time Employees</span>
                                 <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
                                     <Users className="w-4 h-4 text-gray-400" />
-                                    {selectedVenture.full_time_employees || '0'}
+                                    {selectedVenture.full_time_employees || 'N/A'}
                                 </div>
                             </div>
                             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">

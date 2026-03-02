@@ -264,7 +264,7 @@ export const NewApplication: React.FC = () => {
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900">Application Submitted!</h2>
                     <p className="text-gray-500">
-                        Thank you for applying. Your venture details are now with our Venture Success Managers. We will review your application and get back to you shortly.
+                        Thanks for applying, we will get back to you shortly.
                     </p>
                     <button
                         onClick={() => navigate('/dashboard')}
