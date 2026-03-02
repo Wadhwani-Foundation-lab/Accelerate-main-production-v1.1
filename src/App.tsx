@@ -13,6 +13,9 @@ import { VSMDashboard } from './pages/VSMDashboard';
 import { VentureManagerDashboard } from './pages/VentureManagerDashboard';
 import { SelectionCommitteeDashboard } from './pages/SelectionCommitteeDashboard';
 import { PanelFeedbackForm } from './pages/PanelFeedbackForm';
+import { OpsManagerLayout } from './layouts/OpsManagerLayout';
+import { OpsManagerDashboard } from './pages/OpsManagerDashboard';
+import { ScheduledCallsPage } from './pages/ScheduledCallsPage';
 
 import { VentureWorkbench } from './pages/VentureWorkbench';
 
@@ -99,6 +102,12 @@ function App() {
           <Route path="/committee/dashboard" element={<VSMDashboardLayout />}>
             <Route index element={<SelectionCommitteeDashboard />} />
             <Route path="panel-feedback/:ventureId" element={<PanelFeedbackForm />} />
+          </Route>
+
+          {/* Ops Manager Dashboard Routes */}
+          <Route path="/ops/dashboard" element={<OpsManagerLayout />}>
+            <Route index element={<OpsManagerDashboard />} />
+            <Route path="scheduled-calls" element={<ScheduledCallsPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

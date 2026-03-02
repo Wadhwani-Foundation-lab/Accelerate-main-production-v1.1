@@ -104,6 +104,7 @@ export const PanelFeedbackForm: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [readOnly, setReadOnly] = useState(false);
     const [ventureName, setVentureName] = useState('');
     const [smeName, setSmeName] = useState('');
 
@@ -189,12 +190,73 @@ export const PanelFeedbackForm: React.FC = () => {
             const { venture } = await api.getVenture(ventureId!);
             setVentureName(venture.name || '');
             setSmeName(venture.founder_name || '');
-            // Panel expert name is derived from user context at submit time
+
+            // Check if user already submitted feedback for this venture
+            const { feedback } = await api.getPanelFeedback(ventureId!);
+            const userId = user?.id;
+            const existing = feedback?.find((f: any) => f.submitted_by === userId);
+            if (existing) {
+                populateFromExisting(existing);
+                setReadOnly(true);
+                setSubmitted(true);
+            }
         } catch (err) {
             console.error('Error loading venture:', err);
         } finally {
             setLoading(false);
         }
+    };
+
+    const populateFromExisting = (f: any) => {
+        // Section A (Core/Select)
+        setBusinessOverview(f.business_overview || '');
+        setAnnualRevenueActuals(f.annual_revenue_actuals || '');
+        setProjectedAnnualRevenue(f.projected_annual_revenue || '');
+        setRatingFinancialHealth(f.rating_financial_health ?? null);
+        setRatingLeadership(f.rating_leadership ?? null);
+        setInsightsFinancialHealth(f.insights_financial_health || '');
+        setInsightsLeadership(f.insights_leadership || '');
+        // Section B
+        setProposedExpansionIdea(f.proposed_expansion_idea || '');
+        setSelectedExpansionType(f.selected_expansion_type || '');
+        setMarketEntryRoutes(f.market_entry_routes || []);
+        setExpansionIdeaDescription(f.expansion_idea_description || '');
+        setCurrentProgress(f.current_progress || '');
+        setIncrementalRevenue3y(f.incremental_revenue_3y || '');
+        setIncrementalJobs3y(f.incremental_jobs_3y || '');
+        setRatingClarityExpansion(f.rating_clarity_expansion ?? null);
+        setCommentsClarityExpansion(f.comments_clarity_expansion || '');
+        // Section C
+        setStreamGtm(f.stream_gtm || '');
+        setStreamGtmComments(f.stream_gtm_comments || '');
+        setStreamProductQuality(f.stream_product_quality || '');
+        setStreamProductQualityComments(f.stream_product_quality_comments || '');
+        setStreamOperations(f.stream_operations || '');
+        setStreamOperationsComments(f.stream_operations_comments || '');
+        setStreamSupplyChain(f.stream_supply_chain || '');
+        setStreamSupplyChainComments(f.stream_supply_chain_comments || '');
+        setStreamOrgDesign(f.stream_org_design || '');
+        setStreamOrgDesignComments(f.stream_org_design_comments || '');
+        setStreamFinance(f.stream_finance || '');
+        setStreamFinanceComments(f.stream_finance_comments || '');
+        setSupportTypeProposal(f.support_type_proposal || '');
+        setRisksRedFlags(f.risks_red_flags || '');
+        // Section D
+        setFinalRecommendation(f.final_recommendation || '');
+        setProgramCategory(f.program_category || '');
+        setAdditionalNotes(f.additional_notes || '');
+        // Prime fields
+        setGrowthVentureType(f.growth_venture_type || '');
+        setGrowthInitiativeDescription(f.growth_initiative_description || '');
+        setRatingBusinessModelClarity(f.rating_business_model_clarity ?? null);
+        setRatingHistoricalGrowth(f.rating_historical_growth ?? null);
+        setRatingFinancialReadiness(f.rating_financial_readiness ?? null);
+        setRatingTeamLeadership(f.rating_team_leadership ?? null);
+        setRatingExecutionSeriousness(f.rating_execution_seriousness ?? null);
+        setProgramFitJobCreation(f.program_fit_job_creation || '');
+        setAnnualRevenueFy2627(f.annual_revenue_fy26_27 || '');
+        setRevenueTarget3yAssumptions(f.revenue_target_3y_assumptions || '');
+        setSmeName(f.sme_name || '');
     };
 
     const handleMarketEntryToggle = (route: string) => {
@@ -286,6 +348,7 @@ export const PanelFeedbackForm: React.FC = () => {
 
             await api.createPanelFeedback(ventureId!, payload);
             setSubmitted(true);
+            setReadOnly(true);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (err: any) {
             console.error('Error submitting feedback:', err);
@@ -305,32 +368,9 @@ export const PanelFeedbackForm: React.FC = () => {
         );
     }
 
-    if (submitted) {
-        return (
-            <div className="max-w-2xl mx-auto py-20 px-4">
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-6">
-                        <CheckCircle className="w-8 h-8 text-green-600" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-3">Thank You!</h1>
-                    <p className="text-gray-600 mb-2">
-                        Your panel interview feedback for <span className="font-semibold text-gray-800">{ventureName}</span> has been submitted successfully.
-                    </p>
-                    <p className="text-sm text-gray-500 mb-8">
-                        The feedback has been recorded and will be reviewed by the team.
-                    </p>
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="px-8 py-3 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors shadow-sm"
-                    >
-                        Back to Dashboard
-                    </button>
-                </div>
-            </div>
-        );
-    }
+    // No early return for submitted — we show the form in read-only mode below
 
-    const inputClass = "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none";
+    const inputClass = `w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none ${readOnly ? 'bg-gray-50 text-gray-700 cursor-default' : 'focus:ring-2 focus:ring-red-500 focus:border-red-500'}`;
     const textareaClass = `${inputClass} resize-none`;
     const selectClass = inputClass;
 
@@ -913,23 +953,44 @@ export const PanelFeedbackForm: React.FC = () => {
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
+            {readOnly && (
+                <div className="mb-6 flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl p-4">
+                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <div>
+                        <p className="text-sm font-semibold text-green-900">Feedback submitted successfully</p>
+                        <p className="text-xs text-green-700">This form is now read-only. Your responses have been recorded.</p>
+                    </div>
+                </div>
+            )}
+
+            <fieldset disabled={readOnly} className="space-y-8">
                 {isPrime ? renderPrimeForm() : renderCoreSelectForm()}
 
-                <div className="flex justify-end gap-3 pb-8">
-                    <button type="button" onClick={goBack} className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors">
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={submitting}
-                        className="px-6 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                    >
-                        {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                        {submitting ? 'Submitting...' : 'Submit Feedback'}
-                    </button>
-                </div>
-            </form>
+                {!readOnly && (
+                    <div className="flex justify-end gap-3 pb-8">
+                        <button type="button" onClick={goBack} className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors">
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={submitting}
+                            onClick={handleSubmit as any}
+                            className="px-6 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                            {submitting ? 'Submitting...' : 'Submit Feedback'}
+                        </button>
+                    </div>
+                )}
+
+                {readOnly && (
+                    <div className="flex justify-end pb-8">
+                        <button type="button" onClick={goBack} className="px-8 py-3 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors shadow-sm">
+                            Back to Dashboard
+                        </button>
+                    </div>
+                )}
+            </fieldset>
         </div>
     );
 };

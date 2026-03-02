@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Rocket, Mail, Lock, ArrowRight, AlertCircle, Briefcase, Users } from 'lucide-react';
+import { Rocket, Mail, Lock, ArrowRight, AlertCircle, Briefcase, Users, Settings } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
@@ -30,6 +30,8 @@ export const Login: React.FC = () => {
                 navigate('/vmanager/dashboard');
             } else if (email.includes('meetul') || email.includes('committee')) {
                 navigate('/committee/dashboard');
+            } else if (email.includes('ops')) {
+                navigate('/ops/dashboard');
             } else if (email.includes('admin') || email.includes('rajesh')) {
                 navigate('/vsm/dashboard');
             } else {
@@ -58,6 +60,9 @@ export const Login: React.FC = () => {
         } else if (role === 'committee_member') {
             demoEmail = 'meetul@wadhwani.com';
             demoPassword = 'password';
+        } else if (role === 'ops_manager') {
+            demoEmail = 'ops@wadhwani.com';
+            demoPassword = 'password';
         }
 
         setEmail(demoEmail);
@@ -77,6 +82,8 @@ export const Login: React.FC = () => {
                 navigate('/vmanager/dashboard');
             } else if (role === 'committee_member') {
                 navigate('/committee/dashboard');
+            } else if (role === 'ops_manager') {
+                navigate('/ops/dashboard');
             } else {
                 navigate('/dashboard');
             }
@@ -174,6 +181,13 @@ export const Login: React.FC = () => {
                             <Users className="w-4 h-4 text-indigo-600" />
                             Panel (Core, Select)
                         </button>
+                        <button
+                            onClick={() => handleDemoLogin('ops_manager')}
+                            className="w-full col-span-2 bg-white border border-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center justify-center gap-2"
+                        >
+                            <Settings className="w-4 h-4 text-indigo-600" />
+                            Ops Manager
+                        </button>
 
                     </div>
 
@@ -182,6 +196,7 @@ export const Login: React.FC = () => {
                         <div>Screening Mgr: rajesh@wadhwani.com / password</div>
                         <div>Panel (Prime): ravi@wadhwani.com / password</div>
                         <div>Panel (Core, Select): meetul@wadhwani.com / password</div>
+                        <div>Ops Manager: ops@wadhwani.com / password</div>
                     </div>
                 </div>
 

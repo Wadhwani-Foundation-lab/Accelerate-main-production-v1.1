@@ -517,6 +517,114 @@ class ApiClient {
         return { feedback };
     }
 
+    // ============ SCHEDULED CALLS ENDPOINTS ============
+
+    async getScheduledCalls(filters?: { status?: string; date?: string; venture_id?: string }) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const params = new URLSearchParams();
+        if (filters?.status) params.set('status', filters.status);
+        if (filters?.date) params.set('date', filters.date);
+        if (filters?.venture_id) params.set('venture_id', filters.venture_id);
+
+        const queryString = params.toString();
+        const url = `${API_URL}/api/scheduled-calls${queryString ? `?${queryString}` : ''}`;
+
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to fetch scheduled calls');
+        }
+
+        const data = await response.json();
+        return data; // Returns { scheduled_calls: [...] }
+    }
+
+    async createScheduledCall(callData: {
+        venture_id: string;
+        panelist_id: string;
+        call_date: string;
+        start_time: string;
+        end_time: string;
+        meet_link?: string;
+        notes?: string;
+    }) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+        const response = await fetch(`${API_URL}/api/scheduled-calls`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify(callData)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to create scheduled call');
+        }
+
+        const data = await response.json();
+        return data; // Returns { scheduled_call: {...} }
+    }
+
+    async cancelScheduledCall(id: string, reason?: string) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+        const response = await fetch(`${API_URL}/api/scheduled-calls/${id}/cancel`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ reason })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to cancel scheduled call');
+        }
+
+        const data = await response.json();
+        return data; // Returns { scheduled_call: {...} }
+    }
+
+    async getPanelistAvailability(panelistId: string, date: string) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const params = new URLSearchParams({ panelist_id: panelistId, date });
+
+        const response = await fetch(`${API_URL}/api/scheduled-calls/availability?${params}`, {
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to fetch availability');
+        }
+
+        const data = await response.json();
+        return data; // Returns { calls: [...] }
+    }
+
     async getPanelistsByProgram(program: string) {
         const { data, error } = await supabase
             .from('panelists')

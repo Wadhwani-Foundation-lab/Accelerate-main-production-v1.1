@@ -458,14 +458,13 @@ export const VSMDashboard: React.FC = () => {
                 vsm_notes: vsmNotes,
                 program_recommendation: program,
                 internal_comments: internalComments,
-                status: 'Under Review', // Always update status to Under Review when VSM submits
+                status: 'Panel Review', // Recommending to panel moves status to Panel Review
                 ai_analysis: analysisResult || selectedVenture.ai_analysis, // Persist AI analysis if generated
                 vsm_reviewed_at: new Date().toISOString() // Track when VSM reviewed
             };
 
             if (userRole === 'committee') {
                 updatePayload.venture_partner = selectedPartner;
-                updatePayload.status = 'Committee Review'; // Committee changes status to Committee Review
             }
 
             // Save to database
