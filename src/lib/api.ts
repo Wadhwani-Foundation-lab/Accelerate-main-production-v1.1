@@ -200,8 +200,8 @@ class ApiClient {
         // Fields that belong to the ventures table
         const ventureColumns = new Set([
             'name', 'founder_name', 'city', 'location', 'program_id', 'program_name',
-            'status', 'assigned_vsm_id', 'assigned_vm_id', 'venture_partner',
-            'workbench_locked', 'locked_reason'
+            'status', 'assigned_vsm_id', 'assigned_vm_id', 'assigned_panelist_id',
+            'venture_partner', 'workbench_locked', 'locked_reason'
         ]);
 
         // Fields that belong to the venture_assessments table
@@ -623,6 +623,135 @@ class ApiClient {
 
         const data = await response.json();
         return data; // Returns { calls: [...] }
+    }
+
+    // ============ PANELIST AVAILABILITY ENDPOINTS ============
+
+    async getMyPanelistProfile() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.email) throw new Error('Not authenticated');
+
+        const { data, error } = await supabase
+            .from('panelists')
+            .select('*')
+            .eq('email', user.email)
+            .maybeSingle();
+
+        if (error) throw error;
+        return data; // null if no matching panelist
+    }
+
+    async getPanelistWeeklyAvailability(panelistId: string) {
+        const { data, error } = await supabase
+            .from('panelist_availability')
+            .select('*')
+            .eq('panelist_id', panelistId)
+            .order('day_of_week')
+            .order('start_time');
+
+        if (error) throw error;
+        return data || [];
+    }
+
+    async savePanelistWeeklyAvailability(panelistId: string, slots: { day_of_week: number; start_time: string; end_time: string }[]) {
+        // Delete all existing slots for this panelist
+        const { error: deleteError } = await supabase
+            .from('panelist_availability')
+            .delete()
+            .eq('panelist_id', panelistId);
+
+        if (deleteError) throw deleteError;
+
+        // Insert new slots if any
+        if (slots.length > 0) {
+            const { error: insertError } = await supabase
+                .from('panelist_availability')
+                .insert(slots.map(s => ({ panelist_id: panelistId, ...s })));
+
+            if (insertError) throw insertError;
+        }
+    }
+
+    async getPanelistBlockedDates(panelistId: string) {
+        const { data, error } = await supabase
+            .from('panelist_blocked_dates')
+            .select('*')
+            .eq('panelist_id', panelistId)
+            .order('blocked_date');
+
+        if (error) throw error;
+        return data || [];
+    }
+
+    async addPanelistBlockedDate(panelistId: string, date: string) {
+        const { data, error } = await supabase
+            .from('panelist_blocked_dates')
+            .insert({ panelist_id: panelistId, blocked_date: date })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    async removePanelistBlockedDate(id: string) {
+        const { error } = await supabase
+            .from('panelist_blocked_dates')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+    }
+
+    async getPanelistAvailableSlots(panelistId: string, date: string) {
+        // Get weekly slots for this day of week
+        const dayOfWeek = new Date(date + 'T00:00:00').getDay();
+
+        const { data: weeklySlots, error: weeklyError } = await supabase
+            .from('panelist_availability')
+            .select('*')
+            .eq('panelist_id', panelistId)
+            .eq('day_of_week', dayOfWeek)
+            .order('start_time');
+
+        if (weeklyError) throw weeklyError;
+
+        // Check if panelist has ANY availability preferences set
+        const { count, error: countError } = await supabase
+            .from('panelist_availability')
+            .select('*', { count: 'exact', head: true })
+            .eq('panelist_id', panelistId);
+
+        if (countError) throw countError;
+
+        // No preferences set at all → return null for fallback
+        if (count === 0) return null;
+
+        // Check if this date is blocked
+        const { data: blocked, error: blockedError } = await supabase
+            .from('panelist_blocked_dates')
+            .select('id')
+            .eq('panelist_id', panelistId)
+            .eq('blocked_date', date)
+            .maybeSingle();
+
+        if (blockedError) throw blockedError;
+        if (blocked) return []; // Date is blocked
+
+        // Filter out slots that conflict with existing scheduled calls
+        const existingCalls = await this.getPanelistAvailability(panelistId, date);
+        const bookedSlots = (existingCalls.calls || []).map((c: any) => ({
+            start: c.start_time.slice(0, 5),
+            end: c.end_time.slice(0, 5),
+        }));
+
+        const available = (weeklySlots || []).filter(slot => {
+            const slotStart = slot.start_time.slice(0, 5);
+            const slotEnd = slot.end_time.slice(0, 5);
+            return !bookedSlots.some((b: any) => slotStart < b.end && slotEnd > b.start);
+        });
+
+        return available;
     }
 
     async getPanelistsByProgram(program: string) {

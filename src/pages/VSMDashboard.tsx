@@ -14,7 +14,8 @@ import {
     AlertTriangle,
     HelpCircle,
     Plus,
-    FileText
+    FileText,
+    Pencil
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
@@ -52,6 +53,7 @@ interface Venture {
     internal_comments?: string;
     ai_analysis?: any;
     vsm_reviewed_at?: string; // Timestamp when VSM reviewed
+    assigned_panelist_id?: string;
 }
 
 function getVentureDisplayStatus(venture: Venture): { label: string; color: string; bg: string } {
@@ -218,7 +220,11 @@ const RecommendProgramSection: React.FC<{
     isAlreadySubmitted: boolean;
     reviewedAt?: string;
     venture?: Venture;
-}> = ({ program, setProgram, internalComments, setInternalComments, userRole, selectedPartner, setSelectedPartner, panelists, selectedPanelist, setSelectedPanelist, saving, onSave, isAlreadySubmitted, reviewedAt, venture }) => (
+}> = ({ program, setProgram, internalComments, setInternalComments, userRole, selectedPartner, setSelectedPartner, panelists, selectedPanelist, setSelectedPanelist, saving, onSave, isAlreadySubmitted, reviewedAt, venture }) => {
+    const [editing, setEditing] = useState(!isAlreadySubmitted);
+    const locked = isAlreadySubmitted && !editing;
+
+    return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -233,15 +239,17 @@ const RecommendProgramSection: React.FC<{
         </div>
         <div className="p-6 space-y-5">
             {isAlreadySubmitted && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className={`${locked ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'} border rounded-lg p-4 flex items-start gap-3`}>
+                    <div className={`w-5 h-5 rounded-full ${locked ? 'bg-green-500' : 'bg-blue-500'} flex items-center justify-center flex-shrink-0 mt-0.5`}>
                         <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                     </div>
                     <div className="flex-1">
-                        <p className="text-sm font-semibold text-blue-900">Already Reviewed</p>
-                        <p className="text-xs text-blue-700 mt-1">You can update your recommendation below if needed.</p>
+                        <p className={`text-sm font-semibold ${locked ? 'text-green-900' : 'text-blue-900'}`}>Already Reviewed</p>
+                        <p className={`text-xs ${locked ? 'text-green-700' : 'text-blue-700'} mt-1`}>
+                            {locked ? 'Click "Edit Recommendation" below to make changes.' : 'You are now editing. Make changes and click "Update Recommendation" to save.'}
+                        </p>
                     </div>
                 </div>
             )}
@@ -256,11 +264,28 @@ const RecommendProgramSection: React.FC<{
                             </span>
                         );
                     })()}
+                    {venture.assigned_panelist_id && (() => {
+                        const assignedP = panelists.find(p => p.id === venture.assigned_panelist_id);
+                        return assignedP ? (
+                            <>
+                                <span className="text-xs text-gray-400">|</span>
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Assigned To:</span>
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
+                                    {assignedP.name}
+                                </span>
+                            </>
+                        ) : null;
+                    })()}
                 </div>
             )}
             <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select a program</label>
-                <select className="w-full p-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none text-sm text-gray-800" value={program} onChange={e => setProgram(e.target.value)}>
+                <select
+                    className={`w-full p-3 border border-gray-200 rounded-lg outline-none text-sm ${locked ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white text-gray-800 focus:ring-2 focus:ring-blue-100 focus:border-blue-300'}`}
+                    value={program}
+                    onChange={e => setProgram(e.target.value)}
+                    disabled={locked}
+                >
                     <option value="">Select a program…</option>
                     <option value="Selfserve">Self-Serve</option>
                     <option value="Accelerate Core">Accelerate Core</option>
@@ -272,9 +297,10 @@ const RecommendProgramSection: React.FC<{
                 <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Panelist</label>
                     <select
-                        className="w-full p-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-100 focus:border-green-300 outline-none text-sm text-gray-800"
+                        className={`w-full p-3 border border-gray-200 rounded-lg outline-none text-sm ${locked ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white text-gray-800 focus:ring-2 focus:ring-green-100 focus:border-green-300'}`}
                         value={selectedPanelist}
                         onChange={e => setSelectedPanelist(e.target.value)}
+                        disabled={locked}
                     >
                         <option value="">Select a panelist…</option>
                         {panelists.map((panelist) => (
@@ -291,7 +317,12 @@ const RecommendProgramSection: React.FC<{
             {userRole === 'committee' && (
                 <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Assign Venture Partner</label>
-                    <select className="w-full p-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-100 focus:border-purple-300 outline-none text-sm text-gray-800" value={selectedPartner} onChange={e => setSelectedPartner(e.target.value)}>
+                    <select
+                        className={`w-full p-3 border border-gray-200 rounded-lg outline-none text-sm ${locked ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white text-gray-800 focus:ring-2 focus:ring-purple-100 focus:border-purple-300'}`}
+                        value={selectedPartner}
+                        onChange={e => setSelectedPartner(e.target.value)}
+                        disabled={locked}
+                    >
                         <option value="">Select Partner…</option>
                         <option value="Arun Kumar">Arun Kumar</option>
                         <option value="Meetul Patel">Meetul Patel</option>
@@ -301,17 +332,44 @@ const RecommendProgramSection: React.FC<{
             )}
             <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Comments</label>
-                <textarea className="w-full h-24 p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none text-sm text-gray-700 placeholder:text-gray-400 resize-none" placeholder="Add any internal notes or comments…" value={internalComments} onChange={e => setInternalComments(e.target.value)} />
+                <textarea
+                    className={`w-full h-24 p-3 border border-gray-200 rounded-lg outline-none text-sm placeholder:text-gray-400 resize-none ${locked ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 text-gray-700 focus:ring-2 focus:ring-blue-100 focus:border-blue-300'}`}
+                    placeholder="Add any internal notes or comments…"
+                    value={internalComments}
+                    onChange={e => setInternalComments(e.target.value)}
+                    disabled={locked}
+                />
             </div>
-            <div className="flex justify-end pt-2 border-t border-gray-100">
-                <button onClick={onSave} disabled={saving || !program} className="flex items-center gap-2 px-8 py-3 rounded-lg bg-gray-900 hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-colors shadow-md">
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    {isAlreadySubmitted ? 'Update Recommendation' : 'Submit'}
-                </button>
+            <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+                {locked ? (
+                    <button
+                        onClick={() => setEditing(true)}
+                        className="flex items-center gap-2 px-8 py-3 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold text-sm transition-colors"
+                    >
+                        <Pencil className="w-4 h-4" />
+                        Edit Recommendation
+                    </button>
+                ) : (
+                    <>
+                        {isAlreadySubmitted && (
+                            <button
+                                onClick={() => setEditing(false)}
+                                className="flex items-center gap-2 px-6 py-3 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold text-sm transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        )}
+                        <button onClick={onSave} disabled={saving || !program} className="flex items-center gap-2 px-8 py-3 rounded-lg bg-gray-900 hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-colors shadow-md">
+                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            {isAlreadySubmitted ? 'Update Recommendation' : 'Submit'}
+                        </button>
+                    </>
+                )}
             </div>
         </div>
     </div>
-);
+    );
+};
 
 export const VSMDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -472,6 +530,7 @@ export const VSMDashboard: React.FC = () => {
             // Setup form state
             setVsmNotes(freshVenture.vsm_notes || '');
             setProgram(freshVenture.program_recommendation || 'Selfserve');
+            setSelectedPanelist(freshVenture.assigned_panelist_id || '');
             setInternalComments(freshVenture.internal_comments || '');
             setAnalysisResult(freshVenture.ai_analysis || null);
             setSelectedPartner(freshVenture.venture_partner || '');
@@ -505,6 +564,10 @@ export const VSMDashboard: React.FC = () => {
                 ai_analysis: analysisResult || selectedVenture.ai_analysis, // Persist AI analysis if generated
                 vsm_reviewed_at: new Date().toISOString() // Track when VSM reviewed
             };
+
+            if (selectedPanelist) {
+                updatePayload.assigned_panelist_id = selectedPanelist;
+            }
 
             if (userRole === 'committee') {
                 updatePayload.venture_partner = selectedPartner;

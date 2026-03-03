@@ -54,11 +54,29 @@ function toISODate(date: Date): string {
     return date.toISOString().split('T')[0];
 }
 
-const TIME_SLOTS = [
+const DEFAULT_TIME_SLOTS = [
     { startLabel: '9:00 AM', label: '9:00 AM - 10:00 AM', start: '09:00', end: '10:00' },
     { startLabel: '10:00 AM', label: '10:00 AM - 11:00 AM', start: '10:00', end: '11:00' },
     { startLabel: '11:00 AM', label: '11:00 AM - 12:00 PM', start: '11:00', end: '12:00' },
 ];
+
+function formatSlotTime(time: string): string {
+    const hour = parseInt(time.split(':')[0], 10);
+    if (hour < 12) return `${hour}:00 AM`;
+    if (hour === 12) return '12:00 PM';
+    return `${hour - 12}:00 PM`;
+}
+
+function toSlotObject(slot: { start_time: string; end_time: string }) {
+    const start = slot.start_time.slice(0, 5);
+    const end = slot.end_time.slice(0, 5);
+    return {
+        startLabel: formatSlotTime(start),
+        label: `${formatSlotTime(start)} - ${formatSlotTime(end)}`,
+        start,
+        end,
+    };
+}
 
 function isSlotBooked(slot: typeof TIME_SLOTS[0], bookedSlots: BookedSlot[]): boolean {
     return bookedSlots.some(booked => {
@@ -82,6 +100,8 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [bookedSlots, setBookedSlots] = useState<BookedSlot[]>([]);
     const [loadingAvailability, setLoadingAvailability] = useState(false);
+    const [availableSlots, setAvailableSlots] = useState<typeof DEFAULT_TIME_SLOTS | null>(null);
+    const [noSlotsMessage, setNoSlotsMessage] = useState<string | null>(null);
 
     const nextWeekdays = getNextWeekdays(3);
     const selectedPanelist = panelists.find(p => p.id === selectedPanelistId);
@@ -90,13 +110,32 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
     useEffect(() => {
         if (!selectedDate || !selectedPanelistId) {
             setBookedSlots([]);
+            setAvailableSlots(null);
+            setNoSlotsMessage(null);
             return;
         }
 
         let cancelled = false;
         const fetchAvailability = async () => {
             setLoadingAvailability(true);
+            setNoSlotsMessage(null);
             try {
+                // Fetch panelist preference-based slots
+                const prefSlots = await api.getPanelistAvailableSlots(selectedPanelistId, selectedDate);
+
+                if (!cancelled) {
+                    if (prefSlots === null) {
+                        // No preferences set — fallback to default slots
+                        setAvailableSlots(DEFAULT_TIME_SLOTS);
+                    } else if (prefSlots.length === 0) {
+                        setAvailableSlots([]);
+                        setNoSlotsMessage('No available slots on this date');
+                    } else {
+                        setAvailableSlots(prefSlots.map(toSlotObject));
+                    }
+                }
+
+                // Also fetch booked calls for overlap detection on fallback slots
                 const data = await api.getPanelistAvailability(selectedPanelistId, selectedDate);
                 if (!cancelled) {
                     setBookedSlots(
@@ -107,7 +146,10 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
                     );
                 }
             } catch {
-                if (!cancelled) setBookedSlots([]);
+                if (!cancelled) {
+                    setBookedSlots([]);
+                    setAvailableSlots(DEFAULT_TIME_SLOTS);
+                }
             } finally {
                 if (!cancelled) setLoadingAvailability(false);
             }
@@ -129,7 +171,8 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
         setError(null);
 
         try {
-            const slot = TIME_SLOTS[selectedSlot];
+            const slotsToUse = availableSlots || DEFAULT_TIME_SLOTS;
+            const slot = slotsToUse[selectedSlot];
             await api.createScheduledCall({
                 venture_id: venture.id,
                 panelist_id: selectedPanelistId,
@@ -240,16 +283,19 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
                             <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium text-gray-700">2. Select Time Slot</span>
                             </div>
-                            <span className="text-sm font-medium text-indigo-600">Preference: Mornings</span>
                         </div>
                         {loadingAvailability ? (
                             <div className="flex items-center justify-center py-4">
                                 <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
                                 <span className="ml-2 text-sm text-gray-500">Checking availability...</span>
                             </div>
+                        ) : noSlotsMessage ? (
+                            <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4 text-center">
+                                {noSlotsMessage}
+                            </div>
                         ) : (
                             <div className="space-y-2">
-                                {TIME_SLOTS.map((slot, index) => {
+                                {(availableSlots || DEFAULT_TIME_SLOTS).map((slot, index) => {
                                     const booked = isSlotBooked(slot, bookedSlots);
                                     const isSelected = selectedSlot === index;
                                     return (

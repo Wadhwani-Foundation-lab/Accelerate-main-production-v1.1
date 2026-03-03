@@ -36,6 +36,7 @@ interface Venture {
     program_recommendation?: string;
     created_at: string;
     assigned_vsm_id?: string;
+    assigned_panelist_id?: string;
     vsm_reviewed_at?: string;
 }
 
@@ -312,9 +313,9 @@ export const OpsManagerDashboard: React.FC = () => {
                                 filteredVentures.map((venture) => {
                                     const displayStatus = getDisplayStatus(venture);
                                     const cc = getCallCount(venture.id);
-                                    const assignedPanelist = panelists.find(p =>
-                                        venture.program_recommendation?.includes(p.program)
-                                    );
+                                    const assignedPanelist = venture.assigned_panelist_id
+                                        ? panelists.find(p => p.id === venture.assigned_panelist_id)
+                                        : null;
 
                                     return (
                                         <tr key={venture.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
@@ -420,7 +421,10 @@ export const OpsManagerDashboard: React.FC = () => {
             {scheduleModalVenture && (
                 <ScheduleCallModal
                     venture={scheduleModalVenture}
-                    panelists={panelists.filter(p => scheduleModalVenture.program_recommendation?.includes(p.program))}
+                    panelists={scheduleModalVenture.assigned_panelist_id
+                        ? panelists.filter(p => p.id === scheduleModalVenture.assigned_panelist_id)
+                        : panelists.filter(p => scheduleModalVenture.program_recommendation?.includes(p.program))
+                    }
                     onClose={() => setScheduleModalVenture(null)}
                     onScheduled={() => {
                         setScheduleModalVenture(null);

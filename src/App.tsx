@@ -16,6 +16,7 @@ import { PanelFeedbackForm } from './pages/PanelFeedbackForm';
 import { OpsManagerLayout } from './layouts/OpsManagerLayout';
 import { OpsManagerDashboard } from './pages/OpsManagerDashboard';
 import { ScheduledCallsPage } from './pages/ScheduledCallsPage';
+import { PanelAvailability } from './pages/PanelAvailability';
 
 import { VentureWorkbench } from './pages/VentureWorkbench';
 
@@ -96,12 +97,14 @@ function App() {
           <Route path="/vmanager/dashboard" element={<VSMDashboardLayout />}>
             <Route index element={<VentureManagerDashboard />} />
             <Route path="panel-feedback/:ventureId" element={<PanelFeedbackForm />} />
+            <Route path="availability" element={<PanelAvailability />} />
           </Route>
 
           {/* Panel (Core, Select) Dashboard Routes */}
           <Route path="/committee/dashboard" element={<VSMDashboardLayout />}>
             <Route index element={<SelectionCommitteeDashboard />} />
             <Route path="panel-feedback/:ventureId" element={<PanelFeedbackForm />} />
+            <Route path="availability" element={<PanelAvailability />} />
           </Route>
 
           {/* Ops Manager Dashboard Routes */}

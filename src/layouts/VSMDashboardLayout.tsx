@@ -1,11 +1,12 @@
 import React from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
-import { Rocket, LayoutDashboard, LogOut } from 'lucide-react';
+import { Outlet, useNavigate, NavLink, useLocation } from 'react-router-dom';
+import { Rocket, LayoutDashboard, LogOut, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const VSMDashboardLayout: React.FC = () => {
     const { signOut, user, loading } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     React.useEffect(() => {
         if (!loading && !user) {
@@ -36,10 +37,41 @@ export const VSMDashboardLayout: React.FC = () => {
                     </div>
 
                     <nav className="space-y-1">
-                        <button className="w-full flex items-center gap-3 px-3 py-2 bg-red-50 text-red-700 rounded-lg font-medium text-left">
-                            <LayoutDashboard className="w-5 h-5" />
-                            {dashboardLabel}
-                        </button>
+                        {roleLabel === 'Panel (Core, Select)' || roleLabel === 'Panel (Prime)' ? (() => {
+                            const basePath = location.pathname.startsWith('/vmanager') ? '/vmanager/dashboard' : '/committee/dashboard';
+                            return (
+                                <>
+                                    <NavLink
+                                        to={basePath}
+                                        end
+                                        className={({ isActive }) =>
+                                            `w-full flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-left ${
+                                                isActive ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-50'
+                                            }`
+                                        }
+                                    >
+                                        <LayoutDashboard className="w-5 h-5" />
+                                        Panel Dashboard
+                                    </NavLink>
+                                    <NavLink
+                                        to={`${basePath}/availability`}
+                                        className={({ isActive }) =>
+                                            `w-full flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-left ${
+                                                isActive ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-50'
+                                            }`
+                                        }
+                                    >
+                                        <Clock className="w-5 h-5" />
+                                        Availability
+                                    </NavLink>
+                                </>
+                            );
+                        })() : (
+                            <button className="w-full flex items-center gap-3 px-3 py-2 bg-red-50 text-red-700 rounded-lg font-medium text-left">
+                                <LayoutDashboard className="w-5 h-5" />
+                                {dashboardLabel}
+                            </button>
+                        )}
                     </nav>
                 </div>
 
