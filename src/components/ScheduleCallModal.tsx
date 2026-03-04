@@ -78,7 +78,7 @@ function toSlotObject(slot: { start_time: string; end_time: string }) {
     };
 }
 
-function isSlotBooked(slot: typeof TIME_SLOTS[0], bookedSlots: BookedSlot[]): boolean {
+function isSlotBooked(slot: { start: string; end: string }, bookedSlots: BookedSlot[]): boolean {
     return bookedSlots.some(booked => {
         const bStart = booked.start_time.slice(0, 5);
         const bEnd = booked.end_time.slice(0, 5);
