@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import * as ventureService from '../services/ventureService';
 import * as aiService from '../services/aiService';
+import { extractDocumentText } from '../services/documentService';
 import { authenticateUser } from '../middleware/auth';
 import { validateBody, validateQuery } from '../middleware/validate';
 import { createAuthenticatedClient } from '../config/supabase';
@@ -216,8 +217,26 @@ router.post(
             // Get VSM notes from request body (optional)
             const vsmNotes = req.body.vsm_notes || venture.vsm_notes || '';
 
+            // Fetch corporate presentation text if available
+            const { data: appData } = await supabase
+                .from('venture_applications')
+                .select('corporate_presentation_url')
+                .eq('venture_id', req.params.id)
+                .maybeSingle();
+
+            let corporatePresentationText: string | undefined;
+            if (appData?.corporate_presentation_url) {
+                const text = await extractDocumentText(appData.corporate_presentation_url);
+                if (text) corporatePresentationText = text;
+            }
+
+            const ventureWithDoc = {
+                ...venture,
+                corporate_presentation_text: corporatePresentationText,
+            };
+
             // Generate insights using Claude API
-            const insights = await aiService.generateVentureInsights(venture, vsmNotes);
+            const insights = await aiService.generateVentureInsights(ventureWithDoc, vsmNotes);
 
             // Save insights to database
             const { error: updateError } = await supabase
@@ -288,6 +307,13 @@ router.post(
             const app = venture.application?.[0] || venture.application || {};
             const assessment = (venture.assessments || []).find((a: any) => a.is_current) || venture.assessments?.[0] || {};
 
+            // Extract document text if available
+            let corporatePresentationText: string | undefined;
+            if (app.corporate_presentation_url) {
+                const text = await extractDocumentText(app.corporate_presentation_url);
+                if (text) corporatePresentationText = text;
+            }
+
             // Build venture data with application fields
             const ventureData = {
                 ...venture,
@@ -304,6 +330,7 @@ router.post(
                 blockers: app.blockers,
                 support_request: app.support_request,
                 incremental_hiring: app.incremental_hiring,
+                corporate_presentation_text: corporatePresentationText,
             };
 
             const startTime = Date.now();

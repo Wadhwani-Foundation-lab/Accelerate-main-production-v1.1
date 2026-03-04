@@ -206,7 +206,16 @@ export const NewApplication: React.FC = () => {
                 support_request: formData.supportDescription,
             });
 
-            // 2. Create Venture Streams via API
+            // 2. Upload corporate presentation (non-blocking)
+            if (formData.corporatePresentation) {
+                try {
+                    await api.uploadVentureDocument(venture.id, formData.corporatePresentation);
+                } catch (uploadErr) {
+                    console.error('Document upload failed (non-blocking):', uploadErr);
+                }
+            }
+
+            // 3. Create Venture Streams via API
             // Map frontend status values to database constraint values
             const statusMapping: Record<string, string> = {
                 "Don't need help": "Not started",
@@ -222,7 +231,7 @@ export const NewApplication: React.FC = () => {
                 });
             }
 
-            // 3. Submit the venture
+            // 4. Submit the venture
             await api.submitVenture(venture.id);
 
             setIsSubmitted(true);
@@ -780,13 +789,19 @@ export const NewApplication: React.FC = () => {
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">
                                 Please upload your corporate presentation to help us understand your business better
                             </label>
+                            <p className="text-xs text-gray-400">Accepted: PDF, PPT, PPTX, DOC, DOCX (max 5MB)</p>
                             <div className="flex items-center gap-3">
                                 <input
                                     type="file"
                                     id="corporatePresentation"
-                                    accept=".pdf,.ppt,.pptx"
+                                    accept=".pdf,.ppt,.pptx,.doc,.docx"
                                     onChange={e => {
                                         const file = e.target.files?.[0] || null;
+                                        if (file && file.size > 5 * 1024 * 1024) {
+                                            alert('File size exceeds 5MB limit. Please choose a smaller file.');
+                                            e.target.value = '';
+                                            return;
+                                        }
                                         setFormData(prev => ({ ...prev, corporatePresentation: file }));
                                     }}
                                     className="hidden"
@@ -801,9 +816,27 @@ export const NewApplication: React.FC = () => {
                                     Choose File
                                 </label>
                                 {formData.corporatePresentation && (
-                                    <span className="text-sm text-gray-600">
-                                        {formData.corporatePresentation.name}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-gray-600">
+                                            {formData.corporatePresentation.name}
+                                            <span className="text-gray-400 ml-1">
+                                                ({(formData.corporatePresentation.size / 1024 / 1024).toFixed(1)}MB)
+                                            </span>
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setFormData(prev => ({ ...prev, corporatePresentation: null }));
+                                                const input = document.getElementById('corporatePresentation') as HTMLInputElement;
+                                                if (input) input.value = '';
+                                            }}
+                                            className="text-gray-400 hover:text-red-500 transition-colors"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         </div>

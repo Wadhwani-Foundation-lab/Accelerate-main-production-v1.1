@@ -658,21 +658,28 @@ export const OpsManagerDashboard: React.FC = () => {
                                 <div>
                                     <h3 className="text-base font-bold text-gray-900 mb-3">Company Document</h3>
                                     <div className="bg-white border border-gray-200 rounded-xl p-4">
-                                        {profileVenture.document_url || profileVenture.corporate_presentation_url ? (
+                                        {profileVenture.corporate_presentation_url ? (
                                             <div className="flex items-center gap-3">
                                                 <div className="flex-1 flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                                                     <FileText className="w-5 h-5 text-blue-600" />
                                                     <span className="text-sm font-medium text-gray-900">
-                                                        {profileVenture.document_name || 'Corporate Presentation.pdf'}
+                                                        {profileVenture.corporate_presentation_url.split('/').pop()?.replace(/^\d+_/, '') || 'Corporate Presentation'}
                                                     </span>
                                                 </div>
-                                                <a
-                                                    href={profileVenture.document_url || profileVenture.corporate_presentation_url}
-                                                    download
+                                                <button
+                                                    onClick={async () => {
+                                                        try {
+                                                            const url = await api.getVentureDocumentUrl(profileVenture.corporate_presentation_url);
+                                                            window.open(url, '_blank');
+                                                        } catch (err) {
+                                                            console.error('Failed to get document URL:', err);
+                                                            alert('Failed to download document. Please try again.');
+                                                        }
+                                                    }}
                                                     className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm font-semibold"
                                                 >
                                                     Download
-                                                </a>
+                                                </button>
                                             </div>
                                         ) : (
                                             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 text-gray-500">

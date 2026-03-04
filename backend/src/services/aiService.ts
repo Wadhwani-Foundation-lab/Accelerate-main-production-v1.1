@@ -17,6 +17,7 @@ export interface VentureData {
     growth_target?: any;
     commitment?: any;
     vsm_notes?: string;
+    corporate_presentation_text?: string;
 }
 
 export interface RoadmapDeliverable {
@@ -116,7 +117,11 @@ function buildInsightsPrompt(ventureData: VentureData, vsmNotes: string): string
 
 **Screening Manager's Notes:**
 ${vsmNotes || 'No additional notes provided.'}
-
+${ventureData.corporate_presentation_text ? `
+**Corporate Presentation Content:**
+${ventureData.corporate_presentation_text.slice(0, 8000)}
+${ventureData.corporate_presentation_text.length > 8000 ? '\n[... truncated ...]' : ''}
+` : ''}
 **Your Task:**
 Provide a comprehensive assessment in the following JSON format:
 
@@ -149,7 +154,7 @@ Provide a comprehensive assessment in the following JSON format:
 
 **Guidelines:**
 - Provide exactly 5 strengths (PROS) and 5 risks (CONS)
-- Make probing questions specific and actionable
+- Make follow up questions specific and actionable
 - Base recommendation on revenue trajectory, market opportunity, and team capability
 - Keep each point concise (1-2 sentences max)
 
@@ -299,7 +304,11 @@ function buildRoadmapPrompt(ventureData: any, ctx: { vsmNotes?: string; aiAnalys
 **VSM Notes:**
 ${ctx.vsmNotes || 'No notes provided.'}
 ${aiSummary}
-
+${ventureData.corporate_presentation_text ? `
+**Corporate Presentation Content:**
+${ventureData.corporate_presentation_text.slice(0, 8000)}
+${ventureData.corporate_presentation_text.length > 8000 ? '\n[... truncated ...]' : ''}
+` : ''}
 **Task:** Generate 4-6 deliverables for EACH of the following 6 streams. Return ONLY a JSON object:
 
 {

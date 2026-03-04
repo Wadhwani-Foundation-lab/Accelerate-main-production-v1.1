@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, FileText } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -234,6 +234,38 @@ export const VentureDetails: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {/* Corporate Presentation */}
+            {venture.corporate_presentation_url && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+                    <h3 className="text-lg font-bold text-gray-900">Corporate Presentation</h3>
+                    <div className="flex items-center gap-4">
+                        <div className="flex-1 flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <FileText className="w-5 h-5 text-blue-600" />
+                            <span className="text-sm font-medium text-gray-900">
+                                {venture.corporate_presentation_url.split('/').pop()?.replace(/^\d+_/, '') || 'Corporate Presentation'}
+                            </span>
+                        </div>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const url = await api.getVentureDocumentUrl(venture.corporate_presentation_url);
+                                    window.open(url, '_blank');
+                                } catch (err) {
+                                    console.error('Failed to get document URL:', err);
+                                    alert('Failed to download document. Please try again.');
+                                }
+                            }}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm font-semibold"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Download
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Blockers & Challenges */}
             {venture.blockers && (

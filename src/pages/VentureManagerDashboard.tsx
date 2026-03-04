@@ -587,24 +587,31 @@ export const VentureManagerDashboard: React.FC = () => {
                                 <p className="text-sm text-gray-600 mb-4">
                                     Corporate presentation uploaded by the venture (screening manager can download)
                                 </p>
-                                {(selectedVenture as any).document_url || (selectedVenture as any).corporate_presentation_url ? (
+                                {(selectedVenture as any).corporate_presentation_url ? (
                                     <div className="flex items-center gap-4">
                                         <div className="flex-1 flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                                             <FileText className="w-5 h-5 text-blue-600" />
                                             <span className="text-sm font-medium text-gray-900">
-                                                {(selectedVenture as any).document_name || 'Corporate Presentation.pdf'}
+                                                {(selectedVenture as any).corporate_presentation_url.split('/').pop()?.replace(/^\d+_/, '') || 'Corporate Presentation'}
                                             </span>
                                         </div>
-                                        <a
-                                            href={(selectedVenture as any).document_url || (selectedVenture as any).corporate_presentation_url}
-                                            download
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    const url = await api.getVentureDocumentUrl((selectedVenture as any).corporate_presentation_url);
+                                                    window.open(url, '_blank');
+                                                } catch (err) {
+                                                    console.error('Failed to get document URL:', err);
+                                                    alert('Failed to download document. Please try again.');
+                                                }
+                                            }}
                                             className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm font-semibold"
                                         >
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                             </svg>
                                             Download
-                                        </a>
+                                        </button>
                                     </div>
                                 ) : (
                                     <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200 text-gray-500">
@@ -687,7 +694,7 @@ export const VentureManagerDashboard: React.FC = () => {
                                     <div className="p-6">
                                         <div className="flex items-center gap-2 mb-4">
                                             <HelpCircle className="w-4 h-4 text-blue-500" />
-                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Probing Questions</span>
+                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Follow up Questions</span>
                                         </div>
                                         <ol className="space-y-2 list-decimal list-inside">
                                             {(analysisResult.questions || []).map((q: string, i: number) => (

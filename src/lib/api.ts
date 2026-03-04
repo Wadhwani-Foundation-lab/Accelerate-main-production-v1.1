@@ -754,6 +754,57 @@ class ApiClient {
         return available;
     }
 
+    // ============ DOCUMENT UPLOAD ENDPOINTS ============
+
+    async uploadVentureDocument(ventureId: string, file: File) {
+        const ALLOWED_TYPES = [
+            'application/pdf',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ];
+        const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+        if (!ALLOWED_TYPES.includes(file.type)) {
+            throw new Error('Invalid file type. Please upload a PDF, PPT, PPTX, DOC, or DOCX file.');
+        }
+        if (file.size > MAX_SIZE) {
+            throw new Error('File size exceeds 5MB limit.');
+        }
+
+        const timestamp = Date.now();
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const filePath = `${ventureId}/${timestamp}_${safeName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('venture-documents')
+            .upload(filePath, file, { upsert: false });
+
+        if (uploadError) throw uploadError;
+
+        // Save the storage path via a SECURITY DEFINER function (bypasses workbench_locked RLS)
+        const { error: rpcError } = await supabase.rpc('save_venture_document_url', {
+            p_venture_id: ventureId,
+            p_file_path: filePath,
+        });
+
+        if (rpcError) {
+            console.error('Failed to save document URL:', rpcError);
+        }
+
+        return { filePath };
+    }
+
+    async getVentureDocumentUrl(filePath: string): Promise<string> {
+        const { data, error } = await supabase.storage
+            .from('venture-documents')
+            .createSignedUrl(filePath, 3600); // 1-hour expiry
+
+        if (error) throw error;
+        return data.signedUrl;
+    }
+
     async getPanelistsByProgram(program: string) {
         const { data, error } = await supabase
             .from('panelists')
