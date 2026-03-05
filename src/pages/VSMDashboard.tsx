@@ -276,6 +276,15 @@ const RecommendProgramSection: React.FC<{
                             </>
                         ) : null;
                     })()}
+                    {venture.status === 'Panel Review' && venture.program_recommendation && venture.program_recommendation !== 'Not Recommended' && venture.program_recommendation !== 'Selfserve' && (
+                        <>
+                            <span className="text-xs text-gray-400">|</span>
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                Email Sent
+                            </span>
+                        </>
+                    )}
                 </div>
             )}
             <div>

@@ -13,6 +13,7 @@ import {
     ventureQuerySchema
 } from '../types/schemas';
 import { successResponse, createdResponse, noContentResponse } from '../utils/response';
+import { sendPanelInvitationEmail } from '../services/emailService';
 
 const router = Router();
 
@@ -125,6 +126,37 @@ router.put(
                 role,
                 req.body
             );
+
+            // Fire-and-forget: send panel invitation email when venture moves to Panel Review
+            const program = req.body.program_recommendation;
+            const status = req.body.status;
+            if (
+                program &&
+                program !== 'Not Recommended' &&
+                program !== 'Selfserve' &&
+                status === 'Panel Review'
+            ) {
+                (async () => {
+                    try {
+                        const { data: profile } = await supabase
+                            .from('profiles')
+                            .select('email, full_name')
+                            .eq('id', venture.user_id)
+                            .single();
+
+                        if (profile?.email) {
+                            const founderName = profile.full_name || 'Founder';
+                            const ventureName = venture.name || 'Your Venture';
+                            await sendPanelInvitationEmail(profile.email, founderName, ventureName);
+                            console.log(`Panel invitation email sent to ${profile.email} for venture ${venture.name}`);
+                        } else {
+                            console.warn(`No email found for user_id ${venture.user_id}, skipping panel invitation email`);
+                        }
+                    } catch (emailError) {
+                        console.error('Failed to send panel invitation email:', emailError);
+                    }
+                })();
+            }
 
             successResponse(res, { venture });
         } catch (error) {
@@ -265,6 +297,55 @@ router.post(
                 message: error.message || 'Failed to generate AI insights',
                 error: process.env.NODE_ENV === 'development' ? error.stack : undefined
             });
+        }
+    }
+);
+
+/**
+ * POST /api/ventures/:id/send-panel-email
+ * Send panel invitation email to the entrepreneur
+ */
+router.post(
+    '/:id/send-panel-email',
+    authenticateUser,
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { supabase } = await getContext(req);
+
+            // Fetch venture
+            const { data: venture, error: ventureError } = await supabase
+                .from('ventures')
+                .select('name, founder_name, user_id')
+                .eq('id', req.params.id)
+                .single();
+
+            if (ventureError || !venture) {
+                return res.status(404).json({ success: false, message: 'Venture not found' });
+            }
+
+            // Fetch entrepreneur email from venture_applications (founder_email)
+            const { data: application } = await supabase
+                .from('venture_applications')
+                .select('founder_email')
+                .eq('venture_id', req.params.id)
+                .maybeSingle();
+
+            const founderEmail = application?.founder_email;
+            if (!founderEmail) {
+                return res.status(400).json({ success: false, message: 'Entrepreneur email not found in application' });
+            }
+
+            const founderName = venture.founder_name || 'Founder';
+            const ventureName = venture.name || 'Your Venture';
+
+            // Fire-and-forget
+            sendPanelInvitationEmail(founderEmail, founderName, ventureName)
+                .then(() => console.log(`Panel invitation email sent to ${founderEmail} for venture ${ventureName}`))
+                .catch((err) => console.error('Failed to send panel invitation email:', err));
+
+            successResponse(res, { message: 'Panel invitation email queued' });
+        } catch (error) {
+            next(error);
         }
     }
 );
