@@ -15,6 +15,8 @@ app.use(helmet());
 app.use(cors({
     origin: [
         config.frontendUrl,
+        'http://localhost:5173',
+        'http://localhost:5174',
         'https://wadhwani-accelerate-dev01.netlify.app',
     ].filter(Boolean),
     credentials: true,

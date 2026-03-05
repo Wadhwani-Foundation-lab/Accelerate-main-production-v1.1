@@ -300,15 +300,21 @@ class ApiClient {
             program !== 'Selfserve' &&
             status === 'Panel Review'
         ) {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-            const session = await supabase.auth.getSession();
-            fetch(`${API_URL}/api/ventures/${id}/send-panel-email`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.data.session?.access_token}`
+            (async () => {
+                try {
+                    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+                    const session = await supabase.auth.getSession();
+                    fetch(`${API_URL}/api/ventures/${id}/send-panel-email`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session.data.session?.access_token}`
+                        }
+                    }).catch(err => console.error('Failed to trigger panel invitation email:', err));
+                } catch (err) {
+                    console.error('Failed to trigger panel invitation email:', err);
                 }
-            }).catch(err => console.error('Failed to trigger panel invitation email:', err));
+            })();
         }
 
         return { venture };
