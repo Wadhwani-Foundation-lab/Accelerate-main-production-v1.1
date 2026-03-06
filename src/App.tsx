@@ -18,7 +18,7 @@ import { OpsManagerLayout } from './layouts/OpsManagerLayout';
 import { OpsManagerDashboard } from './pages/OpsManagerDashboard';
 import { ScheduledCallsPage } from './pages/ScheduledCallsPage';
 import { PanelAvailability } from './pages/PanelAvailability';
-
+import { PublicApplication } from './pages/PublicApplication';
 import { VentureWorkbench } from './pages/VentureWorkbench';
 
 /**
@@ -81,6 +81,7 @@ function App() {
               <Signup />
             </div>
           } />
+          <Route path="/apply" element={<PublicApplication />} />
 
           {/* Entrepreneur Dashboard Routes */}
           <Route path="/dashboard" element={<DashboardLayout />}>

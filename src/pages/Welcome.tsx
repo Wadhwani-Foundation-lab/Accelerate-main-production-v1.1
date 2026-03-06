@@ -7,7 +7,7 @@ export const Welcome: React.FC = () => {
     const navigate = useNavigate();
 
     const handleApply = () => {
-        navigate('/login?apply=true');
+        navigate('/apply');
     };
 
     return (

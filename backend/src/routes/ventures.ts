@@ -13,7 +13,8 @@ import {
     ventureQuerySchema
 } from '../types/schemas';
 import { successResponse, createdResponse, noContentResponse } from '../utils/response';
-import { sendPanelInvitationEmail } from '../services/emailService';
+import { sendPanelInvitationEmail, sendWelcomeEmail } from '../services/emailService';
+import { createServiceRoleClient } from '../config/supabase';
 
 const router = Router();
 
@@ -33,6 +34,108 @@ async function getContext(req: Request) {
 }
 
 // ============ VENTURE ROUTES ============
+
+/**
+ * POST /api/ventures/public-apply
+ * Public endpoint - no auth required
+ * Creates a venture + application + streams and sends welcome email
+ */
+router.post(
+    '/public-apply',
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const supabase = createServiceRoleClient();
+            const body = req.body;
+
+            // Validate required fields
+            if (!body.name || !body.founder_name || !body.email) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Business name, founder name, and email are required',
+                });
+            }
+
+            const growthCurrent: any = body.growth_current || {};
+            const growthTarget: any = body.growth_target || {};
+            const commitment: any = body.commitment || {};
+
+            // 1. Create venture (no user_id for public submissions)
+            const { data: venture, error: ventureError } = await supabase
+                .from('ventures')
+                .insert({
+                    name: body.name,
+                    founder_name: body.founder_name,
+                    city: growthCurrent.city || null,
+                    location: growthCurrent.city || null,
+                    status: 'Submitted',
+                    program_name: body.program || 'Accelerate',
+                    workbench_locked: true,
+                })
+                .select()
+                .single();
+
+            if (ventureError) throw ventureError;
+
+            // 2. Create application record
+            const { error: appError } = await supabase
+                .from('venture_applications')
+                .insert({
+                    venture_id: venture.id,
+                    what_do_you_sell: growthCurrent.product || null,
+                    who_do_you_sell_to: growthCurrent.segment || null,
+                    which_regions: growthCurrent.geography || null,
+                    company_type: growthCurrent.business_type || null,
+                    referred_by: growthCurrent.referred_by || null,
+                    founder_email: body.email,
+                    founder_phone: growthCurrent.phone || null,
+                    founder_designation: growthCurrent.role || null,
+                    revenue_12m: commitment.lastYearRevenue || null,
+                    revenue_potential_3y: commitment.revenuePotential || null,
+                    full_time_employees: growthCurrent.employees || null,
+                    incremental_hiring: commitment.incrementalHiring ? parseInt(commitment.incrementalHiring) : null,
+                    growth_focus: body.growth_focus ? (Array.isArray(body.growth_focus) ? body.growth_focus : body.growth_focus.split(',').filter(Boolean)) : [],
+                    focus_product: growthTarget.product || null,
+                    focus_segment: growthTarget.segment || null,
+                    focus_geography: growthTarget.geography || null,
+                    blockers: body.blockers || null,
+                    support_request: body.support_request || null,
+                    state: growthCurrent.state || null,
+                    additional_data: {},
+                });
+
+            if (appError) {
+                console.error('Error creating application for public apply:', appError);
+                await supabase.from('ventures').delete().eq('id', venture.id);
+                throw appError;
+            }
+
+            // 3. Create streams
+            const streams = body.workstream_statuses || [];
+            for (const ws of streams) {
+                await supabase.from('venture_streams').insert({
+                    venture_id: venture.id,
+                    stream_name: ws.stream_name,
+                    status: ws.status || 'Not started',
+                });
+            }
+
+            // 4. Send welcome email (fire-and-forget)
+            if (body.email) {
+                sendWelcomeEmail(body.email, body.founder_name, body.name)
+                    .then(() => console.log(`Welcome email sent to ${body.email} for venture ${body.name}`))
+                    .catch((err) => console.error('Failed to send welcome email:', err));
+            }
+
+            createdResponse(res, {
+                message: 'Application submitted successfully',
+                venture: { id: venture.id, name: venture.name },
+            });
+        } catch (error) {
+            console.error('Error in public apply:', error);
+            next(error);
+        }
+    }
+);
 
 /**
  * GET /api/ventures

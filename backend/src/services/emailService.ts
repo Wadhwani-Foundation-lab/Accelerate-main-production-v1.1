@@ -103,3 +103,53 @@ Wadhwani Accelerate Team`;
 
     await sendEmail(toEmail, subject, htmlBody, plainText);
 }
+
+export async function sendWelcomeEmail(
+    toEmail: string,
+    founderName: string,
+    ventureName: string
+): Promise<void> {
+    const subject = `Welcome to Wadhwani Accelerate, ${ventureName}`;
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #dc2626; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { padding: 20px; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #6b7280; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Wadhwani Accelerate</h1>
+        </div>
+        <div class="content">
+            <p>Hi ${founderName},</p>
+            <p>Thank you for applying for the Wadhwani Accelerate Program! We've received your application and will review your details shortly.</p>
+            <p>Keep an eye on your inbox—we'll notify you of any updates or next steps soon.</p>
+            <p>Best regards,<br>Team Wadhwani Accelerate</p>
+        </div>
+        <div class="footer">
+            <p>&copy; Wadhwani Foundation. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+    const plainText = `Hi ${founderName},
+
+Thank you for applying for the Wadhwani Accelerate Program! We've received your application and will review your details shortly.
+
+Keep an eye on your inbox—we'll notify you of any updates or next steps soon.
+
+Best regards,
+Team Wadhwani Accelerate`;
+
+    await sendEmail(toEmail, subject, htmlBody, plainText);
+}
