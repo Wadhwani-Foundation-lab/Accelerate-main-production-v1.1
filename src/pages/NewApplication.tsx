@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, Loader2, Mic, Info, CheckCircle2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import { logger } from '../utils/logger';
 import { StatusSelect } from '../components/StatusSelect';
 import { PhoneInput } from '../components/PhoneInput';
 
@@ -206,12 +207,15 @@ export const NewApplication: React.FC = () => {
                 support_request: formData.supportDescription,
             });
 
+            logger.info('Application', `Venture created: ${venture.id}`);
+
             // 2. Upload corporate presentation (non-blocking)
             if (formData.corporatePresentation) {
                 try {
                     await api.uploadVentureDocument(venture.id, formData.corporatePresentation);
+                    logger.info('Application', `Document uploaded for venture ${venture.id}`);
                 } catch (uploadErr) {
-                    console.error('Document upload failed (non-blocking):', uploadErr);
+                    logger.error('Application', 'Document upload failed (non-blocking)', uploadErr);
                 }
             }
 
@@ -233,10 +237,11 @@ export const NewApplication: React.FC = () => {
 
             // 4. Submit the venture
             await api.submitVenture(venture.id);
+            logger.info('Application', `Venture submitted: ${venture.id}`);
 
             setIsSubmitted(true);
         } catch (err) {
-            console.error('Error submitting application:', err);
+            logger.error('Application', 'Error submitting application', err);
             alert('Failed to submit application. Please try again.');
         } finally {
             setIsSubmitting(false);

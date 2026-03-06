@@ -8,6 +8,7 @@ import { NewApplication } from './pages/NewApplication';
 import { VentureDetails } from './pages/VentureDetails';
 import { Monitor, RefreshCcw, Maximize2 } from 'lucide-react';
 import { AuthProvider } from './context/AuthContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { VSMDashboardLayout } from './layouts/VSMDashboardLayout';
 import { VSMDashboard } from './pages/VSMDashboard';
 import { VentureManagerDashboard } from './pages/VentureManagerDashboard';
@@ -53,6 +54,7 @@ const Header = () => (
  */
 function App() {
   return (
+    <ErrorBoundary>
     <AuthProvider>
       <Router>
         <Routes>
@@ -123,6 +125,7 @@ function App() {
         </div>
       </Router>
     </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

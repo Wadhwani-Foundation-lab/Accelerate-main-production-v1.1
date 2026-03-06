@@ -4,6 +4,7 @@ import { Rocket, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
+import { logger } from '../utils/logger';
 
 export const Login: React.FC = () => {
     const navigate = useNavigate();
@@ -16,19 +17,20 @@ export const Login: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     const navigateByRole = (role?: string) => {
+        let target = '/dashboard';
         if (isApply) {
-            navigate('/dashboard/new-application');
+            target = '/dashboard/new-application';
         } else if (role === 'venture_mgr') {
-            navigate('/vmanager/dashboard');
+            target = '/vmanager/dashboard';
         } else if (role === 'committee_member') {
-            navigate('/committee/dashboard');
+            target = '/committee/dashboard';
         } else if (role === 'ops_manager') {
-            navigate('/ops/dashboard');
+            target = '/ops/dashboard';
         } else if (role === 'success_mgr' || role === 'admin') {
-            navigate('/vsm/dashboard');
-        } else {
-            navigate('/dashboard');
+            target = '/vsm/dashboard';
         }
+        logger.info('Login', `Navigating to ${target} for role: ${role}`);
+        navigate(target);
     };
 
     const handleLogin = async (e?: React.FormEvent) => {
@@ -40,6 +42,7 @@ export const Login: React.FC = () => {
             const signedInUser = await signIn(email, password);
             navigateByRole(signedInUser?.user_metadata?.role);
         } catch (err: any) {
+            logger.error('Login', `Login failed for ${email}`, err);
             setError(err.message || 'Login failed. Please check your credentials.');
         } finally {
             setLoading(false);
