@@ -18,6 +18,7 @@ app.use(cors({
         'http://localhost:5173',
         'http://localhost:5174',
         'https://wadhwani-accelerate-dev01.netlify.app',
+        'https://devaccelerate.wadhwaniliftoff.ai',
     ].filter(Boolean),
     credentials: true,
 }));
