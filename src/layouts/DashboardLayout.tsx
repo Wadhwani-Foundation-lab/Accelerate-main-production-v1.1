@@ -6,7 +6,13 @@ import { useAuth } from '../context/AuthContext';
 
 export const DashboardLayout: React.FC = () => {
     const navigate = useNavigate();
-    const { signOut, user } = useAuth();
+    const { signOut, user, loading } = useAuth();
+
+    React.useEffect(() => {
+        if (!loading && !user) {
+            navigate('/login');
+        }
+    }, [user, loading, navigate]);
 
     return (
 

@@ -14,11 +14,11 @@ export const VSMDashboardLayout: React.FC = () => {
         }
     }, [user, loading, navigate]);
 
-    // Determine Role Label
+    // Determine Role Label from user role metadata
     const getRoleLabel = () => {
-        if (!user?.email) return 'Screening Manager';
-        if (user.email.includes('ravi')) return 'Panel (Prime)';
-        if (user.email.includes('meetul') || user.email.includes('committee')) return 'Panel (Core, Select)';
+        const role = user?.user_metadata?.role;
+        if (role === 'venture_mgr') return 'Panel (Prime)';
+        if (role === 'committee_member') return 'Panel (Core, Select)';
         return 'Screening Manager';
     };
 

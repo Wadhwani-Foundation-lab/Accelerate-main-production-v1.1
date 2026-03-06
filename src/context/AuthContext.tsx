@@ -13,7 +13,7 @@ interface User {
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    signIn: (email: string, password: string) => Promise<void>;
+    signIn: (email: string, password: string) => Promise<User | null>;
     signUp: (email: string, password: string, fullName: string) => Promise<void>;
     signOut: () => Promise<void>;
 }
@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, []);
 
-    const signIn = async (email: string, password: string) => {
+    const signIn = async (email: string, password: string): Promise<User | null> => {
         const { user: apiUser, session } = await api.login(email, password);
 
         // Store tokens if session exists
@@ -65,6 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Set user state
         setUser(apiUser);
+        return apiUser;
     };
 
     const signUp = async (email: string, password: string, fullName: string) => {
