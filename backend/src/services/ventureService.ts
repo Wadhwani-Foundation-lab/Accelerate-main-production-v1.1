@@ -290,7 +290,6 @@ export async function updateVenture(
     if (updateData.vsm_notes !== undefined) ventureUpdates.vsm_notes = updateData.vsm_notes;
     if (updateData.program_recommendation !== undefined) ventureUpdates.program_recommendation = updateData.program_recommendation;
     if (updateData.internal_comments !== undefined) ventureUpdates.internal_comments = updateData.internal_comments;
-    if (updateData.ai_analysis !== undefined) ventureUpdates.ai_analysis = updateData.ai_analysis;
     if (updateData.vsm_reviewed_at !== undefined) ventureUpdates.vsm_reviewed_at = updateData.vsm_reviewed_at;
 
     // Committee fields

@@ -270,18 +270,50 @@ router.post(
             // Generate insights using Claude API
             const insights = await aiService.generateVentureInsights(ventureWithDoc, vsmNotes);
 
-            // Save insights to database
-            const { error: updateError } = await supabase
-                .from('ventures')
-                .update({
-                    ai_analysis: insights,
-                    vsm_reviewed_at: new Date().toISOString()
-                })
-                .eq('id', req.params.id);
+            // Save insights to venture_assessments table
+            const now = new Date().toISOString();
 
-            if (updateError) {
-                console.error('Error saving insights to database:', updateError);
-                // Return insights anyway, even if DB save fails
+            // Check for existing current assessment
+            const { data: existingAssessment } = await supabase
+                .from('venture_assessments')
+                .select('id')
+                .eq('venture_id', req.params.id)
+                .eq('is_current', true)
+                .maybeSingle();
+
+            if (existingAssessment) {
+                // Update existing assessment
+                const { error: updateError } = await supabase
+                    .from('venture_assessments')
+                    .update({
+                        ai_analysis: insights,
+                        ai_generated_at: now,
+                        updated_at: now,
+                    })
+                    .eq('id', existingAssessment.id);
+
+                if (updateError) {
+                    console.error('Error saving insights to assessment:', updateError);
+                }
+            } else {
+                // Create new assessment
+                const { error: insertError } = await supabase
+                    .from('venture_assessments')
+                    .insert({
+                        venture_id: req.params.id,
+                        assessed_by: req.user.id,
+                        assessor_role: role,
+                        assessment_type: 'vsm_screening',
+                        assessment_date: now,
+                        ai_analysis: insights,
+                        ai_generated_at: now,
+                        is_current: true,
+                        assessment_version: 1,
+                    });
+
+                if (insertError) {
+                    console.error('Error creating assessment with insights:', insertError);
+                }
             }
 
             successResponse(res, {
