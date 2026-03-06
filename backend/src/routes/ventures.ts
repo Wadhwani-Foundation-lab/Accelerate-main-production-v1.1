@@ -406,7 +406,7 @@ router.post(
                         venture_id: req.params.id,
                         assessed_by: req.user.id,
                         assessor_role: role,
-                        assessment_type: 'vsm_screening',
+                        assessment_type: 'screening',
                         assessment_date: now,
                         ai_analysis: insights,
                         ai_generated_at: now,

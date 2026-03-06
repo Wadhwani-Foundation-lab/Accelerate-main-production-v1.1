@@ -643,10 +643,10 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                                 </div>
                                 <button
                                     onClick={runAIAnalysis}
-                                    disabled={analyzing}
+                                    disabled={analyzing || !!analysisResult}
                                     className="flex items-center gap-2 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-semibold transition-colors shadow-sm"
                                 >
-                                    {analyzing ? (<><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>) : (<><Sparkles className="w-4 h-4" /> Generate insights</>)}
+                                    {analyzing ? (<><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>) : analysisResult ? (<><Sparkles className="w-4 h-4" /> Insights Generated</>) : (<><Sparkles className="w-4 h-4" /> Generate insights</>)}
                                 </button>
                             </div>
                             {!analysisResult && !analyzing && (
@@ -662,45 +662,72 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                                 </div>
                             )}
                             {analysisResult && !analyzing && (
-                                <div className="grid grid-cols-3 divide-x divide-gray-100">
+                                <div className="space-y-0 divide-y divide-gray-100">
                                     <div className="p-6">
                                         <div className="flex items-center gap-2 mb-4">
                                             <TrendingUp className="w-4 h-4 text-green-500" />
-                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">PROS</span>
+                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Existing Venture Profile</span>
                                         </div>
-                                        <ul className="space-y-2">
-                                            {(analysisResult.strengths || []).map((s: string, i: number) => (
-                                                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />
-                                                    {s}
-                                                </li>
-                                            ))}
-                                        </ul>
+                                        <div className="space-y-3">
+                                            <div>
+                                                <span className="text-xs font-semibold text-gray-400 uppercase">Profile Summary</span>
+                                                <p className="text-sm text-gray-700 mt-1">{analysisResult.existing_venture_profile?.profile_summary || analysisResult.strengths?.[0] || 'Not available'}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs font-semibold text-gray-400 uppercase">Product & Growth History</span>
+                                                <p className="text-sm text-gray-700 mt-1">{analysisResult.existing_venture_profile?.current_product_growth_history || 'Not available'}</p>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div className="p-6">
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <AlertTriangle className="w-4 h-4 text-amber-500" />
-                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">CONS</span>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-2">
+                                                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">New Venture Definition Clarity</span>
+                                            </div>
+                                            {analysisResult.new_venture_clarity?.definition_clarity_flag && (
+                                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                                    analysisResult.new_venture_clarity.definition_clarity_flag === 'Well Defined' ? 'bg-green-100 text-green-700' :
+                                                    analysisResult.new_venture_clarity.definition_clarity_flag === 'Partially Defined' ? 'bg-amber-100 text-amber-700' :
+                                                    'bg-red-100 text-red-700'
+                                                }`}>
+                                                    {analysisResult.new_venture_clarity.definition_clarity_flag}
+                                                </span>
+                                            )}
                                         </div>
-                                        <ul className="space-y-2">
-                                            {(analysisResult.risks || []).map((r: string, i: number) => (
-                                                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                                                    {r}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                    <div className="p-6">
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <HelpCircle className="w-4 h-4 text-blue-500" />
-                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Follow up Questions</span>
+                                        <div className="grid grid-cols-3 gap-4 mb-4">
+                                            <div>
+                                                <span className="text-xs font-semibold text-gray-400 uppercase">New Product/Service</span>
+                                                <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_product_or_service || 'Not assessed'}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs font-semibold text-gray-400 uppercase">New Segment/Market</span>
+                                                <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_segment_or_market || 'Not assessed'}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs font-semibold text-gray-400 uppercase">New Geography</span>
+                                                <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_geography || 'Not assessed'}</p>
+                                            </div>
                                         </div>
-                                        <ol className="space-y-2 list-decimal list-inside">
-                                            {(analysisResult.questions || []).map((q: string, i: number) => (
-                                                <li key={i} className="text-sm text-gray-700">{q}</li>
-                                            ))}
-                                        </ol>
+                                        <div className="mb-4">
+                                            <span className="text-xs font-semibold text-gray-400 uppercase">Estimated Incremental Revenue</span>
+                                            <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.estimated_incremental_revenue || 'Not provided'}</p>
+                                        </div>
+                                        <div className="mb-4">
+                                            <span className="text-xs font-semibold text-gray-400 uppercase">Clarity Gaps</span>
+                                            <ul className="mt-1 space-y-1">
+                                                {(analysisResult.new_venture_clarity?.clarity_gaps || []).map((gap: string, i: number) => (
+                                                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                                                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                                                        {gap}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs font-semibold text-gray-400 uppercase">Clarity Summary</span>
+                                            <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.clarity_summary || 'Not available'}</p>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -794,18 +821,30 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                                     {([
                                         { key: 'product', label: 'Product' },
                                         { key: 'gtm', label: 'GTM' },
-                                        { key: 'funding', label: 'Funding' },
+                                        { key: 'capital_planning', label: 'Capital Planning' },
                                         { key: 'supply_chain', label: 'Supply Chain' },
                                         { key: 'operations', label: 'Operations' },
                                         { key: 'team', label: 'Team' },
-                                    ] as const).map(({ key, label }) => (
+                                    ] as { key: string; label: string }[]).map(({ key, label }) => {
+                                        const area = (roadmapData as any)[key];
+                                        const actions = Array.isArray(area) ? area : area?.actions || [];
+                                        const relevance = area?.relevance;
+                                        const supportPriority = area?.support_priority;
+                                        return (
                                         <div key={key} className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                                            <div className="flex items-center justify-between mb-6">
+                                            <div className="flex items-center justify-between mb-2">
                                                 <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider">{label}</h3>
-                                                <ChevronRight className="w-5 h-5 text-gray-300" />
+                                                {supportPriority && (
+                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                                        supportPriority === 'High' ? 'bg-red-100 text-red-700' :
+                                                        supportPriority === 'Medium' ? 'bg-amber-100 text-amber-700' :
+                                                        'bg-green-100 text-green-700'
+                                                    }`}>{supportPriority}</span>
+                                                )}
                                             </div>
+                                            {relevance && <p className="text-xs text-gray-400 mb-4">{relevance}</p>}
                                             <div className="space-y-4">
-                                                {(roadmapData[key] || []).map((item: any) => (
+                                                {actions.map((item: any) => (
                                                     <div key={item.id} className="flex items-start gap-3">
                                                         <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-2 ${
                                                             item.priority === 'high' ? 'bg-red-500' :
@@ -816,12 +855,14 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                                                             <p className="text-sm font-semibold text-gray-900">{item.title}</p>
                                                             <p className="text-xs text-gray-500 italic mt-0.5">{item.description}</p>
                                                             <span className="text-[10px] text-gray-400 font-medium">{item.timeline}</span>
+                                                            {item.success_metric && <p className="text-[10px] text-green-600 mt-0.5">✓ {item.success_metric}</p>}
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>

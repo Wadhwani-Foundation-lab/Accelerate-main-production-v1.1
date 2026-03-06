@@ -20,32 +20,47 @@ export interface VentureData {
     corporate_presentation_text?: string;
 }
 
-export interface RoadmapDeliverable {
+export interface RoadmapAction {
     id: string;
     title: string;
     description: string;
+    context_reference: string;
+    timeline: string;
+    success_metric: string;
     status: 'pending';
     priority: 'high' | 'medium' | 'low';
-    timeline: string; // Q1, Q2, Q3, Q4
+}
+
+export interface FunctionalAreaRoadmap {
+    relevance: string;
+    support_priority: 'High' | 'Medium' | 'Low';
+    actions: RoadmapAction[];
 }
 
 export interface RoadmapData {
-    product: RoadmapDeliverable[];
-    gtm: RoadmapDeliverable[];
-    funding: RoadmapDeliverable[];
-    supply_chain: RoadmapDeliverable[];
-    operations: RoadmapDeliverable[];
-    team: RoadmapDeliverable[];
+    product: FunctionalAreaRoadmap;
+    gtm: FunctionalAreaRoadmap;
+    capital_planning: FunctionalAreaRoadmap;
+    team: FunctionalAreaRoadmap;
+    supply_chain: FunctionalAreaRoadmap;
+    operations: FunctionalAreaRoadmap;
 }
 
 export interface AIInsights {
-    recommendation: string;
+    existing_venture_profile: {
+        profile_summary: string;
+        current_product_growth_history: string;
+    };
+    new_venture_clarity: {
+        new_product_or_service: string;
+        new_segment_or_market: string;
+        new_geography: string;
+        estimated_incremental_revenue: string;
+        definition_clarity_flag: string;
+        clarity_gaps: string[];
+        clarity_summary: string;
+    };
     generated_at: string;
-    summary: string;
-    context: string;
-    strengths: string[];
-    risks: string[];
-    questions: string[];
 }
 
 /**
@@ -103,7 +118,20 @@ export async function generateVentureInsights(
  * Build the prompt for Claude to generate venture insights
  */
 function buildInsightsPrompt(ventureData: VentureData, vsmNotes: string): string {
-    return `You are a Venture Screening Manager evaluating a startup application for an accelerator program. Analyze the following venture data and provide structured insights.
+    return `You are an expert screening analyst for the Accelerate Assisted Growth Platform. Your role is to evaluate a venture application and produce a focused screening reference for the Screening Manager.
+
+Your output must cover exactly two things:
+
+1. **Existing Venture Profile** — A concise summary of the current business, highlighting its current products and growth history.
+2. **New Venture Definition Clarity** — Assess how clearly the applicant has defined their proposed new growth idea, and whether the application is ready to be recommended to the interview panel.
+
+You will receive a venture application containing:
+- Business details (company name, type, city, state, designation, products/services, customer segments, regions, employee count, revenue)
+- Growth idea details (type: new product/service, new segment, or new geography; expected incremental revenue in 3 years; funding plan)
+- Support areas requested (Product, Go-To-Market, Capital Planning, Team, Supply Chain, Operations)
+- Support description (free text from applicant)
+- Screening manager notes (optional free text with additional context from initial review)
+- Corporate presentation (optional attachment)
 
 **Venture Information:**
 - Company Name: ${ventureData.name}
@@ -123,40 +151,40 @@ ${ventureData.corporate_presentation_text.slice(0, 8000)}
 ${ventureData.corporate_presentation_text.length > 8000 ? '\n[... truncated ...]' : ''}
 ` : ''}
 **Your Task:**
-Provide a comprehensive assessment in the following JSON format:
+Provide your assessment in the following JSON format:
 
 {
-  "recommendation": "<One of: Accelerate Prime, Accelerate Core, Accelerate Essential, or Not Recommended>",
-  "summary": "<2-3 sentence executive summary of the venture's potential>",
-  "context": "<1 sentence about the sector/market context>",
-  "strengths": [
-    "<Strength 1>",
-    "<Strength 2>",
-    "<Strength 3>",
-    "<Strength 4>",
-    "<Strength 5>"
-  ],
-  "risks": [
-    "<Risk 1>",
-    "<Risk 2>",
-    "<Risk 3>",
-    "<Risk 4>",
-    "<Risk 5>"
-  ],
-  "questions": [
-    "<Probing question 1>",
-    "<Probing question 2>",
-    "<Probing question 3>",
-    "<Probing question 4>",
-    "<Probing question 5>"
-  ]
+  "existing_venture_profile": {
+    "profile_summary": "<3-4 sentence summary of the existing business. Cover: what the company does (core products/services), who it serves, where it operates, its current revenue scale, and team size. This should give the screening manager a complete at-a-glance picture of the business today.>",
+    "current_product_growth_history": "<2-3 sentences describing the current product portfolio and historical growth trajectory. Mention specific products/services by name where available. State whether the business has been growing, flat, or declining based on available revenue data or signals. If the application provides only current revenue with no prior-year comparator, state: 'Insufficient data to assess historical growth — only current-year revenue provided.'>"
+  },
+  "new_venture_clarity": {
+    "new_product_or_service": "<What new product or service is the venture pursuing? If clearly defined, describe it specifically. If vague or not mentioned, state: 'Not clearly defined — [explain what is missing].'>",
+    "new_segment_or_market": "<What new customer segment or market is being targeted? If clearly defined, describe it specifically. If vague or not mentioned, state: 'Not clearly defined — [explain what is missing].'>",
+    "new_geography": "<What new geography is being targeted? If clearly defined, name the specific regions/countries. If not applicable (growth idea is product or segment focused, not geography), state: 'Not applicable — growth idea is focused on new product/segment, not geographic expansion.' If vague, state: 'Not clearly defined — [explain what is missing].'>",
+    "estimated_incremental_revenue": "<State the 3-year incremental revenue figure from the application. Then assess: Is this figure substantiated (backed by assumptions, market sizing, unit economics, or a build-up) or aspirational (a round number with no supporting logic)?>",
+    "definition_clarity_flag": "<One of: Well Defined, Partially Defined, or Poorly Defined>",
+    "clarity_gaps": [
+      "<Specific gap 1 — what is missing or vague in the new venture definition>",
+      "<Specific gap 2>",
+      "<Specific gap 3>"
+    ],
+    "clarity_summary": "<2-3 sentence summary of the new venture idea and its readiness for panel review.>"
+  }
 }
 
-**Guidelines:**
-- Provide exactly 5 strengths (PROS) and 5 risks (CONS)
-- Make follow up questions specific and actionable
-- Base recommendation on revenue trajectory, market opportunity, and team capability
-- Keep each point concise (1-2 sentences max)
+**Critical Instructions for Existing Venture Profile:**
+- Extract information from ALL available sources: application fields, corporate presentation text, and screening manager notes.
+- The profile_summary should give the screening manager a complete picture of the business in 3-4 sentences — what it does, who it serves, where it operates, and its current scale.
+- The current_product_growth_history must name specific products where available and assess growth trajectory factually. If the application provides only current revenue with no prior-year figure, flag historical growth as "Insufficient data" — do NOT fabricate or assume a growth rate.
+
+**Critical Instructions for New Venture Definition Clarity:**
+- Evaluate ONLY based on what the applicant has explicitly stated. Do not infer or assume details they haven't provided.
+- The definition_clarity_flag is determined by how many of the applicable dimensions (new product/service, new segment/market, new geography) are clearly and specifically articulated:
+  - "Well Defined" = All applicable dimensions are specifically described with concrete details (named product, named segment, named geography).
+  - "Partially Defined" = At least one dimension is clear, but others are vague, generic, or missing.
+  - "Poorly Defined" = Most dimensions are vague, use generic language ("expand to new markets"), or are missing entirely.
+- clarity_gaps must contain exactly 3 items. If fewer than 3 gaps exist, note minor gaps or areas that could be further strengthened.
 
 Return ONLY the JSON object, no additional text.`;
 }
@@ -166,7 +194,6 @@ Return ONLY the JSON object, no additional text.`;
  */
 function parseClaudeResponse(responseText: string, ventureData: VentureData): AIInsights {
     try {
-        // Try to extract JSON from the response
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
             throw new Error('No JSON found in response');
@@ -174,71 +201,51 @@ function parseClaudeResponse(responseText: string, ventureData: VentureData): AI
 
         const parsed = JSON.parse(jsonMatch[0]);
 
-        // Validate and structure the response
         return {
-            recommendation: parsed.recommendation || 'Accelerate Core',
+            existing_venture_profile: {
+                profile_summary: parsed.existing_venture_profile?.profile_summary || 'Profile summary not available.',
+                current_product_growth_history: parsed.existing_venture_profile?.current_product_growth_history || 'Growth history not available.',
+            },
+            new_venture_clarity: {
+                new_product_or_service: parsed.new_venture_clarity?.new_product_or_service || 'Unable to assess.',
+                new_segment_or_market: parsed.new_venture_clarity?.new_segment_or_market || 'Unable to assess.',
+                new_geography: parsed.new_venture_clarity?.new_geography || 'Unable to assess.',
+                estimated_incremental_revenue: parsed.new_venture_clarity?.estimated_incremental_revenue || 'Not provided.',
+                definition_clarity_flag: parsed.new_venture_clarity?.definition_clarity_flag || 'Partially Defined',
+                clarity_gaps: Array.isArray(parsed.new_venture_clarity?.clarity_gaps) && parsed.new_venture_clarity.clarity_gaps.length === 3
+                    ? parsed.new_venture_clarity.clarity_gaps
+                    : [
+                        'Automated analysis could not evaluate new product/service definition.',
+                        'Automated analysis could not evaluate target segment/market definition.',
+                        'Automated analysis could not evaluate geographic expansion definition.',
+                    ],
+                clarity_summary: parsed.new_venture_clarity?.clarity_summary || 'Clarity assessment not available.',
+            },
             generated_at: new Date().toISOString(),
-            summary: parsed.summary || `Evaluated ${ventureData.name}`,
-            context: parsed.context || 'Analysis completed.',
-            strengths: Array.isArray(parsed.strengths) && parsed.strengths.length === 5
-                ? parsed.strengths
-                : [
-                    'Strong revenue base.',
-                    'Clear growth focus.',
-                    'Experienced team.',
-                    'Proven market fit.',
-                    'Scalable model.'
-                ],
-            risks: Array.isArray(parsed.risks) && parsed.risks.length === 5
-                ? parsed.risks
-                : [
-                    'Competitive landscape.',
-                    'Capital efficiency.',
-                    'Go-to-market needs refinement.',
-                    'Limited runway.',
-                    'Key person dependency.'
-                ],
-            questions: Array.isArray(parsed.questions) && parsed.questions.length === 5
-                ? parsed.questions
-                : [
-                    'How will you acquire the first 10 customers?',
-                    'What is the revenue breakdown?',
-                    'Can you elaborate on compliance hurdles?',
-                    'What is the burn rate impact?',
-                    'How does the product adapt to new markets?'
-                ]
         };
     } catch (error) {
         console.error('Error parsing Claude response:', error);
         console.log('Raw response:', responseText);
 
-        // Return fallback insights if parsing fails
         return {
-            recommendation: 'Accelerate Core',
+            existing_venture_profile: {
+                profile_summary: 'Automated analysis of existing venture incomplete. Screening manager should review application and corporate presentation manually.',
+                current_product_growth_history: 'Insufficient data — automated extraction incomplete. Manual review required to assess current products and growth history.',
+            },
+            new_venture_clarity: {
+                new_product_or_service: 'Unable to assess — manual review required.',
+                new_segment_or_market: 'Unable to assess — manual review required.',
+                new_geography: 'Unable to assess — manual review required.',
+                estimated_incremental_revenue: `₹${ventureData.revenue_potential_3y?.toLocaleString() || 'N/A'} stated in application — substantiation not assessed.`,
+                definition_clarity_flag: 'Partially Defined',
+                clarity_gaps: [
+                    'Automated analysis could not evaluate new product/service definition.',
+                    'Automated analysis could not evaluate target segment/market definition.',
+                    'Automated analysis could not evaluate geographic expansion definition.',
+                ],
+                clarity_summary: 'AI analysis incomplete. Screening manager should manually assess whether the new venture idea is clearly defined before proceeding to panel.',
+            },
             generated_at: new Date().toISOString(),
-            summary: `Evaluated "${ventureData.name}" - AI analysis completed but requires manual review.`,
-            context: 'Automated analysis.',
-            strengths: [
-                'Strong revenue base (LTM).',
-                `Clear focus on ${ventureData.growth_focus || 'growth'}.`,
-                'Experienced team structure.',
-                'Proven market fit in current segment.',
-                'Scalable business model with clear unit economics.'
-            ],
-            risks: [
-                'Competitive landscape in new geography.',
-                'Capital efficiency concern.',
-                'Go-to-market strategy needs refinement.',
-                'Limited runway for market expansion.',
-                'Dependency on key personnel.'
-            ],
-            questions: [
-                'How do you plan to acquire the first 10 customers in the new segment?',
-                'What is the breakdown of the 3-year revenue potential?',
-                'Can you elaborate on the specific compliance hurdles?',
-                'What is the burn rate impact of the new hiring plan?',
-                'How does the current product adapt to the new market?'
-            ]
         };
     }
 }
@@ -277,12 +284,22 @@ export async function generateVentureRoadmap(
     }
 }
 
-function buildRoadmapPrompt(ventureData: any, ctx: { vsmNotes?: string; aiAnalysis?: any }): string {
+function buildRoadmapPrompt(ventureData: any, ctx: { vsmNotes?: string; aiAnalysis?: any; interactionNotes?: string }): string {
     const aiSummary = ctx.aiAnalysis
-        ? `\n**AI Screening Analysis:**\n- Recommendation: ${ctx.aiAnalysis.recommendation || 'N/A'}\n- Summary: ${ctx.aiAnalysis.summary || 'N/A'}\n- Strengths: ${(ctx.aiAnalysis.strengths || []).join('; ')}\n- Risks: ${(ctx.aiAnalysis.risks || []).join('; ')}`
+        ? `\n**AI Screening Analysis:**\n- Profile: ${ctx.aiAnalysis.existing_venture_profile?.profile_summary || 'N/A'}\n- Growth History: ${ctx.aiAnalysis.existing_venture_profile?.current_product_growth_history || 'N/A'}\n- Clarity Flag: ${ctx.aiAnalysis.new_venture_clarity?.definition_clarity_flag || 'N/A'}\n- Clarity Summary: ${ctx.aiAnalysis.new_venture_clarity?.clarity_summary || 'N/A'}\n- Clarity Gaps: ${(ctx.aiAnalysis.new_venture_clarity?.clarity_gaps || []).join('; ')}`
         : '';
 
-    return `You are a startup accelerator program manager. Based on the venture data below, generate a personalized journey roadmap with actionable deliverables across six streams.
+    return `You are a strategic program advisor for the Accelerate Assisted Growth Platform. Your role is to generate a tailored, actionable roadmap for ventures that have been approved by the selection committee. This roadmap will guide the venture through the program to achieve their stated growth idea.
+
+## INPUT DATA
+
+You will receive the following context for the approved venture:
+
+1. **Business Profile**
+2. **Growth Idea**
+3. **Support Areas Requested**
+4. **Screening & Evaluation Context**
+5. **Corporate Presentation** (optional)
 
 **Venture Information:**
 - Company: ${ventureData.name || 'N/A'}
@@ -303,30 +320,64 @@ function buildRoadmapPrompt(ventureData: any, ctx: { vsmNotes?: string; aiAnalys
 
 **VSM Notes:**
 ${ctx.vsmNotes || 'No notes provided.'}
+
+**Interaction Notes:**
+${ctx.interactionNotes || 'No interaction notes available.'}
 ${aiSummary}
 ${ventureData.corporate_presentation_text ? `
 **Corporate Presentation Content:**
 ${ventureData.corporate_presentation_text.slice(0, 8000)}
 ${ventureData.corporate_presentation_text.length > 8000 ? '\n[... truncated ...]' : ''}
 ` : ''}
-**Task:** Generate 4-6 deliverables for EACH of the following 6 streams. Return ONLY a JSON object:
+## OUTPUT FORMAT
+
+Generate a structured roadmap covering ALL SIX functional support areas. For each area, provide exactly 5 actions/deliverables that are specific to this venture's context, growth idea, and identified gaps.
+
+Return ONLY a JSON object in this format:
 
 {
-  "product": [ { "id": "prod_1", "title": "...", "description": "...", "status": "pending", "priority": "high|medium|low", "timeline": "Q1|Q2|Q3|Q4" }, ... ],
-  "gtm": [ ... ],
-  "funding": [ ... ],
-  "supply_chain": [ ... ],
-  "operations": [ ... ],
-  "team": [ ... ]
+  "product": {
+    "relevance": "<One sentence explaining why Product matters for this specific venture's growth idea>",
+    "support_priority": "<High | Medium | Low>",
+    "actions": [
+      {
+        "id": "prod_1",
+        "title": "<Specific action — 3-5 words>",
+        "description": "<What needs to be done and why — 1-2 sentences>",
+        "context_reference": "<Which input data point drives this action>",
+        "timeline": "<Week/Month range within 12-16 week program — e.g., 'Weeks 1-2', 'Weeks 3-5'>",
+        "success_metric": "<Measurable outcome>",
+        "status": "pending",
+        "priority": "<high | medium | low>"
+      },
+      { "id": "prod_2", "..." : "..." },
+      { "id": "prod_3", "..." : "..." },
+      { "id": "prod_4", "..." : "..." },
+      { "id": "prod_5", "..." : "..." }
+    ]
+  },
+  "gtm": { "relevance": "<...>", "support_priority": "<...>", "actions": [ ... ] },
+  "capital_planning": { "relevance": "<...>", "support_priority": "<...>", "actions": [ ... ] },
+  "team": { "relevance": "<...>", "support_priority": "<...>", "actions": [ ... ] },
+  "supply_chain": { "relevance": "<...>", "support_priority": "<...>", "actions": [ ... ] },
+  "operations": { "relevance": "<...>", "support_priority": "<...>", "actions": [ ... ] }
 }
 
-**Guidelines:**
-- Each deliverable must have a unique id (e.g. prod_1, gtm_2, fund_3, sc_4, ops_5, team_6)
-- Titles should be concise (3-5 words)
-- Descriptions should be specific to THIS venture's business, not generic
-- Assign priority based on urgency: high = critical blocker, medium = important, low = nice to have
-- Spread timelines across Q1-Q4 realistically
-- All statuses must be "pending"
+## GENERATION RULES
+
+1. **Context-driven, not generic:** Every action must trace back to a specific data point from the venture's application, screening insights, or interaction notes. The "context_reference" field must cite the source explicitly.
+2. **Growth idea alignment:** All actions across all 6 areas must collectively serve the venture's stated growth idea.
+3. **Address the Cons:** At least 2 actions across the full roadmap must directly address risks or gaps identified in the screening.
+4. **Leverage the Pros:** At least 2 actions should build on identified strengths to create momentum.
+5. **Interaction notes integration:** If interaction notes reveal specific concerns or commitments, these must be reflected in relevant actions.
+6. **Prioritization logic:**
+   - Areas where the venture explicitly requested help → High priority
+   - Areas where screening identified gaps but venture didn't request help → Medium priority
+   - Areas where venture indicated "Don't need help" and no red flags → Low priority
+7. **Timeline realism:** Spread actions across 12-16 weeks: early = assess/plan, mid = execute, late = validate/sustain.
+8. **Sequencing:** Actions within each area should follow: Diagnose → Plan → Build → Test → Refine.
+9. **Deliverable clarity:** Each action should result in a tangible output (document, framework, model, strategy, process).
+10. **Tone:** Professional, supportive, and direct.
 
 Return ONLY the JSON object, no additional text.`;
 }
@@ -337,23 +388,28 @@ function parseRoadmapResponse(responseText: string): RoadmapData {
         if (!jsonMatch) throw new Error('No JSON found in response');
 
         const parsed = JSON.parse(jsonMatch[0]);
-        const streams = ['product', 'gtm', 'funding', 'supply_chain', 'operations', 'team'] as const;
+        const streams = ['product', 'gtm', 'capital_planning', 'team', 'supply_chain', 'operations'] as const;
 
         const result: any = {};
         for (const stream of streams) {
-            const items = parsed[stream];
-            if (Array.isArray(items) && items.length >= 4) {
-                result[stream] = items.map((item: any, i: number) => ({
-                    id: item.id || `${stream}_${i + 1}`,
-                    title: item.title || 'Untitled',
-                    description: item.description || '',
-                    status: 'pending' as const,
-                    priority: ['high', 'medium', 'low'].includes(item.priority) ? item.priority : 'medium',
-                    timeline: item.timeline || 'Q1'
-                }));
+            const area = parsed[stream];
+            if (area && Array.isArray(area.actions) && area.actions.length >= 5) {
+                result[stream] = {
+                    relevance: area.relevance || '',
+                    support_priority: ['High', 'Medium', 'Low'].includes(area.support_priority) ? area.support_priority : 'Medium',
+                    actions: area.actions.slice(0, 5).map((item: any, i: number) => ({
+                        id: item.id || `${stream}_${i + 1}`,
+                        title: item.title || 'Untitled',
+                        description: item.description || '',
+                        context_reference: item.context_reference || 'Manual review required',
+                        timeline: item.timeline || 'Weeks 1-2',
+                        success_metric: item.success_metric || '',
+                        status: 'pending' as const,
+                        priority: ['high', 'medium', 'low'].includes(item.priority) ? item.priority : 'medium',
+                    })),
+                };
             } else {
-                // Fallback for missing stream
-                result[stream] = getFallbackDeliverables(stream);
+                result[stream] = getFallbackArea(stream);
             }
         }
 
@@ -362,54 +418,83 @@ function parseRoadmapResponse(responseText: string): RoadmapData {
         console.error('Error parsing roadmap response:', error);
         console.log('Raw response:', responseText);
 
-        // Return fallback roadmap
-        const streams = ['product', 'gtm', 'funding', 'supply_chain', 'operations', 'team'] as const;
+        const streams = ['product', 'gtm', 'capital_planning', 'team', 'supply_chain', 'operations'] as const;
         const result: any = {};
         for (const stream of streams) {
-            result[stream] = getFallbackDeliverables(stream);
+            result[stream] = getFallbackArea(stream);
         }
         return result as RoadmapData;
     }
 }
 
-function getFallbackDeliverables(stream: string): RoadmapDeliverable[] {
-    const fallbacks: Record<string, RoadmapDeliverable[]> = {
-        product: [
-            { id: 'prod_1', title: 'Product Audit', description: 'Comprehensive review of current product capabilities and gaps.', status: 'pending', priority: 'high', timeline: 'Q1' },
-            { id: 'prod_2', title: 'Feature Roadmap', description: 'Prioritized feature backlog aligned with growth targets.', status: 'pending', priority: 'high', timeline: 'Q1' },
-            { id: 'prod_3', title: 'Quality Framework', description: 'Testing and QA standards for product releases.', status: 'pending', priority: 'medium', timeline: 'Q2' },
-            { id: 'prod_4', title: 'Tech Infrastructure', description: 'Scalability assessment and cloud architecture plan.', status: 'pending', priority: 'medium', timeline: 'Q3' },
-        ],
-        gtm: [
-            { id: 'gtm_1', title: 'Market Analysis', description: 'Target market sizing and competitive landscape review.', status: 'pending', priority: 'high', timeline: 'Q1' },
-            { id: 'gtm_2', title: 'Sales Playbook', description: 'Standardized sales process and objection handling.', status: 'pending', priority: 'high', timeline: 'Q1' },
-            { id: 'gtm_3', title: 'Channel Strategy', description: 'Partner and distribution channel development plan.', status: 'pending', priority: 'medium', timeline: 'Q2' },
-            { id: 'gtm_4', title: 'Pricing Review', description: 'Competitive pricing analysis and optimization.', status: 'pending', priority: 'medium', timeline: 'Q2' },
-        ],
-        funding: [
-            { id: 'fund_1', title: 'Financial Model', description: 'Detailed projections and unit economics analysis.', status: 'pending', priority: 'high', timeline: 'Q1' },
-            { id: 'fund_2', title: 'Investor Deck', description: 'Compelling pitch materials for fundraising.', status: 'pending', priority: 'high', timeline: 'Q1' },
-            { id: 'fund_3', title: 'Data Room', description: 'Organized due diligence documentation.', status: 'pending', priority: 'medium', timeline: 'Q2' },
-            { id: 'fund_4', title: 'Investor Pipeline', description: 'Targeted list of potential investors and outreach plan.', status: 'pending', priority: 'medium', timeline: 'Q2' },
-        ],
-        supply_chain: [
-            { id: 'sc_1', title: 'Vendor Assessment', description: 'Evaluation of current supplier performance and risks.', status: 'pending', priority: 'high', timeline: 'Q1' },
-            { id: 'sc_2', title: 'Cost Optimization', description: 'Identify cost reduction opportunities in procurement.', status: 'pending', priority: 'medium', timeline: 'Q2' },
-            { id: 'sc_3', title: 'Logistics Review', description: 'Delivery and fulfillment process improvement plan.', status: 'pending', priority: 'medium', timeline: 'Q2' },
-            { id: 'sc_4', title: 'Compliance Check', description: 'Regulatory and quality certification requirements.', status: 'pending', priority: 'low', timeline: 'Q3' },
-        ],
-        operations: [
-            { id: 'ops_1', title: 'Process Mapping', description: 'Document and optimize core business processes.', status: 'pending', priority: 'high', timeline: 'Q1' },
-            { id: 'ops_2', title: 'Systems Audit', description: 'Review of current tools and automation opportunities.', status: 'pending', priority: 'medium', timeline: 'Q1' },
-            { id: 'ops_3', title: 'KPI Dashboard', description: 'Real-time operational metrics tracking setup.', status: 'pending', priority: 'medium', timeline: 'Q2' },
-            { id: 'ops_4', title: 'Scaling Plan', description: 'Operational readiness for 3x growth scenario.', status: 'pending', priority: 'low', timeline: 'Q3' },
-        ],
-        team: [
-            { id: 'team_1', title: 'Org Structure', description: 'Define roles and reporting lines for growth phase.', status: 'pending', priority: 'high', timeline: 'Q1' },
-            { id: 'team_2', title: 'Hiring Plan', description: 'Critical hires roadmap with timelines and budgets.', status: 'pending', priority: 'high', timeline: 'Q1' },
-            { id: 'team_3', title: 'Performance System', description: 'KPIs and review cadence for all team members.', status: 'pending', priority: 'medium', timeline: 'Q2' },
-            { id: 'team_4', title: 'Culture Playbook', description: 'Values documentation and onboarding program.', status: 'pending', priority: 'low', timeline: 'Q3' },
-        ],
+function getFallbackArea(stream: string): FunctionalAreaRoadmap {
+    const fallbacks: Record<string, FunctionalAreaRoadmap> = {
+        product: {
+            relevance: 'Product readiness assessment required for growth execution.',
+            support_priority: 'Medium',
+            actions: [
+                { id: 'prod_1', title: 'Product Audit', description: 'Comprehensive review of current product capabilities and gaps.', context_reference: 'Manual review required', timeline: 'Weeks 1-2', success_metric: 'Audit report completed', status: 'pending', priority: 'high' },
+                { id: 'prod_2', title: 'Feature Gap Analysis', description: 'Identify feature gaps for the growth idea.', context_reference: 'Manual review required', timeline: 'Weeks 2-3', success_metric: 'Gap analysis document', status: 'pending', priority: 'high' },
+                { id: 'prod_3', title: 'MVP Definition', description: 'Define minimum viable product for new offering.', context_reference: 'Manual review required', timeline: 'Weeks 3-5', success_metric: 'MVP spec document', status: 'pending', priority: 'medium' },
+                { id: 'prod_4', title: 'Pilot Plan', description: 'Design pilot program for validation.', context_reference: 'Manual review required', timeline: 'Weeks 6-10', success_metric: 'Pilot launched', status: 'pending', priority: 'medium' },
+                { id: 'prod_5', title: 'Product Roadmap', description: 'Align product roadmap with growth targets.', context_reference: 'Manual review required', timeline: 'Weeks 11-14', success_metric: 'Roadmap document approved', status: 'pending', priority: 'low' },
+            ],
+        },
+        gtm: {
+            relevance: 'Go-to-market strategy required for new market entry.',
+            support_priority: 'Medium',
+            actions: [
+                { id: 'gtm_1', title: 'Market Analysis', description: 'Target market sizing and competitive landscape review.', context_reference: 'Manual review required', timeline: 'Weeks 1-2', success_metric: 'Market analysis report', status: 'pending', priority: 'high' },
+                { id: 'gtm_2', title: 'ICP Definition', description: 'Define ideal customer profile for new segment.', context_reference: 'Manual review required', timeline: 'Weeks 2-4', success_metric: 'ICP document completed', status: 'pending', priority: 'high' },
+                { id: 'gtm_3', title: 'Channel Strategy', description: 'Partner and distribution channel development plan.', context_reference: 'Manual review required', timeline: 'Weeks 4-6', success_metric: 'Channel strategy document', status: 'pending', priority: 'medium' },
+                { id: 'gtm_4', title: 'Sales Playbook', description: 'Standardized sales process and objection handling.', context_reference: 'Manual review required', timeline: 'Weeks 6-10', success_metric: 'Playbook ready for team', status: 'pending', priority: 'medium' },
+                { id: 'gtm_5', title: 'Launch Plan', description: 'Go-to-market launch plan with timelines.', context_reference: 'Manual review required', timeline: 'Weeks 10-14', success_metric: 'Launch plan approved', status: 'pending', priority: 'low' },
+            ],
+        },
+        capital_planning: {
+            relevance: 'Financial readiness assessment for growth investment.',
+            support_priority: 'Medium',
+            actions: [
+                { id: 'cap_1', title: 'Financial Model', description: 'Detailed projections and unit economics analysis.', context_reference: 'Manual review required', timeline: 'Weeks 1-3', success_metric: 'Financial model completed', status: 'pending', priority: 'high' },
+                { id: 'cap_2', title: 'Unit Economics', description: 'Validate unit economics for new growth area.', context_reference: 'Manual review required', timeline: 'Weeks 3-5', success_metric: 'Unit economics validated', status: 'pending', priority: 'high' },
+                { id: 'cap_3', title: 'Funding Strategy', description: 'Identify and plan funding sources for growth.', context_reference: 'Manual review required', timeline: 'Weeks 5-8', success_metric: 'Funding strategy document', status: 'pending', priority: 'medium' },
+                { id: 'cap_4', title: 'Cash Flow Projection', description: 'Model cash flow impact of growth initiatives.', context_reference: 'Manual review required', timeline: 'Weeks 8-11', success_metric: 'Cash flow model ready', status: 'pending', priority: 'medium' },
+                { id: 'cap_5', title: 'Investor Readiness', description: 'Prepare pitch materials and data room.', context_reference: 'Manual review required', timeline: 'Weeks 11-14', success_metric: 'Investor deck completed', status: 'pending', priority: 'low' },
+            ],
+        },
+        team: {
+            relevance: 'Organizational readiness for growth execution.',
+            support_priority: 'Medium',
+            actions: [
+                { id: 'team_1', title: 'Org Structure Review', description: 'Define roles and reporting lines for growth phase.', context_reference: 'Manual review required', timeline: 'Weeks 1-2', success_metric: 'Org chart updated', status: 'pending', priority: 'high' },
+                { id: 'team_2', title: 'Skill Gap Analysis', description: 'Identify capability gaps against growth requirements.', context_reference: 'Manual review required', timeline: 'Weeks 2-4', success_metric: 'Gap analysis completed', status: 'pending', priority: 'high' },
+                { id: 'team_3', title: 'Hiring Roadmap', description: 'Critical hires plan with timelines and budgets.', context_reference: 'Manual review required', timeline: 'Weeks 4-8', success_metric: 'Hiring plan approved', status: 'pending', priority: 'medium' },
+                { id: 'team_4', title: 'Key Hire JDs', description: 'Job descriptions for priority roles.', context_reference: 'Manual review required', timeline: 'Weeks 8-11', success_metric: 'JDs published', status: 'pending', priority: 'medium' },
+                { id: 'team_5', title: 'Retention Plan', description: 'Plan to retain key talent during scaling.', context_reference: 'Manual review required', timeline: 'Weeks 11-14', success_metric: 'Retention plan documented', status: 'pending', priority: 'low' },
+            ],
+        },
+        supply_chain: {
+            relevance: 'Supply chain readiness for scaled operations.',
+            support_priority: 'Medium',
+            actions: [
+                { id: 'sc_1', title: 'Vendor Assessment', description: 'Evaluate current supplier performance and risks.', context_reference: 'Manual review required', timeline: 'Weeks 1-3', success_metric: 'Vendor scorecard completed', status: 'pending', priority: 'high' },
+                { id: 'sc_2', title: 'Cost Optimization', description: 'Identify cost reduction opportunities in procurement.', context_reference: 'Manual review required', timeline: 'Weeks 3-6', success_metric: 'Cost savings identified', status: 'pending', priority: 'medium' },
+                { id: 'sc_3', title: 'Logistics Model', description: 'Design logistics for new geography/product.', context_reference: 'Manual review required', timeline: 'Weeks 6-9', success_metric: 'Logistics plan ready', status: 'pending', priority: 'medium' },
+                { id: 'sc_4', title: 'Quality SOP', description: 'Quality control standard operating procedures.', context_reference: 'Manual review required', timeline: 'Weeks 9-12', success_metric: 'SOPs documented', status: 'pending', priority: 'low' },
+                { id: 'sc_5', title: 'Capacity Plan', description: 'Production/fulfillment capacity for growth targets.', context_reference: 'Manual review required', timeline: 'Weeks 12-14', success_metric: 'Capacity plan approved', status: 'pending', priority: 'low' },
+            ],
+        },
+        operations: {
+            relevance: 'Operational scalability for sustainable growth.',
+            support_priority: 'Medium',
+            actions: [
+                { id: 'ops_1', title: 'Process Mapping', description: 'Document and optimize core business processes.', context_reference: 'Manual review required', timeline: 'Weeks 1-3', success_metric: 'Process maps completed', status: 'pending', priority: 'high' },
+                { id: 'ops_2', title: 'KPI Dashboard', description: 'Real-time operational metrics tracking setup.', context_reference: 'Manual review required', timeline: 'Weeks 3-6', success_metric: 'Dashboard live', status: 'pending', priority: 'medium' },
+                { id: 'ops_3', title: 'SOP Pack', description: 'Standard operating procedures for key workflows.', context_reference: 'Manual review required', timeline: 'Weeks 6-9', success_metric: 'SOP pack delivered', status: 'pending', priority: 'medium' },
+                { id: 'ops_4', title: 'Compliance Review', description: 'Regulatory and compliance requirements check.', context_reference: 'Manual review required', timeline: 'Weeks 9-12', success_metric: 'Compliance checklist cleared', status: 'pending', priority: 'low' },
+                { id: 'ops_5', title: 'Scaling Plan', description: 'Operational readiness for 3x growth scenario.', context_reference: 'Manual review required', timeline: 'Weeks 12-14', success_metric: 'Scaling plan documented', status: 'pending', priority: 'low' },
+            ],
+        },
     };
     return fallbacks[stream] || fallbacks.product;
 }

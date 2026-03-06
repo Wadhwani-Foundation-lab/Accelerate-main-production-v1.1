@@ -295,8 +295,8 @@ export const PublicApplication: React.FC = () => {
                 <div className="inline-flex items-center justify-center p-3 bg-red-600 rounded-xl mb-3 shadow-lg shadow-red-600/20">
                     <Rocket className="w-6 h-6 text-white" />
                 </div>
-                <h1 className="text-xl font-bold text-gray-900">Wadhwani Accelerate Program</h1>
-                <p className="text-sm text-gray-500 mt-1">Fill out the form below to apply</p>
+                <h1 className="text-2xl font-bold text-gray-900">Accelerate Program by Wadhwani Foundation</h1>
+                <p className="text-sm text-gray-500 mt-2 max-w-lg mx-auto">This program is designed for founders with ₹5Cr+ Revenue who are ready to actively work on growing their business through a structured, execution-driven engagement</p>
             </div>
 
             {/* ── Page Header (Step 2+) */}

@@ -140,10 +140,10 @@ const AIInsightsSection: React.FC<{ selectedVenture: any; vsmNotes: string; anal
             </div>
             <button
                 onClick={onRunAnalysis}
-                disabled={analyzing}
+                disabled={analyzing || !!analysisResult}
                 className="flex items-center gap-2 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-semibold transition-colors shadow-sm"
             >
-                {analyzing ? (<><Loader2 className="w-4 h-4 animate-spin" /> Analyzing…</>) : (<><Sparkles className="w-4 h-4" /> Generate insights</>)}
+                {analyzing ? (<><Loader2 className="w-4 h-4 animate-spin" /> Analyzing…</>) : analysisResult ? (<><Sparkles className="w-4 h-4" /> Insights Generated</>) : (<><Sparkles className="w-4 h-4" /> Generate insights</>)}
             </button>
         </div>
         {!analysisResult && !analyzing && (
@@ -159,45 +159,74 @@ const AIInsightsSection: React.FC<{ selectedVenture: any; vsmNotes: string; anal
             </div>
         )}
         {analysisResult && !analyzing && (
-            <div className="grid grid-cols-3 divide-x divide-gray-100">
+            <div className="space-y-0 divide-y divide-gray-100">
+                {/* Existing Venture Profile */}
                 <div className="p-6">
                     <div className="flex items-center gap-2 mb-4">
                         <TrendingUp className="w-4 h-4 text-green-500" />
-                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">PROS</span>
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Existing Venture Profile</span>
                     </div>
-                    <ul className="space-y-2">
-                        {(analysisResult.strengths || []).map((s: string, i: number) => (
-                            <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />
-                                {s}
-                            </li>
-                        ))}
-                    </ul>
+                    <div className="space-y-3">
+                        <div>
+                            <span className="text-xs font-semibold text-gray-400 uppercase">Profile Summary</span>
+                            <p className="text-sm text-gray-700 mt-1">{analysisResult.existing_venture_profile?.profile_summary || analysisResult.strengths?.[0] || 'Not available'}</p>
+                        </div>
+                        <div>
+                            <span className="text-xs font-semibold text-gray-400 uppercase">Product & Growth History</span>
+                            <p className="text-sm text-gray-700 mt-1">{analysisResult.existing_venture_profile?.current_product_growth_history || 'Not available'}</p>
+                        </div>
+                    </div>
                 </div>
+                {/* New Venture Definition Clarity */}
                 <div className="p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <AlertTriangle className="w-4 h-4 text-amber-500" />
-                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">CONS</span>
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 text-amber-500" />
+                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">New Venture Definition Clarity</span>
+                        </div>
+                        {analysisResult.new_venture_clarity?.definition_clarity_flag && (
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                analysisResult.new_venture_clarity.definition_clarity_flag === 'Well Defined' ? 'bg-green-100 text-green-700' :
+                                analysisResult.new_venture_clarity.definition_clarity_flag === 'Partially Defined' ? 'bg-amber-100 text-amber-700' :
+                                'bg-red-100 text-red-700'
+                            }`}>
+                                {analysisResult.new_venture_clarity.definition_clarity_flag}
+                            </span>
+                        )}
                     </div>
-                    <ul className="space-y-2">
-                        {(analysisResult.risks || []).map((r: string, i: number) => (
-                            <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                                {r}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-                <div className="p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <HelpCircle className="w-4 h-4 text-blue-500" />
-                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Follow up Questions</span>
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <span className="text-xs font-semibold text-gray-400 uppercase">New Product/Service</span>
+                            <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_product_or_service || 'Not assessed'}</p>
+                        </div>
+                        <div>
+                            <span className="text-xs font-semibold text-gray-400 uppercase">New Segment/Market</span>
+                            <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_segment_or_market || 'Not assessed'}</p>
+                        </div>
+                        <div>
+                            <span className="text-xs font-semibold text-gray-400 uppercase">New Geography</span>
+                            <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_geography || 'Not assessed'}</p>
+                        </div>
                     </div>
-                    <ol className="space-y-2 list-decimal list-inside">
-                        {(analysisResult.questions || []).map((q: string, i: number) => (
-                            <li key={i} className="text-sm text-gray-700">{q}</li>
-                        ))}
-                    </ol>
+                    <div className="mb-4">
+                        <span className="text-xs font-semibold text-gray-400 uppercase">Estimated Incremental Revenue</span>
+                        <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.estimated_incremental_revenue || 'Not provided'}</p>
+                    </div>
+                    <div className="mb-4">
+                        <span className="text-xs font-semibold text-gray-400 uppercase">Clarity Gaps</span>
+                        <ul className="mt-1 space-y-1">
+                            {(analysisResult.new_venture_clarity?.clarity_gaps || []).map((gap: string, i: number) => (
+                                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                                    {gap}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                    <div>
+                        <span className="text-xs font-semibold text-gray-400 uppercase">Clarity Summary</span>
+                        <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.clarity_summary || 'Not available'}</p>
+                    </div>
                 </div>
             </div>
         )}
