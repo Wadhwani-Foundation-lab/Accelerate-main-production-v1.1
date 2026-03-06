@@ -358,7 +358,12 @@ export const PanelFeedbackForm: React.FC = () => {
         }
     };
 
-    const goBack = () => navigate(-1);
+    const goBack = () => {
+        const role = user?.user_metadata?.role;
+        if (role === 'venture_mgr') navigate('/vmanager/dashboard');
+        else if (role === 'committee_member') navigate('/committee/dashboard');
+        else navigate(-1);
+    };
 
     if (loading) {
         return (
