@@ -301,15 +301,12 @@ export const NewApplication: React.FC = () => {
     return (
         <div className="max-w-2xl mx-auto space-y-6 pb-16">
 
-            {/* ── Page Header (Step 2+ shows title + Save Draft) */}
+            {/* ── Page Header (Step 2+) */}
             {currentStep >= 2 && (
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-black text-gray-900 tracking-tight uppercase">
                         Accelerate Application
                     </h1>
-                    <button className="px-5 py-2 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
-                        SAVE DRAFT
-                    </button>
                 </div>
             )}
 
