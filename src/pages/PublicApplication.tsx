@@ -226,7 +226,24 @@ export const PublicApplication: React.FC = () => {
                 throw new Error(err.message || 'Failed to submit application');
             }
 
+            const result = await response.json();
             logger.info('PublicApplication', 'Application submitted successfully');
+
+            // Upload corporate presentation if provided (non-blocking)
+            if (formData.corporatePresentation && result.data?.venture?.id) {
+                try {
+                    const uploadForm = new FormData();
+                    uploadForm.append('file', formData.corporatePresentation);
+                    await fetch(`${API_URL}/api/ventures/${result.data.venture.id}/public-upload-document`, {
+                        method: 'POST',
+                        body: uploadForm,
+                    });
+                    logger.info('PublicApplication', 'Document uploaded successfully');
+                } catch (uploadErr) {
+                    logger.error('PublicApplication', 'Document upload failed (non-blocking)', uploadErr);
+                }
+            }
+
             setIsSubmitted(true);
         } catch (err) {
             logger.error('PublicApplication', 'Error submitting application', err);

@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import multer from 'multer';
 import * as ventureService from '../services/ventureService';
 import * as aiService from '../services/aiService';
 import { extractDocumentText } from '../services/documentService';
@@ -15,6 +16,25 @@ import {
 import { successResponse, createdResponse, noContentResponse } from '../utils/response';
 import { sendPanelInvitationEmail, sendWelcomeEmail, sendSelectionWelcomeEmail } from '../services/emailService';
 import { createServiceRoleClient } from '../config/supabase';
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    fileFilter: (_req, file, cb) => {
+        const allowed = [
+            'application/pdf',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ];
+        if (allowed.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type. Please upload a PDF, PPT, PPTX, DOC, or DOCX file.'));
+        }
+    },
+});
 
 const router = Router();
 
@@ -132,6 +152,72 @@ router.post(
             });
         } catch (error) {
             console.error('Error in public apply:', error);
+            next(error);
+        }
+    }
+);
+
+/**
+ * POST /api/ventures/:id/public-upload-document
+ * Public endpoint - no auth required
+ * Uploads a corporate presentation for a venture created via public-apply
+ */
+router.post(
+    '/:id/public-upload-document',
+    upload.single('file'),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const ventureId = req.params.id;
+            const file = req.file;
+
+            if (!file) {
+                return res.status(400).json({ success: false, message: 'No file provided' });
+            }
+
+            const supabase = createServiceRoleClient();
+
+            // Verify the venture exists
+            const { data: venture, error: ventureError } = await supabase
+                .from('ventures')
+                .select('id')
+                .eq('id', ventureId)
+                .single();
+
+            if (ventureError || !venture) {
+                return res.status(404).json({ success: false, message: 'Venture not found' });
+            }
+
+            // Upload to Supabase storage
+            const timestamp = Date.now();
+            const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const filePath = `${ventureId}/${timestamp}_${safeName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('venture-documents')
+                .upload(filePath, file.buffer, {
+                    contentType: file.mimetype,
+                    upsert: false,
+                });
+
+            if (uploadError) {
+                console.error('Storage upload error:', uploadError);
+                return res.status(500).json({ success: false, message: 'Failed to upload file' });
+            }
+
+            // Update the application record with the file path
+            const { error: updateError } = await supabase
+                .from('venture_applications')
+                .update({ corporate_presentation_url: filePath })
+                .eq('venture_id', ventureId);
+
+            if (updateError) {
+                console.error('Failed to save document URL:', updateError);
+                return res.status(500).json({ success: false, message: 'Failed to save document reference' });
+            }
+
+            successResponse(res, { filePath });
+        } catch (error) {
+            console.error('Error in public document upload:', error);
             next(error);
         }
     }
