@@ -909,74 +909,80 @@ export const VSMDashboard: React.FC = () => {
 
 
                             {/* Comparison Card */}
-                            <div className="bg-white border boundary-gray-200 rounded-xl overflow-hidden shadow-sm">
+                            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                                {/* Header Row */}
                                 <div className="grid grid-cols-2 divide-x divide-gray-100">
-                                    {/* Current Business Column */}
-                                    <div className="p-6">
-                                        <div className="flex items-center gap-2 text-gray-900 font-bold border-b border-gray-100 pb-3 mb-4">
+                                    <div className="p-6 pb-3">
+                                        <div className="flex items-center gap-2 text-gray-900 font-bold border-b border-gray-100 pb-3">
                                             <Briefcase className="w-4 h-4 text-gray-400" />
                                             Current Business
                                         </div>
-                                        <div className="space-y-5">
-                                            <div>
-                                                <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Product / Service</span>
-                                                <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{(selectedVenture as any).what_do_you_sell || 'N/A'}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Customer Segment</span>
-                                                <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{(selectedVenture as any).who_do_you_sell_to || 'N/A'}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Region</span>
-                                                <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{(selectedVenture as any).which_regions || 'N/A'}</p>
-                                            </div>
-                                        </div>
                                     </div>
-
-                                    {/* New Venture Column */}
-                                    <div className={`p-6 ${isEditingProfile ? 'bg-blue-50/30' : 'bg-white'}`}>
-                                        <div className="flex items-center gap-2 text-blue-900 font-bold border-b border-blue-100 pb-3 mb-4">
+                                    <div className={`p-6 pb-3 ${isEditingProfile ? 'bg-blue-50/30' : 'bg-white'}`}>
+                                        <div className="flex items-center gap-2 text-blue-900 font-bold border-b border-blue-100 pb-3">
                                             <TrendingUp className="w-4 h-4 text-blue-600" />
                                             New Venture
                                         </div>
-                                        <div className="space-y-5">
-                                            <div>
-                                                <span className="text-xs font-bold text-blue-400 uppercase block mb-1.5">New Product</span>
-                                                {isEditingProfile ? (
-                                                    <input
-                                                        className="w-full p-2.5 text-sm border border-blue-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none"
-                                                        value={editProfileData.product || ''}
-                                                        onChange={e => setEditProfileData({ ...editProfileData, product: e.target.value })}
-                                                    />
-                                                ) : (
-                                                    <p className="text-sm text-gray-800 bg-white p-3 rounded-lg border border-blue-50 min-h-[44px] flex items-center shadow-sm shadow-blue-100/50">{(selectedVenture as any).focus_product || 'N/A'}</p>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <span className="text-xs font-bold text-blue-400 uppercase block mb-1.5">New Segment</span>
-                                                {isEditingProfile ? (
-                                                    <input
-                                                        className="w-full p-2.5 text-sm border border-blue-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none"
-                                                        value={editProfileData.segment || ''}
-                                                        onChange={e => setEditProfileData({ ...editProfileData, segment: e.target.value })}
-                                                    />
-                                                ) : (
-                                                    <p className="text-sm text-gray-800 bg-white p-3 rounded-lg border border-blue-50 min-h-[44px] flex items-center shadow-sm shadow-blue-100/50">{(selectedVenture as any).focus_segment || 'N/A'}</p>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <span className="text-xs font-bold text-blue-400 uppercase block mb-1.5">New Region</span>
-                                                {isEditingProfile ? (
-                                                    <input
-                                                        className="w-full p-2.5 text-sm border border-blue-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none"
-                                                        value={editProfileData.geography || ''}
-                                                        onChange={e => setEditProfileData({ ...editProfileData, geography: e.target.value })}
-                                                    />
-                                                ) : (
-                                                    <p className="text-sm text-gray-800 bg-white p-3 rounded-lg border border-blue-50 min-h-[44px] flex items-center shadow-sm shadow-blue-100/50">{(selectedVenture as any).focus_geography || 'N/A'}</p>
-                                                )}
-                                            </div>
-                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Row 1: Product */}
+                                <div className="grid grid-cols-2 divide-x divide-gray-100">
+                                    <div className="px-6 py-3">
+                                        <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Product / Service</span>
+                                        <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{(selectedVenture as any).what_do_you_sell || 'N/A'}</p>
+                                    </div>
+                                    <div className={`px-6 py-3 ${isEditingProfile ? 'bg-blue-50/30' : 'bg-white'}`}>
+                                        <span className="text-xs font-bold text-blue-400 uppercase block mb-1.5">New Product</span>
+                                        {isEditingProfile ? (
+                                            <input
+                                                className="w-full p-2.5 text-sm border border-blue-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none"
+                                                value={editProfileData.product || ''}
+                                                onChange={e => setEditProfileData({ ...editProfileData, product: e.target.value })}
+                                            />
+                                        ) : (
+                                            <p className="text-sm text-gray-800 bg-white p-3 rounded-lg border border-blue-50 min-h-[44px] flex items-center shadow-sm shadow-blue-100/50">{(selectedVenture as any).focus_product || 'N/A'}</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Row 2: Segment */}
+                                <div className="grid grid-cols-2 divide-x divide-gray-100">
+                                    <div className="px-6 py-3">
+                                        <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Customer Segment</span>
+                                        <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{(selectedVenture as any).who_do_you_sell_to || 'N/A'}</p>
+                                    </div>
+                                    <div className={`px-6 py-3 ${isEditingProfile ? 'bg-blue-50/30' : 'bg-white'}`}>
+                                        <span className="text-xs font-bold text-blue-400 uppercase block mb-1.5">New Segment</span>
+                                        {isEditingProfile ? (
+                                            <input
+                                                className="w-full p-2.5 text-sm border border-blue-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none"
+                                                value={editProfileData.segment || ''}
+                                                onChange={e => setEditProfileData({ ...editProfileData, segment: e.target.value })}
+                                            />
+                                        ) : (
+                                            <p className="text-sm text-gray-800 bg-white p-3 rounded-lg border border-blue-50 min-h-[44px] flex items-center shadow-sm shadow-blue-100/50">{(selectedVenture as any).focus_segment || 'N/A'}</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Row 3: Region */}
+                                <div className="grid grid-cols-2 divide-x divide-gray-100">
+                                    <div className="px-6 py-3 pb-6">
+                                        <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Region</span>
+                                        <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[44px] flex items-center">{(selectedVenture as any).which_regions || 'N/A'}</p>
+                                    </div>
+                                    <div className={`px-6 py-3 pb-6 ${isEditingProfile ? 'bg-blue-50/30' : 'bg-white'}`}>
+                                        <span className="text-xs font-bold text-blue-400 uppercase block mb-1.5">New Region</span>
+                                        {isEditingProfile ? (
+                                            <input
+                                                className="w-full p-2.5 text-sm border border-blue-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none"
+                                                value={editProfileData.geography || ''}
+                                                onChange={e => setEditProfileData({ ...editProfileData, geography: e.target.value })}
+                                            />
+                                        ) : (
+                                            <p className="text-sm text-gray-800 bg-white p-3 rounded-lg border border-blue-50 min-h-[44px] flex items-center shadow-sm shadow-blue-100/50">{(selectedVenture as any).focus_geography || 'N/A'}</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>

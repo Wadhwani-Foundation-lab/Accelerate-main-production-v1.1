@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
-import { ArrowLeft, CheckCircle, FileText, Loader2, Lock, AlertCircle, Zap, Users, ShieldCheck, ArrowUpRight, Search, Clock } from 'lucide-react';
+import { ArrowLeft, CheckCircle, FileText, Loader2, Lock, AlertCircle, Zap, Users, ShieldCheck, ArrowUpRight, Search, Clock, PartyPopper } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { StatusSelect } from '../components/StatusSelect';
 
@@ -15,6 +15,8 @@ export const VentureWorkbench = () => {
     const [milestones, setMilestones] = useState<any[]>([]);
     const [streams, setStreams] = useState<any[]>([]);
     const [supportHours, setSupportHours] = useState<any>(null);
+    const [roadmapData, setRoadmapData] = useState<any>(null);
+    const [showJoinedModal, setShowJoinedModal] = useState(false);
 
     useEffect(() => {
         if (id) fetchVentureData();
@@ -51,6 +53,17 @@ export const VentureWorkbench = () => {
             setMilestones(milestones || []);
             setSupportHours(support_hours);
 
+            // Fetch roadmap data from venture_roadmaps
+            try {
+                const roadmapResult = await api.getRoadmap(id);
+                const rmData = roadmapResult?.roadmap?.roadmap_data;
+                if (rmData) {
+                    setRoadmapData(rmData);
+                }
+            } catch (err) {
+                console.log('No roadmap available yet');
+            }
+
         } catch (error) {
             console.error('Error fetching venture data:', error);
         } finally {
@@ -67,8 +80,7 @@ export const VentureWorkbench = () => {
                 agreement_accepted_at: new Date().toISOString()
             });
 
-            // Refresh
-            fetchVentureData();
+            setShowJoinedModal(true);
         } catch (error) {
             console.error('Error signing agreement:', error);
             alert('Failed to sign agreement. Please try again.');
@@ -118,7 +130,7 @@ export const VentureWorkbench = () => {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                            {isSigned ? 'Venture Dashboard February' : 'Review Agreement'}
+                            {isSigned ? 'Venture Dashboard' : 'Review Growth Plan'}
                         </h1>
                     </div>
                 </div>
@@ -145,21 +157,20 @@ export const VentureWorkbench = () => {
                             <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
                                     <AlertCircle className="w-5 h-5 text-orange-600" />
-                                    <h3 className="text-lg font-bold text-orange-900">Action Required: Review Contract</h3>
+                                    <h3 className="text-lg font-bold text-orange-900">Action Required: Review Your Growth Plan</h3>
                                 </div>
                                 <p className="text-sm text-orange-800 mb-4">
-                                    Your Panel Manager has sent a contract for your review. Please review the contract terms and sign to unlock your workbench and continue with the program.
+                                    Congratulations! You've been selected for Wadhwani Accelerate. Please review your growth plan below and join the program to get started.
                                 </p>
                                 <div className="flex items-center gap-3">
                                     <Button
                                         className="bg-orange-600 hover:bg-orange-700 text-white"
                                         onClick={() => {
-                                            // Scroll to contract section or show contract modal
-                                            alert('Contract review feature coming soon. Please check your email for contract details.');
+                                            document.getElementById('growth-plan-section')?.scrollIntoView({ behavior: 'smooth' });
                                         }}
                                     >
                                         <FileText className="w-4 h-4 mr-2" />
-                                        Review Contract
+                                        Review Plan
                                     </Button>
                                     <span className="text-xs text-orange-700 font-medium">
                                         Status: <span className="font-bold">{venture.status}</span>
@@ -172,9 +183,9 @@ export const VentureWorkbench = () => {
 
                 {!isSigned ? (
                     // SIGNING VIEW
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden max-w-5xl mx-auto">
+                    <div id="growth-plan-section" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden max-w-5xl mx-auto">
                         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-gray-900">Review contract</h2>
+                            <h2 className="text-xl font-bold text-gray-900">Review Your Growth Plan</h2>
                         </div>
 
                         <div className="divide-y divide-gray-200">
@@ -184,10 +195,40 @@ export const VentureWorkbench = () => {
                                     Roadmap
                                 </div>
                                 <div className="md:w-3/4 p-6">
-                                    {/* Roadmap Content */}
-                                    <div className="space-y-4">
-                                        {Object.keys(milestonesByCategory).length > 0 ? (
-                                            Object.entries(milestonesByCategory).map(([category, items]: [string, any]) => (
+                                    {roadmapData ? (
+                                        <div className="space-y-4">
+                                            {Object.entries(roadmapData).map(([key, area]: [string, any]) => {
+                                                const actions = Array.isArray(area) ? area : area?.actions || [];
+                                                const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                                                const priority = area?.support_priority || 'Medium';
+                                                const priorityColor = priority === 'High' ? 'bg-red-100 text-red-700' : priority === 'Low' ? 'bg-gray-100 text-gray-600' : 'bg-amber-100 text-amber-700';
+                                                if (actions.length === 0) return null;
+                                                return (
+                                                    <div key={key} className="border border-gray-100 rounded-lg p-4 bg-gray-50/50">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <h4 className="font-bold text-gray-800 uppercase text-sm">{label}</h4>
+                                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${priorityColor}`}>{priority}</span>
+                                                        </div>
+                                                        {area?.relevance && <p className="text-xs text-gray-500 mb-3">{area.relevance}</p>}
+                                                        <ul className="space-y-2">
+                                                            {actions.map((action: any, i: number) => (
+                                                                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                                                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0" />
+                                                                    <div>
+                                                                        <span className="font-semibold">{action.title}</span>
+                                                                        {action.timeline && <span className="text-gray-400 ml-2 text-xs">({action.timeline})</span>}
+                                                                        {action.description && <p className="text-xs text-gray-500 mt-0.5">{action.description}</p>}
+                                                                    </div>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : Object.keys(milestonesByCategory).length > 0 ? (
+                                        <div className="space-y-4">
+                                            {Object.entries(milestonesByCategory).map(([category, items]: [string, any]) => (
                                                 <div key={category} className="border border-gray-100 rounded-lg p-4 bg-gray-50/50">
                                                     <h4 className="font-bold text-gray-800 mb-2">{category}</h4>
                                                     <ul className="list-disc pl-5 space-y-1">
@@ -196,11 +237,11 @@ export const VentureWorkbench = () => {
                                                         ))}
                                                     </ul>
                                                 </div>
-                                            ))
-                                        ) : (
-                                            <p className="italic text-gray-400">No specific roadmap milestones defined yet.</p>
-                                        )}
-                                    </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="italic text-gray-400">No specific roadmap milestones defined yet.</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -521,6 +562,33 @@ export const VentureWorkbench = () => {
                     </div>
                 )}
             </div>
+
+            {/* Thanks for joining modal */}
+            {showJoinedModal && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center animate-in fade-in zoom-in duration-300">
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-green-500/30">
+                            <PartyPopper className="w-8 h-8 text-white" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome Aboard!</h2>
+                        <p className="text-gray-600 mb-6">
+                            Thank you for joining the <span className="font-semibold text-brand-600">Wadhwani Accelerate</span> program. We're excited to partner with you on your growth journey!
+                        </p>
+                        <p className="text-sm text-gray-500 mb-6">
+                            Your Venture Partner will be in touch shortly to begin the alignment phase.
+                        </p>
+                        <Button
+                            className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl"
+                            onClick={() => {
+                                setShowJoinedModal(false);
+                                fetchVentureData();
+                            }}
+                        >
+                            Get Started
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div >
     );
 };

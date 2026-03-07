@@ -543,6 +543,28 @@ class ApiClient {
         return { feedback };
     }
 
+    async sendSelectionEmail(ventureId: string, programCategory: string) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const response = await fetch(`${API_URL}/api/ventures/${ventureId}/send-selection-email`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ program_category: programCategory }),
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || 'Failed to send selection email');
+        }
+
+        return response.json();
+    }
+
     // ============ SCHEDULED CALLS ENDPOINTS ============
 
     async getScheduledCalls(filters?: { status?: string; date?: string; venture_id?: string }) {

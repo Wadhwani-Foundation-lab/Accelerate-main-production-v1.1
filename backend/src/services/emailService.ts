@@ -153,3 +153,101 @@ Team Wadhwani Accelerate`;
 
     await sendEmail(toEmail, subject, htmlBody, plainText);
 }
+
+export async function sendSelectionWelcomeEmail(
+    toEmail: string,
+    founderName: string,
+    ventureName: string,
+    programCategory: string,
+    loginUrl: string
+): Promise<void> {
+    const subject = `Welcome to Wadhwani Accelerate | ${ventureName}`;
+    const programLabel = programCategory.charAt(0).toUpperCase() + programCategory.slice(1);
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.7; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 650px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #dc2626; color: white; padding: 24px; text-align: center; border-radius: 8px 8px 0 0; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { padding: 28px; background-color: #ffffff; border: 1px solid #e5e7eb; border-top: none; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #6b7280; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; background-color: #f9fafb; }
+        .phase-title { font-weight: bold; color: #1a365d; margin-top: 20px; margin-bottom: 6px; }
+        .login-box { background-color: #f0f4ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 16px; margin: 16px 0; }
+        .login-box a { color: #4338ca; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Wadhwani Accelerate</h1>
+            <p style="margin: 8px 0 0 0; opacity: 0.9;">Program: ${programLabel}</p>
+        </div>
+        <div class="content">
+            <p>Hi ${founderName},</p>
+
+            <p>Congratulations on being selected for <strong>Wadhwani Accelerate</strong>, our highly selective growth program designed for ventures ready to unlock their next phase of scale through focused, execution-led support.</p>
+
+            <div class="login-box">
+                <p style="margin: 0;">To proceed, please log in at <a href="${loginUrl}">${loginUrl}</a> using your registered email ID and the password: <strong>WadhwaniAccelerate123456</strong>.</p>
+                <p style="margin: 8px 0 0 0;">Once logged in, you will be able to review the program details and formally accept your participation in the program to confirm your participation.</p>
+            </div>
+
+            <p>Wadhwani Accelerate is a <strong>12-month growth execution platform</strong> that supports ventures in identifying, validating, and executing one high-impact growth idea. The program brings together experienced Venture Partners, domain and functional experts, and structured growth sprints to help founders move from intent to outcomes with speed and clarity.</p>
+
+            <p>The program will commence shortly, with the first month focused on alignment, prioritization, and execution readiness.</p>
+
+            <p class="phase-title">Month 1: Business Context &amp; Growth Alignment</p>
+            <p>You will be assigned a dedicated Venture Partner, a seasoned expert who will work closely with you through a series of structured discussions (virtual or in-person). These initial conversations will focus on understanding your business context, growth ambitions, and key gaps. While the first part of the engagement is exploratory, the primary objective is to converge on one clear growth idea that can meaningfully move the needle for your business.</p>
+
+            <p class="phase-title">Growth Idea Commitment &amp; Sprint Direction</p>
+            <p>In the second phase, you and your Venture Partner will jointly prioritize this shortlisted growth idea and align on the specific growth sprint(s) required to pursue it. This stage focusses on achieving clear agreement on what will be executed, what success looks like, and the level of commitment required. Ventures are expected to demonstrate clarity and readiness to proceed at this stage.</p>
+
+            <p class="phase-title">Sprint-Based Execution (12-Week Cycles)</p>
+            <p>Following alignment, execution begins through structured 12-week growth sprints. Depending on the growth idea, this may include targeted expert engagements, bootcamps, or focused advisory support. Wadhwani Accelerate will actively support selected high-impact sprint components, while enabling founders to self-execute others, ensuring both momentum and long-term capability building.</p>
+
+            <p>Throughout the program, ventures are expected to commit clearly to the agreed growth direction, actively engage in execution, and track progress against defined outcomes.</p>
+
+            <p>We look forward to partnering with you on this journey and supporting your venture as you work towards meaningful, scalable growth.</p>
+
+            <p><strong>Welcome aboard,</strong><br>Team Wadhwani Accelerate</p>
+        </div>
+        <div class="footer">
+            <p>&copy; Wadhwani Foundation. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+    const plainText = `Hi ${founderName},
+
+Congratulations on being selected for Wadhwani Accelerate, our highly selective growth program designed for ventures ready to unlock their next phase of scale through focused, execution-led support.
+
+To proceed, please log in at ${loginUrl} using your registered email ID and the password: WadhwaniAccelerate123456. Once logged in, you will be able to review the program details and formally accept your participation in the program to confirm your participation.
+
+Wadhwani Accelerate is a 12-month growth execution platform that supports ventures in identifying, validating, and executing one high-impact growth idea. The program brings together experienced Venture Partners, domain and functional experts, and structured growth sprints to help founders move from intent to outcomes with speed and clarity.
+
+The program will commence shortly, with the first month focused on alignment, prioritization, and execution readiness.
+
+Month 1: Business Context & Growth Alignment
+You will be assigned a dedicated Venture Partner, a seasoned expert who will work closely with you through a series of structured discussions (virtual or in-person). These initial conversations will focus on understanding your business context, growth ambitions, and key gaps. While the first part of the engagement is exploratory, the primary objective is to converge on one clear growth idea that can meaningfully move the needle for your business.
+
+Growth Idea Commitment & Sprint Direction
+In the second phase, you and your Venture Partner will jointly prioritize this shortlisted growth idea and align on the specific growth sprint(s) required to pursue it. This stage focusses on achieving clear agreement on what will be executed, what success looks like, and the level of commitment required. Ventures are expected to demonstrate clarity and readiness to proceed at this stage.
+
+Sprint-Based Execution (12-Week Cycles)
+Following alignment, execution begins through structured 12-week growth sprints. Depending on the growth idea, this may include targeted expert engagements, bootcamps, or focused advisory support. Wadhwani Accelerate will actively support selected high-impact sprint components, while enabling founders to self-execute others, ensuring both momentum and long-term capability building.
+
+Throughout the program, ventures are expected to commit clearly to the agreed growth direction, actively engage in execution, and track progress against defined outcomes.
+
+We look forward to partnering with you on this journey and supporting your venture as you work towards meaningful, scalable growth.
+
+Welcome aboard,
+Team Wadhwani Accelerate`;
+
+    await sendEmail(toEmail, subject, htmlBody, plainText);
+}

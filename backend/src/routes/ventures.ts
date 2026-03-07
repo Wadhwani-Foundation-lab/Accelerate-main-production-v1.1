@@ -13,7 +13,7 @@ import {
     ventureQuerySchema
 } from '../types/schemas';
 import { successResponse, createdResponse, noContentResponse } from '../utils/response';
-import { sendPanelInvitationEmail, sendWelcomeEmail } from '../services/emailService';
+import { sendPanelInvitationEmail, sendWelcomeEmail, sendSelectionWelcomeEmail } from '../services/emailService';
 import { createServiceRoleClient } from '../config/supabase';
 
 const router = Router();
@@ -352,10 +352,10 @@ router.post(
             // Get VSM notes from request body (optional)
             const vsmNotes = req.body.vsm_notes || venture.vsm_notes || '';
 
-            // Fetch corporate presentation text if available
+            // Fetch application data including all form fields
             const { data: appData } = await supabase
                 .from('venture_applications')
-                .select('corporate_presentation_url')
+                .select('*')
                 .eq('venture_id', req.params.id)
                 .maybeSingle();
 
@@ -368,6 +368,21 @@ router.post(
             const ventureWithDoc = {
                 ...venture,
                 corporate_presentation_text: corporatePresentationText,
+                // Merge application fields so the AI prompt has access to them
+                what_do_you_sell: appData?.what_do_you_sell,
+                who_do_you_sell_to: appData?.who_do_you_sell_to,
+                which_regions: appData?.which_regions,
+                focus_product: appData?.focus_product,
+                focus_segment: appData?.focus_segment,
+                focus_geography: appData?.focus_geography,
+                growth_type: appData?.growth_type,
+                support_description: appData?.support_description,
+                revenue_prior_year: appData?.revenue_prior_year,
+                target_revenue_3y: appData?.target_revenue_3y,
+                business_type: appData?.business_type,
+                designation: appData?.designation,
+                city: appData?.city,
+                state: appData?.state,
             };
 
             // Generate insights using Claude API
@@ -485,6 +500,113 @@ router.post(
     }
 );
 
+/**
+ * POST /api/ventures/:id/send-selection-email
+ * Create venture founder account (if needed) and send selection welcome email
+ * when panel approves a venture for Prime/Core/Select
+ */
+router.post(
+    '/:id/send-selection-email',
+    authenticateUser,
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { supabase } = await getContext(req);
+            const { program_category } = req.body;
+            const DEFAULT_PASSWORD = 'WadhwaniAccelerate123456';
+
+            if (!program_category || !['prime', 'core', 'select'].includes(program_category)) {
+                return res.status(400).json({ success: false, message: 'Valid program_category (prime, core, select) is required' });
+            }
+
+            // Fetch venture
+            const { data: venture, error: ventureError } = await supabase
+                .from('ventures')
+                .select('id, name, founder_name, user_id')
+                .eq('id', req.params.id)
+                .single();
+
+            if (ventureError || !venture) {
+                return res.status(404).json({ success: false, message: 'Venture not found' });
+            }
+
+            // Fetch entrepreneur email
+            const { data: application } = await supabase
+                .from('venture_applications')
+                .select('founder_email')
+                .eq('venture_id', req.params.id)
+                .maybeSingle();
+
+            const founderEmail = application?.founder_email;
+            if (!founderEmail) {
+                return res.status(400).json({ success: false, message: 'Entrepreneur email not found in application' });
+            }
+
+            const founderName = venture.founder_name || 'Founder';
+            const ventureName = venture.name || 'Your Venture';
+            const loginUrl = process.env.FRONTEND_URL || 'https://wadhwani-accelerate.onrender.com';
+
+            // Create Supabase auth account for the founder if not already linked
+            const adminClient = createServiceRoleClient();
+            if (!venture.user_id) {
+                // Check if a user with this email already exists
+                const { data: { users } } = await adminClient.auth.admin.listUsers();
+                const existingUser = users?.find((u: any) => u.email === founderEmail);
+
+                if (existingUser) {
+                    // Link existing user to the venture
+                    await adminClient
+                        .from('ventures')
+                        .update({ user_id: existingUser.id })
+                        .eq('id', venture.id);
+                    console.log(`Linked existing user ${founderEmail} to venture ${ventureName}`);
+                } else {
+                    // Create new user account
+                    const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
+                        email: founderEmail,
+                        password: DEFAULT_PASSWORD,
+                        email_confirm: true,
+                        user_metadata: {
+                            full_name: founderName,
+                            role: 'entrepreneur',
+                        },
+                    });
+
+                    if (createError) {
+                        console.error(`Failed to create user account for ${founderEmail}:`, createError.message);
+                    } else if (newUser?.user) {
+                        // Link new user to the venture
+                        await adminClient
+                            .from('ventures')
+                            .update({ user_id: newUser.user.id })
+                            .eq('id', venture.id);
+
+                        // Create profile entry
+                        await adminClient
+                            .from('profiles')
+                            .upsert({
+                                id: newUser.user.id,
+                                email: founderEmail,
+                                full_name: founderName,
+                                role: 'entrepreneur',
+                            });
+
+                        console.log(`Created user account for ${founderEmail} and linked to venture ${ventureName}`);
+                    }
+                }
+            }
+
+            // Send selection welcome email
+            sendSelectionWelcomeEmail(founderEmail, founderName, ventureName, program_category, loginUrl)
+                .then(() => console.log(`Selection welcome email sent to ${founderEmail} for venture ${ventureName} (${program_category})`))
+                .catch((err) => console.error('Failed to send selection welcome email:', err));
+
+            successResponse(res, { message: 'Account created and selection welcome email queued' });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
 // ============ ROADMAP ROUTES ============
 
 /**
@@ -522,6 +644,14 @@ router.post(
 
             const app = venture.application?.[0] || venture.application || {};
             const assessment = (venture.assessments || []).find((a: any) => a.is_current) || venture.assessments?.[0] || {};
+
+            console.log('[Roadmap] Application data found:', {
+                hasApp: !!venture.application,
+                appLength: Array.isArray(venture.application) ? venture.application.length : 'not array',
+                what_do_you_sell: app.what_do_you_sell,
+                focus_product: app.focus_product,
+                focus_segment: app.focus_segment,
+            });
 
             // Extract document text if available
             let corporatePresentationText: string | undefined;

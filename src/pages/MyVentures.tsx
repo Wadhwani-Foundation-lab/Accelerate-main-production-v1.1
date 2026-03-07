@@ -32,7 +32,8 @@ export const MyVentures: React.FC = () => {
                 program: v.program,
                 location: v.location,
                 submittedAt: new Date(v.created_at).toISOString().split('T')[0],
-                agreement_status: v.agreement_status
+                agreement_status: v.agreement_status,
+                workbench_locked: v.workbench_locked,
             }));
 
             setVentures(transformed);

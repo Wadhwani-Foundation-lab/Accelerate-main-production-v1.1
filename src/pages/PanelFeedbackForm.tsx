@@ -347,6 +347,17 @@ export const PanelFeedbackForm: React.FC = () => {
             }
 
             await api.createPanelFeedback(ventureId!, payload);
+
+            // Send selection welcome email if panel recommends proceeding
+            if (finalRecommendation === 'proceed') {
+                const category = programCategory || (isPrime ? 'prime' : '');
+                if (category) {
+                    api.sendSelectionEmail(ventureId!, category)
+                        .then(() => console.log('Selection welcome email sent'))
+                        .catch((err) => console.error('Failed to send selection email:', err));
+                }
+            }
+
             setSubmitted(true);
             setReadOnly(true);
             window.scrollTo({ top: 0, behavior: 'smooth' });

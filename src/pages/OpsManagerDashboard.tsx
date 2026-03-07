@@ -545,47 +545,55 @@ export const OpsManagerDashboard: React.FC = () => {
 
                                 {/* Current Business vs New Venture */}
                                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                                    {/* Header Row */}
                                     <div className="grid grid-cols-2 divide-x divide-gray-100">
-                                        <div className="p-5">
-                                            <div className="flex items-center gap-2 text-gray-900 font-bold border-b border-gray-100 pb-3 mb-4">
+                                        <div className="p-5 pb-3">
+                                            <div className="flex items-center gap-2 text-gray-900 font-bold border-b border-gray-100 pb-3">
                                                 <Briefcase className="w-4 h-4 text-gray-400" />
                                                 Current Business
                                             </div>
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Product / Service</span>
-                                                    <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[40px] flex items-center">{profileVenture.what_do_you_sell || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Customer Segment</span>
-                                                    <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[40px] flex items-center">{profileVenture.who_do_you_sell_to || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Region</span>
-                                                    <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[40px] flex items-center">{profileVenture.which_regions || 'N/A'}</p>
-                                                </div>
-                                            </div>
                                         </div>
-
-                                        <div className="p-5 bg-white">
-                                            <div className="flex items-center gap-2 text-blue-900 font-bold border-b border-blue-100 pb-3 mb-4">
+                                        <div className="p-5 pb-3 bg-white">
+                                            <div className="flex items-center gap-2 text-blue-900 font-bold border-b border-blue-100 pb-3">
                                                 <TrendingUp className="w-4 h-4 text-blue-600" />
                                                 New Venture
                                             </div>
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <span className="text-xs font-bold text-blue-400 uppercase block mb-1.5">New Product</span>
-                                                    <p className="text-sm text-gray-800 bg-white p-3 rounded-lg border border-blue-50 min-h-[40px] flex items-center shadow-sm shadow-blue-100/50">{profileVenture.focus_product || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <span className="text-xs font-bold text-blue-400 uppercase block mb-1.5">New Segment</span>
-                                                    <p className="text-sm text-gray-800 bg-white p-3 rounded-lg border border-blue-50 min-h-[40px] flex items-center shadow-sm shadow-blue-100/50">{profileVenture.focus_segment || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <span className="text-xs font-bold text-blue-400 uppercase block mb-1.5">New Region</span>
-                                                    <p className="text-sm text-gray-800 bg-white p-3 rounded-lg border border-blue-50 min-h-[40px] flex items-center shadow-sm shadow-blue-100/50">{profileVenture.focus_geography || 'N/A'}</p>
-                                                </div>
-                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 1: Product */}
+                                    <div className="grid grid-cols-2 divide-x divide-gray-100">
+                                        <div className="px-5 py-3">
+                                            <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Product / Service</span>
+                                            <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[40px] flex items-center">{profileVenture.what_do_you_sell || 'N/A'}</p>
+                                        </div>
+                                        <div className="px-5 py-3 bg-white">
+                                            <span className="text-xs font-bold text-blue-400 uppercase block mb-1.5">New Product</span>
+                                            <p className="text-sm text-gray-800 bg-white p-3 rounded-lg border border-blue-50 min-h-[40px] flex items-center shadow-sm shadow-blue-100/50">{profileVenture.focus_product || 'N/A'}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 2: Segment */}
+                                    <div className="grid grid-cols-2 divide-x divide-gray-100">
+                                        <div className="px-5 py-3">
+                                            <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Customer Segment</span>
+                                            <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[40px] flex items-center">{profileVenture.who_do_you_sell_to || 'N/A'}</p>
+                                        </div>
+                                        <div className="px-5 py-3 bg-white">
+                                            <span className="text-xs font-bold text-blue-400 uppercase block mb-1.5">New Segment</span>
+                                            <p className="text-sm text-gray-800 bg-white p-3 rounded-lg border border-blue-50 min-h-[40px] flex items-center shadow-sm shadow-blue-100/50">{profileVenture.focus_segment || 'N/A'}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 3: Region */}
+                                    <div className="grid grid-cols-2 divide-x divide-gray-100">
+                                        <div className="px-5 py-3 pb-5">
+                                            <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Region</span>
+                                            <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[40px] flex items-center">{profileVenture.which_regions || 'N/A'}</p>
+                                        </div>
+                                        <div className="px-5 py-3 pb-5 bg-white">
+                                            <span className="text-xs font-bold text-blue-400 uppercase block mb-1.5">New Region</span>
+                                            <p className="text-sm text-gray-800 bg-white p-3 rounded-lg border border-blue-50 min-h-[40px] flex items-center shadow-sm shadow-blue-100/50">{profileVenture.focus_geography || 'N/A'}</p>
                                         </div>
                                     </div>
                                 </div>

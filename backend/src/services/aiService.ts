@@ -136,9 +136,28 @@ You will receive a venture application containing:
 **Venture Information:**
 - Company Name: ${ventureData.name}
 - Founder: ${ventureData.founder_name || 'N/A'}
+- Business Type: ${(ventureData as any).business_type || 'N/A'}
+- Designation: ${(ventureData as any).designation || 'N/A'}
+- City: ${(ventureData as any).city || 'N/A'}
+- State: ${(ventureData as any).state || 'N/A'}
 - Current Revenue (12M): ₹${ventureData.revenue_12m?.toLocaleString() || 'N/A'}
-- Target Revenue (3Y): ₹${ventureData.revenue_potential_3y?.toLocaleString() || 'N/A'}
+- Prior Year Revenue: ₹${(ventureData as any).revenue_prior_year?.toLocaleString() || 'N/A'}
 - Full-Time Employees: ${ventureData.full_time_employees || 'N/A'}
+
+**Current Business (What they do today):**
+- Products/Services They Sell: ${(ventureData as any).what_do_you_sell || 'N/A'}
+- Customer Segments They Sell To: ${(ventureData as any).who_do_you_sell_to || 'N/A'}
+- Regions They Operate In: ${(ventureData as any).which_regions || 'N/A'}
+
+**New Growth Idea (What they want to do):**
+- Growth Type: ${(ventureData as any).growth_type || ventureData.growth_focus || 'N/A'}
+- New Product/Service: ${(ventureData as any).focus_product || 'N/A'}
+- New Customer Segment: ${(ventureData as any).focus_segment || 'N/A'}
+- New Geography: ${(ventureData as any).focus_geography || 'N/A'}
+- Target Revenue in 3 Years: ₹${(ventureData as any).target_revenue_3y?.toLocaleString() || ventureData.revenue_potential_3y?.toLocaleString() || 'N/A'}
+- Support Description: ${(ventureData as any).support_description || 'N/A'}
+
+**Legacy Fields (may duplicate above):**
 - Growth Focus: ${ventureData.growth_focus || 'N/A'}
 - Current Market: ${JSON.stringify(ventureData.growth_current || {})}
 - Target Market: ${JSON.stringify(ventureData.growth_target || {})}
@@ -266,12 +285,13 @@ export async function generateVentureRoadmap(
     try {
         const message = await anthropic.messages.create({
             model: 'claude-sonnet-4-5-20250929',
-            max_tokens: 4000,
+            max_tokens: 8000,
             temperature: 0,
             messages: [{ role: 'user', content: prompt }]
         });
 
         const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+        console.log(`[Roadmap] Claude response length: ${responseText.length} chars, stop_reason: ${message.stop_reason}`);
         return parseRoadmapResponse(responseText);
     } catch (error: any) {
         console.error('Error calling Claude API for roadmap:', error);
@@ -390,10 +410,18 @@ function parseRoadmapResponse(responseText: string): RoadmapData {
         const parsed = JSON.parse(jsonMatch[0]);
         const streams = ['product', 'gtm', 'capital_planning', 'team', 'supply_chain', 'operations'] as const;
 
+        console.log('[Roadmap Parse] Parsed streams:', streams.map(s => ({
+            stream: s,
+            hasArea: !!parsed[s],
+            hasActions: !!parsed[s]?.actions,
+            actionsCount: parsed[s]?.actions?.length,
+            isArray: Array.isArray(parsed[s]?.actions),
+        })));
+
         const result: any = {};
         for (const stream of streams) {
             const area = parsed[stream];
-            if (area && Array.isArray(area.actions) && area.actions.length >= 5) {
+            if (area && Array.isArray(area.actions) && area.actions.length >= 3) {
                 result[stream] = {
                     relevance: area.relevance || '',
                     support_priority: ['High', 'Medium', 'Low'].includes(area.support_priority) ? area.support_priority : 'Medium',
@@ -409,6 +437,7 @@ function parseRoadmapResponse(responseText: string): RoadmapData {
                     })),
                 };
             } else {
+                console.log(`[Roadmap Parse] Using FALLBACK for ${stream}. Area exists: ${!!area}, actions array: ${Array.isArray(area?.actions)}, count: ${area?.actions?.length}`);
                 result[stream] = getFallbackArea(stream);
             }
         }

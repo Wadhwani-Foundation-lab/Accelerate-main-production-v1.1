@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, LayoutGrid, Calendar } from 'lucide-react';
+import { Eye, LayoutGrid, Calendar, Sparkles } from 'lucide-react';
 
 export interface Venture {
     id: string;
@@ -24,6 +24,7 @@ const statusConfig: Record<string, { bg: string; text: string; dot: string }> = 
     'Under Review': { bg: 'bg-purple-50 border-purple-200/60', text: 'text-purple-800', dot: 'bg-purple-500' },
     Approved: { bg: 'bg-emerald-50 border-emerald-200/60', text: 'text-emerald-800', dot: 'bg-emerald-500' },
     Rejected: { bg: 'bg-red-50 border-red-200/60', text: 'text-red-800', dot: 'bg-red-500' },
+    'Panel Review': { bg: 'bg-amber-50 border-amber-200/60', text: 'text-amber-800', dot: 'bg-amber-500' },
     'Agreement Sent': { bg: 'bg-indigo-50 border-indigo-200/60', text: 'text-indigo-800', dot: 'bg-indigo-500' },
     'Contract Sent': { bg: 'bg-teal-50 border-teal-200/60', text: 'text-teal-800', dot: 'bg-teal-500' },
 };
@@ -89,7 +90,22 @@ export const VentureCard: React.FC<VentureCardProps> = ({ venture }) => {
 
                 {/* Action buttons */}
                 <div className="flex items-center gap-2.5 pt-4 border-t border-gray-100">
-                    {venture.status === 'Contract Sent' || venture.workbench_locked ? (
+                    {venture.workbench_locked ? (
+                        <button
+                            className="flex-1 relative inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold bg-gradient-to-r from-brand-500 to-brand-600 text-white hover:from-brand-600 hover:to-brand-700 transition-all shadow-lg shadow-brand-500/30 animate-pulse hover:animate-none"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/dashboard/venture/${venture.id}/workbench`);
+                            }}
+                        >
+                            <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-brand-400 to-brand-500 opacity-0 hover:opacity-100 transition-opacity" />
+                            <span className="absolute -inset-0.5 rounded-xl bg-gradient-to-r from-brand-400 via-amber-400 to-brand-500 opacity-30 blur-sm animate-pulse" />
+                            <span className="relative flex items-center gap-2">
+                                <Sparkles className="w-4 h-4" />
+                                Review Plan
+                            </span>
+                        </button>
+                    ) : venture.status === 'Contract Sent' ? (
                         <button
                             className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition-colors"
                             onClick={(e) => {
