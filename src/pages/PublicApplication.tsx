@@ -230,11 +230,12 @@ export const PublicApplication: React.FC = () => {
             logger.info('PublicApplication', 'Application submitted successfully');
 
             // Upload corporate presentation if provided (non-blocking)
-            if (formData.corporatePresentation && result.data?.venture?.id) {
+            const ventureId = result.venture?.id || result.data?.venture?.id;
+            if (formData.corporatePresentation && ventureId) {
                 try {
                     const uploadForm = new FormData();
                     uploadForm.append('file', formData.corporatePresentation);
-                    await fetch(`${API_URL}/api/ventures/${result.data.venture.id}/public-upload-document`, {
+                    await fetch(`${API_URL}/api/ventures/${ventureId}/public-upload-document`, {
                         method: 'POST',
                         body: uploadForm,
                     });
