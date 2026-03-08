@@ -154,7 +154,10 @@ You will receive a venture application containing:
 - New Product/Service: ${(ventureData as any).focus_product || 'N/A'}
 - New Customer Segment: ${(ventureData as any).focus_segment || 'N/A'}
 - New Geography: ${(ventureData as any).focus_geography || 'N/A'}
-- Target Revenue in 3 Years: ₹${(ventureData as any).target_revenue_3y?.toLocaleString() || ventureData.revenue_potential_3y?.toLocaleString() || 'N/A'}
+- Target Revenue in 3 Years: ₹${ventureData.revenue_potential_3y?.toLocaleString() || 'N/A'}
+- Incremental Hiring Planned: ${(ventureData as any).incremental_hiring || 'N/A'}
+- Target Jobs: ${(ventureData as any).target_jobs || 'N/A'}
+- Investment Commitment: ${(ventureData as any).min_investment || 'N/A'}
 - Support Description: ${(ventureData as any).support_description || 'N/A'}
 
 **Legacy Fields (may duplicate above):**
