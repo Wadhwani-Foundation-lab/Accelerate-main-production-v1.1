@@ -28,12 +28,12 @@ export interface RoadmapAction {
     timeline: string;
     success_metric: string;
     status: 'pending';
-    priority: 'high' | 'medium' | 'low';
+    priority: 'Need deep support' | 'Need some guidance' | "Don't need help";
 }
 
 export interface FunctionalAreaRoadmap {
     relevance: string;
-    support_priority: 'High' | 'Medium' | 'Low';
+    support_priority: 'Need deep support' | 'Need some guidance' | "Don't need help";
     actions: RoadmapAction[];
 }
 
@@ -361,7 +361,7 @@ Return ONLY a JSON object in this format:
 {
   "product": {
     "relevance": "<One sentence explaining why Product matters for this specific venture's growth idea>",
-    "support_priority": "<High | Medium | Low>",
+    "support_priority": "<Need deep support | Need some guidance | Don't need help>",
     "actions": [
       {
         "id": "prod_1",
@@ -371,7 +371,7 @@ Return ONLY a JSON object in this format:
         "timeline": "<Week/Month range within 12-16 week program — e.g., 'Weeks 1-2', 'Weeks 3-5'>",
         "success_metric": "<Measurable outcome>",
         "status": "pending",
-        "priority": "<high | medium | low>"
+        "priority": "<Need deep support | Need some guidance | Don't need help>"
       },
       { "id": "prod_2", "..." : "..." },
       { "id": "prod_3", "..." : "..." },
@@ -394,15 +394,30 @@ Return ONLY a JSON object in this format:
 4. **Leverage the Pros:** At least 2 actions should build on identified strengths to create momentum.
 5. **Interaction notes integration:** If interaction notes reveal specific concerns or commitments, these must be reflected in relevant actions.
 6. **Prioritization logic:**
-   - Areas where the venture explicitly requested help → High priority
-   - Areas where screening identified gaps but venture didn't request help → Medium priority
-   - Areas where venture indicated "Don't need help" and no red flags → Low priority
+   - Areas where the venture explicitly requested help → "Need deep support"
+   - Areas where screening identified gaps but venture didn't request help → "Need some guidance"
+   - Areas where venture indicated no help needed and no red flags → "Don't need help"
 7. **Timeline realism:** Spread actions across 12-16 weeks: early = assess/plan, mid = execute, late = validate/sustain.
 8. **Sequencing:** Actions within each area should follow: Diagnose → Plan → Build → Test → Refine.
 9. **Deliverable clarity:** Each action should result in a tangible output (document, framework, model, strategy, process).
 10. **Tone:** Professional, supportive, and direct.
 
 Return ONLY the JSON object, no additional text.`;
+}
+
+// Map legacy High/Medium/Low to new labels for backward compatibility
+function mapSupportPriority(value: string): 'Need deep support' | 'Need some guidance' | "Don't need help" {
+    const v = (value || '').toLowerCase();
+    if (v === 'high' || v === 'need deep support') return 'Need deep support';
+    if (v === 'low' || v === "don't need help") return "Don't need help";
+    return 'Need some guidance';
+}
+
+function mapActionPriority(value: string): 'Need deep support' | 'Need some guidance' | "Don't need help" {
+    const v = (value || '').toLowerCase();
+    if (v === 'high' || v === 'need deep support') return 'Need deep support';
+    if (v === 'low' || v === "don't need help") return "Don't need help";
+    return 'Need some guidance';
 }
 
 function parseRoadmapResponse(responseText: string): RoadmapData {
@@ -427,7 +442,7 @@ function parseRoadmapResponse(responseText: string): RoadmapData {
             if (area && Array.isArray(area.actions) && area.actions.length >= 3) {
                 result[stream] = {
                     relevance: area.relevance || '',
-                    support_priority: ['High', 'Medium', 'Low'].includes(area.support_priority) ? area.support_priority : 'Medium',
+                    support_priority: mapSupportPriority(area.support_priority),
                     actions: area.actions.slice(0, 5).map((item: any, i: number) => ({
                         id: item.id || `${stream}_${i + 1}`,
                         title: item.title || 'Untitled',
@@ -436,7 +451,7 @@ function parseRoadmapResponse(responseText: string): RoadmapData {
                         timeline: item.timeline || 'Weeks 1-2',
                         success_metric: item.success_metric || '',
                         status: 'pending' as const,
-                        priority: ['high', 'medium', 'low'].includes(item.priority) ? item.priority : 'medium',
+                        priority: mapActionPriority(item.priority),
                     })),
                 };
             } else {
@@ -463,68 +478,68 @@ function getFallbackArea(stream: string): FunctionalAreaRoadmap {
     const fallbacks: Record<string, FunctionalAreaRoadmap> = {
         product: {
             relevance: 'Product readiness assessment required for growth execution.',
-            support_priority: 'Medium',
+            support_priority: 'Need some guidance',
             actions: [
-                { id: 'prod_1', title: 'Product Audit', description: 'Comprehensive review of current product capabilities and gaps.', context_reference: 'Manual review required', timeline: 'Weeks 1-2', success_metric: 'Audit report completed', status: 'pending', priority: 'high' },
-                { id: 'prod_2', title: 'Feature Gap Analysis', description: 'Identify feature gaps for the growth idea.', context_reference: 'Manual review required', timeline: 'Weeks 2-3', success_metric: 'Gap analysis document', status: 'pending', priority: 'high' },
-                { id: 'prod_3', title: 'MVP Definition', description: 'Define minimum viable product for new offering.', context_reference: 'Manual review required', timeline: 'Weeks 3-5', success_metric: 'MVP spec document', status: 'pending', priority: 'medium' },
-                { id: 'prod_4', title: 'Pilot Plan', description: 'Design pilot program for validation.', context_reference: 'Manual review required', timeline: 'Weeks 6-10', success_metric: 'Pilot launched', status: 'pending', priority: 'medium' },
-                { id: 'prod_5', title: 'Product Roadmap', description: 'Align product roadmap with growth targets.', context_reference: 'Manual review required', timeline: 'Weeks 11-14', success_metric: 'Roadmap document approved', status: 'pending', priority: 'low' },
+                { id: 'prod_1', title: 'Product Audit', description: 'Comprehensive review of current product capabilities and gaps.', context_reference: 'Manual review required', timeline: 'Weeks 1-2', success_metric: 'Audit report completed', status: 'pending', priority: 'Need deep support' },
+                { id: 'prod_2', title: 'Feature Gap Analysis', description: 'Identify feature gaps for the growth idea.', context_reference: 'Manual review required', timeline: 'Weeks 2-3', success_metric: 'Gap analysis document', status: 'pending', priority: 'Need deep support' },
+                { id: 'prod_3', title: 'MVP Definition', description: 'Define minimum viable product for new offering.', context_reference: 'Manual review required', timeline: 'Weeks 3-5', success_metric: 'MVP spec document', status: 'pending', priority: 'Need some guidance' },
+                { id: 'prod_4', title: 'Pilot Plan', description: 'Design pilot program for validation.', context_reference: 'Manual review required', timeline: 'Weeks 6-10', success_metric: 'Pilot launched', status: 'pending', priority: 'Need some guidance' },
+                { id: 'prod_5', title: 'Product Roadmap', description: 'Align product roadmap with growth targets.', context_reference: 'Manual review required', timeline: 'Weeks 11-14', success_metric: 'Roadmap document approved', status: 'pending', priority: "Don't need help" },
             ],
         },
         gtm: {
             relevance: 'Go-to-market strategy required for new market entry.',
-            support_priority: 'Medium',
+            support_priority: 'Need some guidance',
             actions: [
-                { id: 'gtm_1', title: 'Market Analysis', description: 'Target market sizing and competitive landscape review.', context_reference: 'Manual review required', timeline: 'Weeks 1-2', success_metric: 'Market analysis report', status: 'pending', priority: 'high' },
-                { id: 'gtm_2', title: 'ICP Definition', description: 'Define ideal customer profile for new segment.', context_reference: 'Manual review required', timeline: 'Weeks 2-4', success_metric: 'ICP document completed', status: 'pending', priority: 'high' },
-                { id: 'gtm_3', title: 'Channel Strategy', description: 'Partner and distribution channel development plan.', context_reference: 'Manual review required', timeline: 'Weeks 4-6', success_metric: 'Channel strategy document', status: 'pending', priority: 'medium' },
-                { id: 'gtm_4', title: 'Sales Playbook', description: 'Standardized sales process and objection handling.', context_reference: 'Manual review required', timeline: 'Weeks 6-10', success_metric: 'Playbook ready for team', status: 'pending', priority: 'medium' },
-                { id: 'gtm_5', title: 'Launch Plan', description: 'Go-to-market launch plan with timelines.', context_reference: 'Manual review required', timeline: 'Weeks 10-14', success_metric: 'Launch plan approved', status: 'pending', priority: 'low' },
+                { id: 'gtm_1', title: 'Market Analysis', description: 'Target market sizing and competitive landscape review.', context_reference: 'Manual review required', timeline: 'Weeks 1-2', success_metric: 'Market analysis report', status: 'pending', priority: 'Need deep support' },
+                { id: 'gtm_2', title: 'ICP Definition', description: 'Define ideal customer profile for new segment.', context_reference: 'Manual review required', timeline: 'Weeks 2-4', success_metric: 'ICP document completed', status: 'pending', priority: 'Need deep support' },
+                { id: 'gtm_3', title: 'Channel Strategy', description: 'Partner and distribution channel development plan.', context_reference: 'Manual review required', timeline: 'Weeks 4-6', success_metric: 'Channel strategy document', status: 'pending', priority: 'Need some guidance' },
+                { id: 'gtm_4', title: 'Sales Playbook', description: 'Standardized sales process and objection handling.', context_reference: 'Manual review required', timeline: 'Weeks 6-10', success_metric: 'Playbook ready for team', status: 'pending', priority: 'Need some guidance' },
+                { id: 'gtm_5', title: 'Launch Plan', description: 'Go-to-market launch plan with timelines.', context_reference: 'Manual review required', timeline: 'Weeks 10-14', success_metric: 'Launch plan approved', status: 'pending', priority: "Don't need help" },
             ],
         },
         capital_planning: {
             relevance: 'Financial readiness assessment for growth investment.',
-            support_priority: 'Medium',
+            support_priority: 'Need some guidance',
             actions: [
-                { id: 'cap_1', title: 'Financial Model', description: 'Detailed projections and unit economics analysis.', context_reference: 'Manual review required', timeline: 'Weeks 1-3', success_metric: 'Financial model completed', status: 'pending', priority: 'high' },
-                { id: 'cap_2', title: 'Unit Economics', description: 'Validate unit economics for new growth area.', context_reference: 'Manual review required', timeline: 'Weeks 3-5', success_metric: 'Unit economics validated', status: 'pending', priority: 'high' },
-                { id: 'cap_3', title: 'Funding Strategy', description: 'Identify and plan funding sources for growth.', context_reference: 'Manual review required', timeline: 'Weeks 5-8', success_metric: 'Funding strategy document', status: 'pending', priority: 'medium' },
-                { id: 'cap_4', title: 'Cash Flow Projection', description: 'Model cash flow impact of growth initiatives.', context_reference: 'Manual review required', timeline: 'Weeks 8-11', success_metric: 'Cash flow model ready', status: 'pending', priority: 'medium' },
-                { id: 'cap_5', title: 'Investor Readiness', description: 'Prepare pitch materials and data room.', context_reference: 'Manual review required', timeline: 'Weeks 11-14', success_metric: 'Investor deck completed', status: 'pending', priority: 'low' },
+                { id: 'cap_1', title: 'Financial Model', description: 'Detailed projections and unit economics analysis.', context_reference: 'Manual review required', timeline: 'Weeks 1-3', success_metric: 'Financial model completed', status: 'pending', priority: 'Need deep support' },
+                { id: 'cap_2', title: 'Unit Economics', description: 'Validate unit economics for new growth area.', context_reference: 'Manual review required', timeline: 'Weeks 3-5', success_metric: 'Unit economics validated', status: 'pending', priority: 'Need deep support' },
+                { id: 'cap_3', title: 'Funding Strategy', description: 'Identify and plan funding sources for growth.', context_reference: 'Manual review required', timeline: 'Weeks 5-8', success_metric: 'Funding strategy document', status: 'pending', priority: 'Need some guidance' },
+                { id: 'cap_4', title: 'Cash Flow Projection', description: 'Model cash flow impact of growth initiatives.', context_reference: 'Manual review required', timeline: 'Weeks 8-11', success_metric: 'Cash flow model ready', status: 'pending', priority: 'Need some guidance' },
+                { id: 'cap_5', title: 'Investor Readiness', description: 'Prepare pitch materials and data room.', context_reference: 'Manual review required', timeline: 'Weeks 11-14', success_metric: 'Investor deck completed', status: 'pending', priority: "Don't need help" },
             ],
         },
         team: {
             relevance: 'Organizational readiness for growth execution.',
-            support_priority: 'Medium',
+            support_priority: 'Need some guidance',
             actions: [
-                { id: 'team_1', title: 'Org Structure Review', description: 'Define roles and reporting lines for growth phase.', context_reference: 'Manual review required', timeline: 'Weeks 1-2', success_metric: 'Org chart updated', status: 'pending', priority: 'high' },
-                { id: 'team_2', title: 'Skill Gap Analysis', description: 'Identify capability gaps against growth requirements.', context_reference: 'Manual review required', timeline: 'Weeks 2-4', success_metric: 'Gap analysis completed', status: 'pending', priority: 'high' },
-                { id: 'team_3', title: 'Hiring Roadmap', description: 'Critical hires plan with timelines and budgets.', context_reference: 'Manual review required', timeline: 'Weeks 4-8', success_metric: 'Hiring plan approved', status: 'pending', priority: 'medium' },
-                { id: 'team_4', title: 'Key Hire JDs', description: 'Job descriptions for priority roles.', context_reference: 'Manual review required', timeline: 'Weeks 8-11', success_metric: 'JDs published', status: 'pending', priority: 'medium' },
-                { id: 'team_5', title: 'Retention Plan', description: 'Plan to retain key talent during scaling.', context_reference: 'Manual review required', timeline: 'Weeks 11-14', success_metric: 'Retention plan documented', status: 'pending', priority: 'low' },
+                { id: 'team_1', title: 'Org Structure Review', description: 'Define roles and reporting lines for growth phase.', context_reference: 'Manual review required', timeline: 'Weeks 1-2', success_metric: 'Org chart updated', status: 'pending', priority: 'Need deep support' },
+                { id: 'team_2', title: 'Skill Gap Analysis', description: 'Identify capability gaps against growth requirements.', context_reference: 'Manual review required', timeline: 'Weeks 2-4', success_metric: 'Gap analysis completed', status: 'pending', priority: 'Need deep support' },
+                { id: 'team_3', title: 'Hiring Roadmap', description: 'Critical hires plan with timelines and budgets.', context_reference: 'Manual review required', timeline: 'Weeks 4-8', success_metric: 'Hiring plan approved', status: 'pending', priority: 'Need some guidance' },
+                { id: 'team_4', title: 'Key Hire JDs', description: 'Job descriptions for priority roles.', context_reference: 'Manual review required', timeline: 'Weeks 8-11', success_metric: 'JDs published', status: 'pending', priority: 'Need some guidance' },
+                { id: 'team_5', title: 'Retention Plan', description: 'Plan to retain key talent during scaling.', context_reference: 'Manual review required', timeline: 'Weeks 11-14', success_metric: 'Retention plan documented', status: 'pending', priority: "Don't need help" },
             ],
         },
         supply_chain: {
             relevance: 'Supply chain readiness for scaled operations.',
-            support_priority: 'Medium',
+            support_priority: 'Need some guidance',
             actions: [
-                { id: 'sc_1', title: 'Vendor Assessment', description: 'Evaluate current supplier performance and risks.', context_reference: 'Manual review required', timeline: 'Weeks 1-3', success_metric: 'Vendor scorecard completed', status: 'pending', priority: 'high' },
-                { id: 'sc_2', title: 'Cost Optimization', description: 'Identify cost reduction opportunities in procurement.', context_reference: 'Manual review required', timeline: 'Weeks 3-6', success_metric: 'Cost savings identified', status: 'pending', priority: 'medium' },
-                { id: 'sc_3', title: 'Logistics Model', description: 'Design logistics for new geography/product.', context_reference: 'Manual review required', timeline: 'Weeks 6-9', success_metric: 'Logistics plan ready', status: 'pending', priority: 'medium' },
-                { id: 'sc_4', title: 'Quality SOP', description: 'Quality control standard operating procedures.', context_reference: 'Manual review required', timeline: 'Weeks 9-12', success_metric: 'SOPs documented', status: 'pending', priority: 'low' },
-                { id: 'sc_5', title: 'Capacity Plan', description: 'Production/fulfillment capacity for growth targets.', context_reference: 'Manual review required', timeline: 'Weeks 12-14', success_metric: 'Capacity plan approved', status: 'pending', priority: 'low' },
+                { id: 'sc_1', title: 'Vendor Assessment', description: 'Evaluate current supplier performance and risks.', context_reference: 'Manual review required', timeline: 'Weeks 1-3', success_metric: 'Vendor scorecard completed', status: 'pending', priority: 'Need deep support' },
+                { id: 'sc_2', title: 'Cost Optimization', description: 'Identify cost reduction opportunities in procurement.', context_reference: 'Manual review required', timeline: 'Weeks 3-6', success_metric: 'Cost savings identified', status: 'pending', priority: 'Need some guidance' },
+                { id: 'sc_3', title: 'Logistics Model', description: 'Design logistics for new geography/product.', context_reference: 'Manual review required', timeline: 'Weeks 6-9', success_metric: 'Logistics plan ready', status: 'pending', priority: 'Need some guidance' },
+                { id: 'sc_4', title: 'Quality SOP', description: 'Quality control standard operating procedures.', context_reference: 'Manual review required', timeline: 'Weeks 9-12', success_metric: 'SOPs documented', status: 'pending', priority: "Don't need help" },
+                { id: 'sc_5', title: 'Capacity Plan', description: 'Production/fulfillment capacity for growth targets.', context_reference: 'Manual review required', timeline: 'Weeks 12-14', success_metric: 'Capacity plan approved', status: 'pending', priority: "Don't need help" },
             ],
         },
         operations: {
             relevance: 'Operational scalability for sustainable growth.',
-            support_priority: 'Medium',
+            support_priority: 'Need some guidance',
             actions: [
-                { id: 'ops_1', title: 'Process Mapping', description: 'Document and optimize core business processes.', context_reference: 'Manual review required', timeline: 'Weeks 1-3', success_metric: 'Process maps completed', status: 'pending', priority: 'high' },
-                { id: 'ops_2', title: 'KPI Dashboard', description: 'Real-time operational metrics tracking setup.', context_reference: 'Manual review required', timeline: 'Weeks 3-6', success_metric: 'Dashboard live', status: 'pending', priority: 'medium' },
-                { id: 'ops_3', title: 'SOP Pack', description: 'Standard operating procedures for key workflows.', context_reference: 'Manual review required', timeline: 'Weeks 6-9', success_metric: 'SOP pack delivered', status: 'pending', priority: 'medium' },
-                { id: 'ops_4', title: 'Compliance Review', description: 'Regulatory and compliance requirements check.', context_reference: 'Manual review required', timeline: 'Weeks 9-12', success_metric: 'Compliance checklist cleared', status: 'pending', priority: 'low' },
-                { id: 'ops_5', title: 'Scaling Plan', description: 'Operational readiness for 3x growth scenario.', context_reference: 'Manual review required', timeline: 'Weeks 12-14', success_metric: 'Scaling plan documented', status: 'pending', priority: 'low' },
+                { id: 'ops_1', title: 'Process Mapping', description: 'Document and optimize core business processes.', context_reference: 'Manual review required', timeline: 'Weeks 1-3', success_metric: 'Process maps completed', status: 'pending', priority: 'Need deep support' },
+                { id: 'ops_2', title: 'KPI Dashboard', description: 'Real-time operational metrics tracking setup.', context_reference: 'Manual review required', timeline: 'Weeks 3-6', success_metric: 'Dashboard live', status: 'pending', priority: 'Need some guidance' },
+                { id: 'ops_3', title: 'SOP Pack', description: 'Standard operating procedures for key workflows.', context_reference: 'Manual review required', timeline: 'Weeks 6-9', success_metric: 'SOP pack delivered', status: 'pending', priority: 'Need some guidance' },
+                { id: 'ops_4', title: 'Compliance Review', description: 'Regulatory and compliance requirements check.', context_reference: 'Manual review required', timeline: 'Weeks 9-12', success_metric: 'Compliance checklist cleared', status: 'pending', priority: "Don't need help" },
+                { id: 'ops_5', title: 'Scaling Plan', description: 'Operational readiness for 3x growth scenario.', context_reference: 'Manual review required', timeline: 'Weeks 12-14', success_metric: 'Scaling plan documented', status: 'pending', priority: "Don't need help" },
             ],
         },
     };

@@ -131,10 +131,11 @@ export const OpsManagerDashboard: React.FC = () => {
                 .order('name');
             setPanelists(panelistData || []);
 
-            // Fetch scheduled call counts grouped by venture_id
+            // Fetch scheduled call counts grouped by venture_id (exclude cancelled)
             const { data: callData } = await supabase
                 .from('scheduled_calls')
                 .select('venture_id, status, meet_link, created_at')
+                .neq('status', 'cancelled')
                 .order('created_at', { ascending: false });
 
             const counts: Record<string, CallCount> = {};

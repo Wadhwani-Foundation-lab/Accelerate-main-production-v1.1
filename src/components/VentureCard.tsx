@@ -27,11 +27,14 @@ const statusConfig: Record<string, { bg: string; text: string; dot: string }> = 
     'Panel Review': { bg: 'bg-amber-50 border-amber-200/60', text: 'text-amber-800', dot: 'bg-amber-500' },
     'Agreement Sent': { bg: 'bg-indigo-50 border-indigo-200/60', text: 'text-indigo-800', dot: 'bg-indigo-500' },
     'Contract Sent': { bg: 'bg-teal-50 border-teal-200/60', text: 'text-teal-800', dot: 'bg-teal-500' },
+    'Joined Program': { bg: 'bg-emerald-50 border-emerald-200/60', text: 'text-emerald-800', dot: 'bg-emerald-500' },
 };
 
 export const VentureCard: React.FC<VentureCardProps> = ({ venture }) => {
     const navigate = useNavigate();
-    const status = statusConfig[venture.status] || statusConfig.Draft;
+    // Map "Panel Review" to "Under Review" for entrepreneur-facing display
+    const displayStatus = venture.status === 'Panel Review' ? 'Under Review' : venture.status;
+    const status = statusConfig[displayStatus] || statusConfig.Draft;
 
     const initials = venture.name
         .split(/\s+/)
@@ -68,7 +71,7 @@ export const VentureCard: React.FC<VentureCardProps> = ({ venture }) => {
                     </div>
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold uppercase tracking-wide flex-shrink-0 border ${status.bg} ${status.text}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
-                        {venture.status}
+                        {displayStatus}
                     </span>
                 </div>
 

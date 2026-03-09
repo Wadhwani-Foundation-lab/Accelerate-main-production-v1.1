@@ -77,7 +77,8 @@ export const VentureWorkbench = () => {
         try {
             await api.updateVenture(id, {
                 agreement_status: 'Signed',
-                agreement_accepted_at: new Date().toISOString()
+                agreement_accepted_at: new Date().toISOString(),
+                status: 'Joined Program'
             });
 
             setShowJoinedModal(true);
@@ -128,11 +129,6 @@ export const VentureWorkbench = () => {
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Back
                     </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                            {isSigned ? 'Venture Dashboard' : 'Review Growth Plan'}
-                        </h1>
-                    </div>
                 </div>
                 {isSigned && (
                     <div className="flex gap-4">
@@ -147,61 +143,26 @@ export const VentureWorkbench = () => {
             </div>
 
             <div className="max-w-7xl mx-auto">
-                {/* Workbench Locked Banner */}
-                {(venture.workbench_locked || venture.status === 'Contract Sent') && (
-                    <div className="mb-6 bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-300 rounded-xl shadow-lg overflow-hidden">
-                        <div className="p-6 flex items-start gap-4">
-                            <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0">
-                                <Lock className="w-6 h-6 text-white" />
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <AlertCircle className="w-5 h-5 text-orange-600" />
-                                    <h3 className="text-lg font-bold text-orange-900">Action Required: Review Your Growth Plan</h3>
-                                </div>
-                                <p className="text-sm text-orange-800 mb-4">
-                                    Congratulations! You've been selected for Wadhwani Accelerate. Please review your growth plan below and join the program to get started.
-                                </p>
-                                <div className="flex items-center gap-3">
-                                    <Button
-                                        className="bg-orange-600 hover:bg-orange-700 text-white"
-                                        onClick={() => {
-                                            document.getElementById('growth-plan-section')?.scrollIntoView({ behavior: 'smooth' });
-                                        }}
-                                    >
-                                        <FileText className="w-4 h-4 mr-2" />
-                                        Review Plan
-                                    </Button>
-                                    <span className="text-xs text-orange-700 font-medium">
-                                        Status: <span className="font-bold">{venture.status}</span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                {/* Workbench Locked Banner - removed */}
 
                 {!isSigned ? (
                     // SIGNING VIEW
                     <div id="growth-plan-section" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden max-w-5xl mx-auto">
-                        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-gray-900">Review Your Growth Plan</h2>
+                        <div className="p-6 border-b border-gray-200">
+                            <h2 className="text-xl font-bold text-gray-900">Journey Roadmap</h2>
                         </div>
 
                         <div className="divide-y divide-gray-200">
                             {/* Roadmap */}
-                            <div className="flex flex-col md:flex-row">
-                                <div className="md:w-1/4 bg-gray-50/50 p-6 font-semibold text-gray-700 md:border-r border-gray-200 flex items-start">
-                                    Roadmap
-                                </div>
-                                <div className="md:w-3/4 p-6">
+                            <div>
+                                <div className="p-6">
                                     {roadmapData ? (
                                         <div className="space-y-4">
                                             {Object.entries(roadmapData).map(([key, area]: [string, any]) => {
                                                 const actions = Array.isArray(area) ? area : area?.actions || [];
                                                 const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                                                const priority = area?.support_priority || 'Medium';
-                                                const priorityColor = priority === 'High' ? 'bg-red-100 text-red-700' : priority === 'Low' ? 'bg-gray-100 text-gray-600' : 'bg-amber-100 text-amber-700';
+                                                const priority = area?.support_priority || 'Need some guidance';
+                                                const priorityColor = (priority === 'Need deep support' || priority === 'High') ? 'bg-red-100 text-red-700' : (priority === "Don't need help" || priority === 'Low') ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700';
                                                 if (actions.length === 0) return null;
                                                 return (
                                                     <div key={key} className="border border-gray-100 rounded-lg p-4 bg-gray-50/50">
@@ -246,11 +207,8 @@ export const VentureWorkbench = () => {
                             </div>
 
                             {/* Support provided */}
-                            <div className="flex flex-col md:flex-row border-t border-gray-200">
-                                <div className="md:w-1/4 bg-gray-50/50 p-6 font-semibold text-gray-700 md:border-r border-gray-200 flex items-start">
-                                    Support provided
-                                </div>
-                                <div className="md:w-3/4 p-6">
+                            <div className="border-t border-gray-200">
+                                <div className="p-6">
                                     {/* Support Provided Content */}
                                     <div className="bg-slate-50/50 rounded-xl p-6 border border-slate-100">
                                         <div className="flex items-center gap-3 mb-6">
@@ -322,11 +280,8 @@ export const VentureWorkbench = () => {
                             </div>
 
                             {/* Venture commitment */}
-                            <div className="flex flex-col md:flex-row border-t border-gray-200">
-                                <div className="md:w-1/4 bg-gray-50/50 p-6 font-semibold text-gray-700 md:border-r border-gray-200 flex items-start">
-                                    Venture commitment
-                                </div>
-                                <div className="md:w-3/4 p-6">
+                            <div className="border-t border-gray-200">
+                                <div className="p-6">
                                     <div className="bg-slate-50/50 rounded-xl p-6 border border-slate-100">
                                         <div className="flex items-center gap-3 mb-6">
                                             <div className="w-8 h-8 rounded bg-red-600 flex items-center justify-center">
@@ -581,10 +536,10 @@ export const VentureWorkbench = () => {
                             className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl"
                             onClick={() => {
                                 setShowJoinedModal(false);
-                                fetchVentureData();
+                                navigate('/dashboard');
                             }}
                         >
-                            Get Started
+                            Okay
                         </Button>
                     </div>
                 </div>

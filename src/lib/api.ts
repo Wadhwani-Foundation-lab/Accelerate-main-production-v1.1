@@ -12,6 +12,8 @@ interface VentureQueryParams {
     program?: string;
     limit?: number;
     offset?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
 }
 
 class ApiClient {
@@ -81,6 +83,8 @@ class ApiClient {
         if (params.offset) {
             query = query.range(params.offset, params.offset + (params.limit || 10) - 1);
         }
+
+        query = query.order(params.sortBy || 'created_at', { ascending: (params.sortOrder || 'desc') === 'asc' });
 
         const { data, error, count } = await query;
         if (error) throw error;
@@ -201,7 +205,8 @@ class ApiClient {
         const ventureColumns = new Set([
             'name', 'founder_name', 'city', 'location', 'program_id', 'program_name',
             'status', 'assigned_vsm_id', 'assigned_vm_id', 'assigned_panelist_id',
-            'venture_partner', 'workbench_locked', 'locked_reason'
+            'venture_partner', 'workbench_locked', 'locked_reason',
+            'agreement_status', 'agreement_accepted_at'
         ]);
 
         // Fields that belong to the venture_assessments table

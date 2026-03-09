@@ -423,8 +423,9 @@ export const VSMDashboard: React.FC = () => {
     const [internalComments, setInternalComments] = useState('');
     const [saving, setSaving] = useState(false);
 
-    // Filter State
+    // Filter & Sort State
     const [revenueFilter, setRevenueFilter] = useState<string>('all');
+    const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
     // Venture Partner State
     const [selectedPartner, setSelectedPartner] = useState('');
@@ -449,7 +450,7 @@ export const VSMDashboard: React.FC = () => {
         if (userRole) {
             fetchVentures();
         }
-    }, [userRole]);
+    }, [userRole, sortOrder]);
 
     // Fetch panelists when program changes
     useEffect(() => {
@@ -513,7 +514,7 @@ export const VSMDashboard: React.FC = () => {
     const fetchVentures = async () => {
         setLoading(true);
         try {
-            const { ventures: data } = await api.getVentures();
+            const { ventures: data } = await api.getVentures({ sortBy: 'created_at', sortOrder });
 
             let filteredData = data || [];
 
@@ -695,7 +696,13 @@ export const VSMDashboard: React.FC = () => {
                             <span className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide">Venture</span>
                         </div>
                         <div className="col-span-2 text-center">
-                            <span className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide">Submitted</span>
+                            <button
+                                onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                                className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide hover:text-gray-700 transition-colors inline-flex items-center gap-1"
+                            >
+                                Submitted
+                                <span className="text-xs">{sortOrder === 'desc' ? '↓' : '↑'}</span>
+                            </button>
                         </div>
                         <div className="col-span-3 text-center">
                             <span className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide">Program</span>

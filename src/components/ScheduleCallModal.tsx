@@ -103,7 +103,7 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
     const [availableSlots, setAvailableSlots] = useState<typeof DEFAULT_TIME_SLOTS | null>(null);
     const [noSlotsMessage, setNoSlotsMessage] = useState<string | null>(null);
 
-    const nextWeekdays = getNextWeekdays(3);
+    const nextWeekdays = getNextWeekdays(7);
     const selectedPanelist = panelists.find(p => p.id === selectedPanelistId);
 
     // Fetch availability when date or panelist changes

@@ -86,17 +86,18 @@ export const VentureManagerDashboard: React.FC = () => {
     const [roadmapData, setRoadmapData] = useState<any>(null);
     const [analyzing, setAnalyzing] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<any | null>(null);
+    const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
     useEffect(() => {
         if (user) {
             fetchVentures();
         }
-    }, [user]);
+    }, [user, sortOrder]);
 
     const fetchVentures = async () => {
         try {
             // Fetch all ventures with program_recommendation = "Accelerate Prime"
-            const { ventures: allVentures } = await api.getVentures({});
+            const { ventures: allVentures } = await api.getVentures({ sortBy: 'created_at', sortOrder });
 
             console.log('🔍 All ventures:', allVentures);
             console.log('🔍 Venture recommendations:', allVentures?.map((v: any) => ({
@@ -231,7 +232,13 @@ export const VentureManagerDashboard: React.FC = () => {
                             <span className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide">Venture</span>
                         </div>
                         <div className="col-span-2 text-center">
-                            <span className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide">Submitted</span>
+                            <button
+                                onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                                className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide hover:text-gray-700 transition-colors inline-flex items-center gap-1"
+                            >
+                                Submitted
+                                <span className="text-xs">{sortOrder === 'desc' ? '↓' : '↑'}</span>
+                            </button>
                         </div>
                         <div className="col-span-3 text-center">
                             <span className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide">Program</span>
@@ -844,8 +851,8 @@ export const VentureManagerDashboard: React.FC = () => {
                                                 <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider">{label}</h3>
                                                 {supportPriority && (
                                                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                                        supportPriority === 'High' ? 'bg-red-100 text-red-700' :
-                                                        supportPriority === 'Medium' ? 'bg-amber-100 text-amber-700' :
+                                                        supportPriority === 'Need deep support' || supportPriority === 'High' ? 'bg-red-100 text-red-700' :
+                                                        supportPriority === 'Need some guidance' || supportPriority === 'Medium' ? 'bg-amber-100 text-amber-700' :
                                                         'bg-green-100 text-green-700'
                                                     }`}>{supportPriority}</span>
                                                 )}
@@ -855,8 +862,8 @@ export const VentureManagerDashboard: React.FC = () => {
                                                 {actions.map((item: any) => (
                                                     <div key={item.id} className="flex items-start gap-3">
                                                         <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-2 ${
-                                                            item.priority === 'high' ? 'bg-red-500' :
-                                                            item.priority === 'medium' ? 'bg-orange-500' :
+                                                            item.priority === 'Need deep support' || item.priority === 'high' ? 'bg-red-500' :
+                                                            item.priority === 'Need some guidance' || item.priority === 'medium' ? 'bg-orange-500' :
                                                             'bg-green-500'
                                                         }`} />
                                                         <div>
