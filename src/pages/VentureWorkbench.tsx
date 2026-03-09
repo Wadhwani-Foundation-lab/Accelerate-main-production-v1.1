@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
-import { ArrowLeft, CheckCircle, FileText, Loader2, Lock, AlertCircle, Zap, Users, ShieldCheck, ArrowUpRight, Search, Clock, PartyPopper } from 'lucide-react';
+import { ArrowLeft, CheckCircle, FileText, Loader2, Zap, Users, ShieldCheck, ArrowUpRight, Search, Clock, PartyPopper } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { StatusSelect } from '../components/StatusSelect';
 

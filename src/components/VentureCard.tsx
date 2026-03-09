@@ -6,7 +6,7 @@ export interface Venture {
     id: string;
     name: string;
     description: string;
-    status: 'Draft' | 'Submitted' | 'Under Review' | 'Approved' | 'Rejected' | 'Agreement Sent' | 'Contract Sent';
+    status: 'Draft' | 'Submitted' | 'Under Review' | 'Panel Review' | 'Approved' | 'Rejected' | 'Agreement Sent' | 'Contract Sent' | 'Joined Program';
     program: 'Accelerate' | 'Ignite' | 'Liftoff';
     location: string;
     submittedAt: string;
