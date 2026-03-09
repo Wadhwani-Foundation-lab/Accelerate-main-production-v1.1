@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, TrendingUp, Loader2, Briefcase, Users, Target, AlertTriangle, HelpCircle, Map, ChevronRight, Zap, FileText, ChevronUp, Plus } from 'lucide-react';
+import { Sparkles, TrendingUp, Loader2, Briefcase, Users, Target, AlertTriangle, HelpCircle, Map, ChevronRight, Zap, FileText, ChevronUp, Plus, Shield, DollarSign, Rocket, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
@@ -27,6 +27,7 @@ interface Venture {
     vsm_notes?: string;
     internal_comments?: string;
     ai_analysis?: any;
+    panel_ai_analysis?: any;
     growth_target?: any;
     incremental_hiring?: string;
     venture_partner?: string;
@@ -86,6 +87,9 @@ export const SelectionCommitteeDashboard: React.FC = () => {
     const [roadmapData, setRoadmapData] = useState<any>(null);
     const [analyzing, setAnalyzing] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<any | null>(null);
+    const [panelAnalyzing, setPanelAnalyzing] = useState(false);
+    const [panelAnalysisResult, setPanelAnalysisResult] = useState<any | null>(null);
+    const [panelNotes, setPanelNotes] = useState('');
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
     useEffect(() => {
@@ -156,6 +160,8 @@ export const SelectionCommitteeDashboard: React.FC = () => {
 
             setSelectedVenture(fullVenture);
             setAnalysisResult(freshVenture.ai_analysis || null);
+            setPanelAnalysisResult(freshVenture.panel_ai_analysis || null);
+            setPanelNotes('');
 
             // Fetch existing roadmap
             try {
@@ -189,6 +195,26 @@ export const SelectionCommitteeDashboard: React.FC = () => {
             alert(error.message || 'Failed to generate AI insights.');
         } finally {
             setAnalyzing(false);
+        }
+    };
+
+    const runPanelAIAnalysis = async () => {
+        if (!selectedVenture) return;
+        setPanelAnalyzing(true);
+
+        try {
+            const result = await api.generatePanelInsights(selectedVenture.id, panelNotes);
+            const insights = result.insights || result;
+
+            setPanelAnalysisResult(insights);
+            setVentures(prev => prev.map(v =>
+                v.id === selectedVenture.id ? { ...v, panel_ai_analysis: insights } : v
+            ));
+        } catch (error: any) {
+            console.error('Error generating panel insights:', error);
+            alert(error.message || 'Failed to generate panel insights.');
+        } finally {
+            setPanelAnalyzing(false);
         }
     };
 
@@ -643,105 +669,233 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                         {/* Other Support Details */}
                         <OtherDetailsReadOnlySection selectedVenture={selectedVenture} />
 
-                        {/* AI Analysis */}
+                        {/* Panel Interview Insights - V2 */}
                         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                                 <div className="flex items-center gap-2">
-                                    <Sparkles className="w-5 h-5 text-indigo-500" />
-                                    <span className="text-base font-bold text-gray-700">Generate AI insights</span>
-                                    {analysisResult && !analyzing && (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-xs font-medium text-indigo-600">
+                                    <Target className="w-5 h-5 text-teal-500" />
+                                    <span className="text-base font-bold text-gray-700">Panel Interview Insights</span>
+                                    {panelAnalysisResult && !panelAnalyzing && (
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-xs font-medium text-teal-600">
                                             <Sparkles className="w-3 h-3" />
                                             AI Generated
                                         </span>
                                     )}
                                 </div>
                                 <button
-                                    onClick={runAIAnalysis}
-                                    disabled={analyzing || !!analysisResult}
-                                    className="flex items-center gap-2 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-semibold transition-colors shadow-sm"
+                                    onClick={runPanelAIAnalysis}
+                                    disabled={panelAnalyzing || !!panelAnalysisResult}
+                                    className="flex items-center gap-2 px-5 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white text-sm font-semibold transition-colors shadow-sm"
                                 >
-                                    {analyzing ? (<><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>) : analysisResult ? (<><Sparkles className="w-4 h-4" /> Insights Generated</>) : (<><Sparkles className="w-4 h-4" /> Generate insights</>)}
+                                    {panelAnalyzing ? (<><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>) : panelAnalysisResult ? (<><Sparkles className="w-4 h-4" /> Insights Generated</>) : (<><Target className="w-4 h-4" /> Generate Panel Insights</>)}
                                 </button>
                             </div>
-                            {!analysisResult && !analyzing && (
+
+                            {/* Panel Notes Input */}
+                            {!panelAnalysisResult && !panelAnalyzing && (
+                                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Panel Notes (optional)</label>
+                                    <textarea
+                                        value={panelNotes}
+                                        onChange={(e) => setPanelNotes(e.target.value)}
+                                        placeholder="Add any pre-interview observations or focus areas for the AI analysis..."
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-300 resize-none"
+                                        rows={3}
+                                    />
+                                </div>
+                            )}
+
+                            {!panelAnalysisResult && !panelAnalyzing && (
                                 <div className="py-10 flex flex-col items-center gap-2 text-gray-300">
-                                    <Sparkles className="w-10 h-10" />
-                                    <p className="text-sm">Click "Generate insights" to analyse this venture</p>
+                                    <Target className="w-10 h-10" />
+                                    <p className="text-sm">Click "Generate Panel Insights" for a deep-dive interview briefing</p>
                                 </div>
                             )}
-                            {analyzing && (
-                                <div className="py-10 flex flex-col items-center gap-2 text-indigo-400">
+
+                            {panelAnalyzing && (
+                                <div className="py-10 flex flex-col items-center gap-2 text-teal-400">
                                     <Loader2 className="w-8 h-8 animate-spin" />
-                                    <p className="text-sm font-medium">Analysing venture data...</p>
+                                    <p className="text-sm font-medium">Generating deep-dive panel briefing...</p>
                                 </div>
                             )}
-                            {analysisResult && !analyzing && (
+
+                            {panelAnalysisResult && !panelAnalyzing && (
                                 <div className="space-y-0 divide-y divide-gray-100">
+                                    {/* Panel Recommendation Badge */}
+                                    <div className="p-6">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Panel Recommendation</span>
+                                            <span className={`px-4 py-1.5 rounded-full text-sm font-bold ${
+                                                panelAnalysisResult.panel_recommendation === 'Accept' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
+                                                panelAnalysisResult.panel_recommendation === 'Accept with Conditions' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
+                                                panelAnalysisResult.panel_recommendation === 'Defer' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                                                'bg-red-100 text-red-700 border border-red-200'
+                                            }`}>
+                                                {panelAnalysisResult.panel_recommendation}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Executive Summary */}
+                                    <div className="p-6">
+                                        <span className="text-xs font-semibold text-gray-400 uppercase">Executive Summary</span>
+                                        <p className="text-sm text-gray-700 mt-2 leading-relaxed">{panelAnalysisResult.executive_summary}</p>
+                                    </div>
+
+                                    {/* Market Context */}
+                                    <div className="p-6">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Map className="w-4 h-4 text-blue-500" />
+                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Market Context</span>
+                                        </div>
+                                        <p className="text-sm text-gray-700 leading-relaxed">{panelAnalysisResult.market_context}</p>
+                                    </div>
+
+                                    {/* Gap Deep Dive */}
                                     <div className="p-6">
                                         <div className="flex items-center gap-2 mb-4">
-                                            <TrendingUp className="w-4 h-4 text-green-500" />
-                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Existing Venture Profile</span>
+                                            <Shield className="w-4 h-4 text-red-500" />
+                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Gap Deep Dive</span>
                                         </div>
-                                        <div className="space-y-3">
+                                        <div className="grid grid-cols-2 gap-4 mb-4">
                                             <div>
-                                                <span className="text-xs font-semibold text-gray-400 uppercase">Profile Summary</span>
-                                                <p className="text-sm text-gray-700 mt-1">{analysisResult.existing_venture_profile?.profile_summary || analysisResult.strengths?.[0] || 'Not available'}</p>
+                                                <span className="text-xs font-semibold text-red-500 uppercase">Critical Gaps</span>
+                                                <ul className="mt-2 space-y-2">
+                                                    {(panelAnalysisResult.gap_deep_dive?.critical_gaps || []).map((gap: string, i: number) => (
+                                                        <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                                                            <XCircle className="w-3.5 h-3.5 text-red-400 mt-0.5 flex-shrink-0" />
+                                                            {gap}
+                                                        </li>
+                                                    ))}
+                                                </ul>
                                             </div>
                                             <div>
-                                                <span className="text-xs font-semibold text-gray-400 uppercase">Product & Growth History</span>
-                                                <p className="text-sm text-gray-700 mt-1">{analysisResult.existing_venture_profile?.current_product_growth_history || 'Not available'}</p>
+                                                <span className="text-xs font-semibold text-emerald-500 uppercase">Addressable Gaps</span>
+                                                <ul className="mt-2 space-y-2">
+                                                    {(panelAnalysisResult.gap_deep_dive?.addressable_gaps || []).map((gap: string, i: number) => (
+                                                        <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                                                            <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                                                            {gap}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">{panelAnalysisResult.gap_deep_dive?.gap_summary}</p>
+                                    </div>
+
+                                    {/* Revenue Deep Dive */}
+                                    <div className="p-6">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <DollarSign className="w-4 h-4 text-green-500" />
+                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Revenue Deep Dive</span>
+                                        </div>
+                                        <div className="space-y-3 mb-4">
+                                            <div>
+                                                <span className="text-xs font-semibold text-gray-400 uppercase">Current Health</span>
+                                                <p className="text-sm text-gray-700 mt-1">{panelAnalysisResult.revenue_deep_dive?.current_health}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs font-semibold text-gray-400 uppercase">Projection Credibility</span>
+                                                <p className="text-sm text-gray-700 mt-1">{panelAnalysisResult.revenue_deep_dive?.projection_credibility}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs font-semibold text-gray-400 uppercase">Key Revenue Risks</span>
+                                                <ul className="mt-1 space-y-1">
+                                                    {(panelAnalysisResult.revenue_deep_dive?.key_revenue_risks || []).map((risk: string, i: number) => (
+                                                        <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                                                            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                                                            {risk}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">{panelAnalysisResult.revenue_deep_dive?.revenue_summary}</p>
+                                    </div>
+
+                                    {/* Growth Opportunity Deep Dive */}
+                                    <div className="p-6">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <Rocket className="w-4 h-4 text-purple-500" />
+                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Growth Opportunity Deep Dive</span>
+                                        </div>
+                                        <div className="space-y-3 mb-4">
+                                            <div>
+                                                <span className="text-xs font-semibold text-gray-400 uppercase">Market Size Signal</span>
+                                                <p className="text-sm text-gray-700 mt-1">{panelAnalysisResult.growth_opportunity_deep_dive?.market_size_signal}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs font-semibold text-gray-400 uppercase">Competitive Positioning</span>
+                                                <p className="text-sm text-gray-700 mt-1">{panelAnalysisResult.growth_opportunity_deep_dive?.competitive_positioning}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs font-semibold text-gray-400 uppercase">Execution Feasibility</span>
+                                                <p className="text-sm text-gray-700 mt-1">{panelAnalysisResult.growth_opportunity_deep_dive?.execution_feasibility}</p>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic">{panelAnalysisResult.growth_opportunity_deep_dive?.growth_summary}</p>
+                                    </div>
+
+                                    {/* Strengths & Risks */}
+                                    <div className="p-6">
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <TrendingUp className="w-4 h-4 text-green-500" />
+                                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Strengths</span>
+                                                </div>
+                                                <ul className="space-y-2">
+                                                    {(panelAnalysisResult.strengths || []).map((s: string, i: number) => (
+                                                        <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                                                            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />
+                                                            {s}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <AlertTriangle className="w-4 h-4 text-red-500" />
+                                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Risks</span>
+                                                </div>
+                                                <ul className="space-y-2">
+                                                    {(panelAnalysisResult.risks || []).map((r: string, i: number) => (
+                                                        <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                                                            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                                                            {r}
+                                                        </li>
+                                                    ))}
+                                                </ul>
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Interview Questions */}
                                     <div className="p-6">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="flex items-center gap-2">
-                                                <AlertTriangle className="w-4 h-4 text-amber-500" />
-                                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">New Venture Definition Clarity</span>
-                                            </div>
-                                            {analysisResult.new_venture_clarity?.definition_clarity_flag && (
-                                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                                    analysisResult.new_venture_clarity.definition_clarity_flag === 'Well Defined' ? 'bg-green-100 text-green-700' :
-                                                    analysisResult.new_venture_clarity.definition_clarity_flag === 'Partially Defined' ? 'bg-amber-100 text-amber-700' :
-                                                    'bg-red-100 text-red-700'
-                                                }`}>
-                                                    {analysisResult.new_venture_clarity.definition_clarity_flag}
-                                                </span>
-                                            )}
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <MessageSquare className="w-4 h-4 text-indigo-500" />
+                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Interview Questions</span>
                                         </div>
-                                        <div className="grid grid-cols-3 gap-4 mb-4">
-                                            <div>
-                                                <span className="text-xs font-semibold text-gray-400 uppercase">New Product/Service</span>
-                                                <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_product_or_service || 'Not assessed'}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-xs font-semibold text-gray-400 uppercase">New Segment/Market</span>
-                                                <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_segment_or_market || 'Not assessed'}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-xs font-semibold text-gray-400 uppercase">New Geography</span>
-                                                <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_geography || 'Not assessed'}</p>
-                                            </div>
-                                        </div>
-                                        <div className="mb-4">
-                                            <span className="text-xs font-semibold text-gray-400 uppercase">Estimated Incremental Revenue</span>
-                                            <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.estimated_incremental_revenue || 'Not provided'}</p>
-                                        </div>
-                                        <div className="mb-4">
-                                            <span className="text-xs font-semibold text-gray-400 uppercase">Clarity Gaps</span>
-                                            <ul className="mt-1 space-y-1">
-                                                {(analysisResult.new_venture_clarity?.clarity_gaps || []).map((gap: string, i: number) => (
-                                                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                                                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                                                        {gap}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                        <div>
-                                            <span className="text-xs font-semibold text-gray-400 uppercase">Clarity Summary</span>
-                                            <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.clarity_summary || 'Not available'}</p>
+                                        <div className="space-y-4">
+                                            {(panelAnalysisResult.interview_questions || []).map((q: any, i: number) => (
+                                                <div key={i} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                                                    <p className="text-sm font-semibold text-gray-800 mb-2">
+                                                        <span className="text-indigo-500 mr-1">Q{i + 1}.</span>
+                                                        {q.question}
+                                                    </p>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <span className="text-[10px] font-bold text-blue-500 uppercase">Intent</span>
+                                                            <p className="text-xs text-gray-600 mt-0.5">{q.intent}</p>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-[10px] font-bold text-red-500 uppercase">Red Flag</span>
+                                                            <p className="text-xs text-gray-600 mt-0.5">{q.red_flag}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>

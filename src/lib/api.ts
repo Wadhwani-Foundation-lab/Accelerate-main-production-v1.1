@@ -184,6 +184,7 @@ class ApiClient {
             vsm_notes: currentAssessment.notes,
             internal_comments: currentAssessment.internal_comments,
             ai_analysis: currentAssessment.ai_analysis,
+            panel_ai_analysis: currentAssessment.panel_ai_analysis,
             program_recommendation: currentAssessment.program_recommendation,
             vsm_reviewed_at: currentAssessment.assessment_date,
         };
@@ -515,6 +516,30 @@ class ApiClient {
 
         const data = await response.json();
         return data; // Returns { message, insights }
+    }
+
+    async generatePanelInsights(ventureId: string, panelNotes?: string) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+        const response = await fetch(`${API_URL}/api/ventures/${ventureId}/generate-insights?type=panel`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ panel_notes: panelNotes })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to generate panel insights');
+        }
+
+        const data = await response.json();
+        return data;
     }
 
     // ============ PANEL FEEDBACK ENDPOINTS ============

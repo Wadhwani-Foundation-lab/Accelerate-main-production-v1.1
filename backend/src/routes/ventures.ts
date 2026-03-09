@@ -437,6 +437,7 @@ router.post(
 
             // Get VSM notes from request body (optional)
             const vsmNotes = req.body.vsm_notes || venture.vsm_notes || '';
+            const insightType = req.query.type as string;
 
             // Fetch application data including all form fields
             const { data: appData } = await supabase
@@ -477,22 +478,67 @@ router.post(
                 state: appData?.state,
             };
 
-            // Generate insights using Claude API
-            const insights = await aiService.generateVentureInsights(ventureWithDoc, vsmNotes);
-
-            // Save insights to venture_assessments table
             const now = new Date().toISOString();
 
             // Check for existing current assessment
             const { data: existingAssessment } = await supabase
                 .from('venture_assessments')
-                .select('id')
+                .select('id, ai_analysis, program_recommendation')
                 .eq('venture_id', req.params.id)
                 .eq('is_current', true)
                 .maybeSingle();
 
+            if (insightType === 'panel') {
+                // ===== V2: Panel Interview Insights =====
+                const panelNotes = req.body.panel_notes || '';
+                const panelVentureData = {
+                    ...ventureWithDoc,
+                    screening_recommendation: existingAssessment?.program_recommendation || venture.program_recommendation || '',
+                    prior_ai_analysis: existingAssessment?.ai_analysis || null,
+                };
+
+                const panelInsights = await aiService.generatePanelInsights(panelVentureData, vsmNotes, panelNotes);
+
+                // Save panel insights
+                if (existingAssessment) {
+                    const { error: updateError } = await supabase
+                        .from('venture_assessments')
+                        .update({
+                            panel_ai_analysis: panelInsights,
+                            panel_ai_generated_at: now,
+                            updated_at: now,
+                        })
+                        .eq('id', existingAssessment.id);
+
+                    if (updateError) console.error('Error saving panel insights:', updateError);
+                } else {
+                    const { error: insertError } = await supabase
+                        .from('venture_assessments')
+                        .insert({
+                            venture_id: req.params.id,
+                            assessed_by: req.user.id,
+                            assessor_role: role,
+                            assessment_type: 'panel',
+                            assessment_date: now,
+                            panel_ai_analysis: panelInsights,
+                            panel_ai_generated_at: now,
+                            is_current: true,
+                            assessment_version: 1,
+                        });
+
+                    if (insertError) console.error('Error creating panel assessment:', insertError);
+                }
+
+                return successResponse(res, {
+                    message: 'Panel insights generated successfully',
+                    insights: panelInsights
+                });
+            }
+
+            // ===== V1: Screening Insights (default) =====
+            const insights = await aiService.generateVentureInsights(ventureWithDoc, vsmNotes);
+
             if (existingAssessment) {
-                // Update existing assessment
                 const { error: updateError } = await supabase
                     .from('venture_assessments')
                     .update({
@@ -506,7 +552,6 @@ router.post(
                     console.error('Error saving insights to assessment:', updateError);
                 }
             } else {
-                // Create new assessment
                 const { error: insertError } = await supabase
                     .from('venture_assessments')
                     .insert({

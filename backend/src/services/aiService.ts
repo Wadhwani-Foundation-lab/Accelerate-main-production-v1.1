@@ -46,6 +46,37 @@ export interface RoadmapData {
     operations: FunctionalAreaRoadmap;
 }
 
+export interface PanelInsights {
+    panel_recommendation: string;
+    executive_summary: string;
+    market_context: string;
+    gap_deep_dive: {
+        critical_gaps: string[];
+        addressable_gaps: string[];
+        gap_summary: string;
+    };
+    revenue_deep_dive: {
+        current_health: string;
+        projection_credibility: string;
+        key_revenue_risks: string[];
+        revenue_summary: string;
+    };
+    growth_opportunity_deep_dive: {
+        market_size_signal: string;
+        competitive_positioning: string;
+        execution_feasibility: string;
+        growth_summary: string;
+    };
+    strengths: string[];
+    risks: string[];
+    interview_questions: {
+        question: string;
+        intent: string;
+        red_flag: string;
+    }[];
+    generated_at: string;
+}
+
 export interface AIInsights {
     existing_venture_profile: {
         profile_summary: string;
@@ -544,4 +575,272 @@ function getFallbackArea(stream: string): FunctionalAreaRoadmap {
         },
     };
     return fallbacks[stream] || fallbacks.product;
+}
+
+/**
+ * Generate panel interview insights for a venture using Claude API
+ */
+export async function generatePanelInsights(
+    ventureData: VentureData & { panel_notes?: string; screening_recommendation?: string; prior_ai_analysis?: any },
+    vsmNotes: string = '',
+    panelNotes: string = ''
+): Promise<PanelInsights> {
+    if (!process.env.ANTHROPIC_API_KEY) {
+        throw new Error('ANTHROPIC_API_KEY is not configured in environment variables');
+    }
+
+    const prompt = buildPanelInsightsPrompt(ventureData, vsmNotes, panelNotes);
+
+    try {
+        const message = await anthropic.messages.create({
+            model: 'claude-sonnet-4-5-20250929',
+            max_tokens: 2500,
+            temperature: 0.7,
+            messages: [{ role: 'user', content: prompt }]
+        });
+
+        const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+        return parsePanelResponse(responseText, ventureData);
+    } catch (error: any) {
+        console.error('Error calling Claude API for panel insights:', error);
+        if (error.status === 401) {
+            throw new Error('Invalid Anthropic API key. Please check your ANTHROPIC_API_KEY.');
+        } else if (error.status === 429) {
+            throw new Error('Rate limit exceeded. Please try again later.');
+        }
+        throw new Error(`Failed to generate panel insights: ${error.message}`);
+    }
+}
+
+function buildPanelInsightsPrompt(
+    ventureData: VentureData & { screening_recommendation?: string; prior_ai_analysis?: any },
+    vsmNotes: string,
+    panelNotes: string
+): string {
+    return `You are a senior venture evaluation analyst preparing a deep-dive briefing for the interview panel of the Accelerate Assisted Growth Platform. The venture has already passed initial screening and been assigned a program tier. Your role is to help the panel conduct a thorough, evidence-based interview that probes the three critical evaluation dimensions:
+
+1. **Gaps** — What are the venture's capability, strategic, and execution gaps? How addressable are they through the Accelerate program?
+2. **Revenue** — How credible are the revenue assumptions? What are the unit economics, growth drivers, and risks to the financial trajectory?
+3. **Growth Opportunity** — How large and defensible is the market opportunity? Does the venture have a realistic path to capture it?
+
+You will receive:
+- The full venture application (business details, growth idea, support areas, support description)
+- The screening manager's tier recommendation and notes from initial review
+- Panel member notes (optional pre-interview observations)
+- Corporate presentation (optional attachment)
+- Any prior AI screening insights generated during the screening stage
+
+**Venture Information:**
+- Company Name: ${ventureData.name}
+- Founder: ${ventureData.founder_name || 'N/A'}
+- Current Revenue (12M): ₹${ventureData.revenue_12m?.toLocaleString() || 'N/A'}
+- Target Revenue (3Y): ₹${ventureData.revenue_potential_3y?.toLocaleString() || 'N/A'}
+- Full-Time Employees: ${ventureData.full_time_employees || 'N/A'}
+- Growth Focus: ${ventureData.growth_focus || 'N/A'}
+- Current Market: ${JSON.stringify(ventureData.growth_current || {})}
+- Target Market: ${JSON.stringify(ventureData.growth_target || {})}
+- Screening Tier: ${ventureData.screening_recommendation || 'N/A'}
+
+**Current Business:**
+- Products/Services: ${(ventureData as any).what_do_you_sell || 'N/A'}
+- Customer Segments: ${(ventureData as any).who_do_you_sell_to || 'N/A'}
+- Regions: ${(ventureData as any).which_regions || 'N/A'}
+
+**New Growth Idea:**
+- Growth Type: ${(ventureData as any).growth_type || ventureData.growth_focus || 'N/A'}
+- New Product/Service: ${(ventureData as any).focus_product || 'N/A'}
+- New Customer Segment: ${(ventureData as any).focus_segment || 'N/A'}
+- New Geography: ${(ventureData as any).focus_geography || 'N/A'}
+- Support Description: ${(ventureData as any).support_description || 'N/A'}
+
+**Screening Manager's Notes:**
+${vsmNotes || 'No screening notes provided.'}
+
+**Panel Member's Notes:**
+${panelNotes || 'No panel notes provided.'}
+${ventureData.corporate_presentation_text ? `
+**Corporate Presentation Content:**
+${ventureData.corporate_presentation_text.slice(0, 8000)}
+${ventureData.corporate_presentation_text.length > 8000 ? '\n[... truncated ...]' : ''}
+` : ''}
+**Prior Screening Insights (if available):**
+${JSON.stringify(ventureData.prior_ai_analysis || 'No prior AI insights available.')}
+
+Based on all available data, generate a deep-dive panel briefing.
+
+**Your Task:**
+Provide a comprehensive panel interview briefing in the following JSON format:
+
+{
+  "panel_recommendation": "<One of: Accept, Accept with Conditions, Defer, or Reject>",
+  "executive_summary": "<3-4 sentence summary covering the venture's core proposition, key strength, and primary concern>",
+  "market_context": "<2-3 sentences on the sector landscape, competitive dynamics, and market timing>",
+  "gap_deep_dive": {
+    "critical_gaps": [
+      "<Critical gap 1 — a gap that could prevent success if unaddressed>",
+      "<Critical gap 2>",
+      "<Critical gap 3>"
+    ],
+    "addressable_gaps": [
+      "<Addressable gap 1 — a gap that Accelerate's support can realistically close>",
+      "<Addressable gap 2>",
+      "<Addressable gap 3>"
+    ],
+    "gap_summary": "<1-2 sentences on overall gap severity and whether Accelerate can bridge them>"
+  },
+  "revenue_deep_dive": {
+    "current_health": "<1-2 sentences on current revenue quality — recurring vs. one-time, customer concentration, margin profile>",
+    "projection_credibility": "<1-2 sentences evaluating the 3-year target — what growth rate is implied, is it achievable given the model?>",
+    "key_revenue_risks": [
+      "<Revenue risk 1>",
+      "<Revenue risk 2>",
+      "<Revenue risk 3>"
+    ],
+    "revenue_summary": "<1-2 sentences on overall revenue outlook>"
+  },
+  "growth_opportunity_deep_dive": {
+    "market_size_signal": "<1-2 sentences on whether the target market is large enough to justify the growth idea>",
+    "competitive_positioning": "<1-2 sentences on how the venture differentiates or could be displaced>",
+    "execution_feasibility": "<1-2 sentences on whether the team, resources, and timeline are realistic for the proposed growth>",
+    "growth_summary": "<1-2 sentences on overall growth opportunity quality>"
+  },
+  "strengths": [
+    "<Strength 1>",
+    "<Strength 2>",
+    "<Strength 3>",
+    "<Strength 4>",
+    "<Strength 5>"
+  ],
+  "risks": [
+    "<Risk 1>",
+    "<Risk 2>",
+    "<Risk 3>",
+    "<Risk 4>",
+    "<Risk 5>"
+  ],
+  "interview_questions": [
+    {
+      "question": "<Interview question 1>",
+      "intent": "<What the panel is trying to validate with this question>",
+      "red_flag": "<What answer would be a warning sign>"
+    },
+    {
+      "question": "<Interview question 2>",
+      "intent": "<Intent>",
+      "red_flag": "<Red flag>"
+    },
+    {
+      "question": "<Interview question 3>",
+      "intent": "<Intent>",
+      "red_flag": "<Red flag>"
+    },
+    {
+      "question": "<Interview question 4>",
+      "intent": "<Intent>",
+      "red_flag": "<Red flag>"
+    },
+    {
+      "question": "<Interview question 5>",
+      "intent": "<Intent>",
+      "red_flag": "<Red flag>"
+    }
+  ]
+}
+
+Return ONLY the JSON object, no additional text.`;
+}
+
+function parsePanelResponse(responseText: string, ventureData: VentureData): PanelInsights {
+    try {
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('No JSON found in response');
+
+        const parsed = JSON.parse(jsonMatch[0]);
+
+        return {
+            panel_recommendation: parsed.panel_recommendation || 'Accept with Conditions',
+            executive_summary: parsed.executive_summary || 'Analysis completed. Manual panel review recommended.',
+            market_context: parsed.market_context || 'Market context requires panel discussion.',
+            gap_deep_dive: {
+                critical_gaps: Array.isArray(parsed.gap_deep_dive?.critical_gaps) && parsed.gap_deep_dive.critical_gaps.length === 3
+                    ? parsed.gap_deep_dive.critical_gaps
+                    : ['Strategic gap assessment requires manual review.', 'Team capability evaluation pending panel discussion.', 'Execution readiness to be validated in interview.'],
+                addressable_gaps: Array.isArray(parsed.gap_deep_dive?.addressable_gaps) && parsed.gap_deep_dive.addressable_gaps.length === 3
+                    ? parsed.gap_deep_dive.addressable_gaps
+                    : ['Go-to-market strategy can be refined with Accelerate support.', 'Capital planning can be strengthened through mentorship.', 'Operational scaling playbook available through program resources.'],
+                gap_summary: parsed.gap_deep_dive?.gap_summary || 'Gap analysis requires panel discussion.',
+            },
+            revenue_deep_dive: {
+                current_health: parsed.revenue_deep_dive?.current_health || 'Revenue health requires panel evaluation.',
+                projection_credibility: parsed.revenue_deep_dive?.projection_credibility || '3-year target needs validation.',
+                key_revenue_risks: Array.isArray(parsed.revenue_deep_dive?.key_revenue_risks) && parsed.revenue_deep_dive.key_revenue_risks.length === 3
+                    ? parsed.revenue_deep_dive.key_revenue_risks
+                    : ['Revenue concentration risk to be assessed.', 'Growth rate sustainability to be validated.', 'Margin profile requires clarification.'],
+                revenue_summary: parsed.revenue_deep_dive?.revenue_summary || 'Revenue analysis requires panel deep-dive.',
+            },
+            growth_opportunity_deep_dive: {
+                market_size_signal: parsed.growth_opportunity_deep_dive?.market_size_signal || 'Market opportunity requires panel assessment.',
+                competitive_positioning: parsed.growth_opportunity_deep_dive?.competitive_positioning || 'Competitive landscape to be discussed.',
+                execution_feasibility: parsed.growth_opportunity_deep_dive?.execution_feasibility || 'Execution readiness requires validation.',
+                growth_summary: parsed.growth_opportunity_deep_dive?.growth_summary || 'Growth opportunity evaluation pending.',
+            },
+            strengths: Array.isArray(parsed.strengths) && parsed.strengths.length === 5
+                ? parsed.strengths
+                : ['Strong revenue base.', `Clear focus on ${ventureData.growth_focus || 'growth'}.`, 'Experienced team structure.', 'Proven market fit in current segment.', 'Scalable business model.'],
+            risks: Array.isArray(parsed.risks) && parsed.risks.length === 5
+                ? parsed.risks
+                : ['Competitive landscape concerns.', 'Capital efficiency risk.', 'Go-to-market strategy needs refinement.', 'Limited runway for expansion.', 'Dependency on key personnel.'],
+            interview_questions: Array.isArray(parsed.interview_questions) && parsed.interview_questions.length === 5
+                ? parsed.interview_questions.map((q: any) => ({
+                    question: q.question || 'Question not generated.',
+                    intent: q.intent || 'Intent not specified.',
+                    red_flag: q.red_flag || 'Red flag not specified.',
+                }))
+                : [
+                    { question: 'How do you plan to acquire the first 10 customers in the new segment?', intent: 'Validate go-to-market readiness.', red_flag: 'No specific customer acquisition plan.' },
+                    { question: 'What is the breakdown of the 3-year revenue potential?', intent: 'Assess revenue projection granularity.', red_flag: 'Cannot articulate revenue drivers.' },
+                    { question: 'Can you elaborate on the specific compliance hurdles?', intent: 'Understand regulatory awareness.', red_flag: 'Unaware of key regulatory requirements.' },
+                    { question: 'What is the burn rate impact of the new hiring plan?', intent: 'Evaluate capital planning maturity.', red_flag: 'No financial model for team expansion.' },
+                    { question: 'How does the current product adapt to the new market?', intent: 'Assess product-market fit for expansion.', red_flag: 'No adaptation plan or customer validation.' },
+                ],
+            generated_at: new Date().toISOString(),
+        };
+    } catch (error) {
+        console.error('Error parsing panel insights response:', error);
+        console.log('Raw response:', responseText);
+
+        // Return fallback
+        return {
+            panel_recommendation: 'Accept with Conditions',
+            executive_summary: `Evaluated "${ventureData.name}" - Deep-dive AI analysis completed but requires manual panel review for final decision.`,
+            market_context: 'Automated analysis. Market context requires panel discussion.',
+            gap_deep_dive: {
+                critical_gaps: ['Strategic gap assessment requires manual review.', 'Team capability evaluation pending panel discussion.', 'Execution readiness to be validated in interview.'],
+                addressable_gaps: ['Go-to-market strategy can be refined with Accelerate support.', 'Capital planning can be strengthened through mentorship.', 'Operational scaling playbook available through program resources.'],
+                gap_summary: 'Automated gap analysis incomplete. Panel should assess gaps during interview.',
+            },
+            revenue_deep_dive: {
+                current_health: 'Current revenue trajectory requires panel evaluation against industry benchmarks.',
+                projection_credibility: '3-year revenue target needs validation of underlying growth assumptions.',
+                key_revenue_risks: ['Revenue concentration risk to be assessed.', 'Growth rate sustainability to be validated.', 'Margin profile requires clarification.'],
+                revenue_summary: 'Revenue analysis requires manual deep-dive by panel.',
+            },
+            growth_opportunity_deep_dive: {
+                market_size_signal: 'Market opportunity size requires panel assessment.',
+                competitive_positioning: 'Competitive landscape and defensibility to be discussed in interview.',
+                execution_feasibility: 'Team and resource readiness for growth plan requires validation.',
+                growth_summary: 'Growth opportunity evaluation pending panel discussion.',
+            },
+            strengths: ['Strong revenue base.', `Clear focus on ${ventureData.growth_focus || 'growth'}.`, 'Experienced team structure.', 'Proven market fit in current segment.', 'Scalable business model.'],
+            risks: ['Competitive landscape concerns.', 'Capital efficiency risk.', 'Go-to-market strategy needs refinement.', 'Limited runway for expansion.', 'Dependency on key personnel.'],
+            interview_questions: [
+                { question: 'How do you plan to acquire the first 10 customers in the new segment?', intent: 'Validate go-to-market readiness.', red_flag: 'No specific customer acquisition plan.' },
+                { question: 'What is the breakdown of the 3-year revenue potential?', intent: 'Assess revenue projection granularity.', red_flag: 'Cannot articulate revenue drivers.' },
+                { question: 'Can you elaborate on the specific compliance hurdles?', intent: 'Understand regulatory awareness.', red_flag: 'Unaware of key regulatory requirements.' },
+                { question: 'What is the burn rate impact of the new hiring plan?', intent: 'Evaluate capital planning maturity.', red_flag: 'No financial model for team expansion.' },
+                { question: 'How does the current product adapt to the new market?', intent: 'Assess product-market fit for expansion.', red_flag: 'No adaptation plan or customer validation.' },
+            ],
+            generated_at: new Date().toISOString(),
+        };
+    }
 }
