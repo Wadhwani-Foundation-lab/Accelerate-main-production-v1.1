@@ -86,14 +86,25 @@ export const VentureCard: React.FC<VentureCardProps> = ({ venture }) => {
                     {venture.submittedAt && (
                         <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-500 font-medium">
                             <Calendar className="w-3 h-3 text-gray-400" />
-                            {venture.submittedAt}
+                            Application Submitted on {new Date(venture.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </span>
                     )}
                 </div>
 
                 {/* Action buttons */}
                 <div className="flex items-center gap-2.5 pt-4 border-t border-gray-100">
-                    {venture.workbench_locked ? (
+                    {venture.status === 'Joined Program' ? (
+                        <button
+                            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-colors shadow-sm"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/dashboard/venture/${venture.id}/workbench`);
+                            }}
+                        >
+                            <LayoutGrid className="w-3.5 h-3.5" />
+                            Workbench
+                        </button>
+                    ) : venture.workbench_locked ? (
                         <button
                             className="flex-1 relative inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold bg-gradient-to-r from-brand-500 to-brand-600 text-white hover:from-brand-600 hover:to-brand-700 transition-all shadow-lg shadow-brand-500/30 animate-pulse hover:animate-none"
                             onClick={(e) => {

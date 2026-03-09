@@ -131,14 +131,10 @@ export const VentureWorkbench = () => {
                     </Button>
                 </div>
                 {isSigned && (
-                    <div className="flex gap-4">
-                        <div className="bg-white px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium flex items-center gap-2">
-                            Progress Status <span className="w-2 h-2 rounded-full bg-green-500" />
-                        </div>
-                        <div className="bg-white px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium flex items-center gap-2">
-                            Support Satisfaction <span className="w-2 h-2 rounded-full bg-green-500" />
-                        </div>
-                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Joined Program
+                    </span>
                 )}
             </div>
 
@@ -395,123 +391,216 @@ export const VentureWorkbench = () => {
                         </div>
                     </div>
                 ) : (
-                    // WORKBENCH VIEW (Signed)
-                    <div className="space-y-6">
-                        {/* Status Cards */}
-                        <div className="grid grid-cols-12 gap-4">
-                            <div className="col-span-8 grid grid-cols-1 gap-4">
-                                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="bg-lime-100 text-lime-800 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded">Business</div>
-                                        <div>
-                                            <div className="font-bold text-gray-900">{venture.name}</div>
-                                            <div className="text-xs text-gray-500">{venture.city} • ₹{venture.revenue_12m}</div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="bg-lime-100 text-lime-800 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded">CEO</div>
-                                        <span className="font-bold text-gray-900">Arun Kumar</span>
-                                    </div>
-                                </div>
-
-                                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="bg-lime-400 text-lime-900 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded">Venture</div>
-                                        <div>
-                                            <div className="font-bold text-gray-900">{venture.growth_focus}</div>
-                                            <div className="text-xs text-gray-500">Target: ₹{venture.revenue_potential_3y}</div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="bg-orange-600 text-white px-3 py-1 text-xs font-bold uppercase tracking-wider rounded">Partner</div>
-                                        <span className="font-bold text-gray-900">{venture.venture_partner || 'Unassigned'}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="col-span-4 bg-white rounded-lg shadow-sm border border-gray-100 p-0 overflow-hidden flex">
-                                <div className="flex-1 border-r border-gray-100 p-4 text-center">
-                                    <div className="bg-purple-900 text-white text-[10px] uppercase font-bold py-1 px-2 rounded mb-2 inline-block">Support Tier</div>
-                                    <div className="text-xl font-bold text-gray-900">{venture.final_program || 'Prime'}</div>
-                                </div>
-                                <div className="flex-1 border-r border-gray-100 p-4 text-center">
-                                    <div className="text-2xl font-bold text-gray-900">{supportHours?.balance ?? 15}</div>
-                                    <div className="text-xs text-gray-500 uppercase font-bold">Hours Balance</div>
-                                </div>
-                                <div className="flex-1 bg-purple-900 text-white p-4 flex flex-col justify-center">
-                                    <div className="text-xs opacity-80 uppercase font-bold">Outcome</div>
-                                    <div className="font-bold text-sm">Start + 3yr Incremental</div>
-                                </div>
-                            </div>
+                    // READ-ONLY WORKBENCH VIEW (Signed / Joined Program)
+                    <div id="growth-plan-section" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden max-w-5xl mx-auto">
+                        {/* Joined Program badge */}
+                        <div className="p-4 bg-emerald-50 border-b border-emerald-200 flex items-center gap-3">
+                            <CheckCircle className="w-5 h-5 text-emerald-600" />
+                            <span className="text-sm font-bold text-emerald-800">You have joined the program. Here is your journey plan.</span>
                         </div>
 
-                        {/* Journey Table */}
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-                            <div className="px-6 py-4 border-b border-gray-100">
-                                <h3 className="font-bold text-lg text-gray-900">Journey</h3>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="bg-orange-500 text-white text-xs uppercase font-bold">
-                                            <th className="px-6 py-3 text-left">Stream</th>
-                                            <th className="px-6 py-3 text-left">Owner</th>
-                                            <th className="px-6 py-3 text-left">End</th>
-                                            <th className="px-6 py-3 text-left">Status</th>
-                                            <th className="px-6 py-3 text-left">End Output</th>
-                                            <th className="px-6 py-3 text-left">Sprint Deliverable</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {streams.length > 0 ? (
-                                            streams.map((row, i) => (
-                                                <tr key={i} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 font-medium text-gray-900">{row.stream_name}</td>
-                                                    <td className="px-6 py-4 text-gray-600">{row.owner || 'Founder'}</td>
-                                                    <td className="px-6 py-4 text-gray-600">{row.end_date || 'Oct 2025'}</td>
-                                                    <td className="px-6 py-4">
-                                                        <StatusSelect
-                                                            status={row.status}
-                                                            onChange={(newStatus) => updateStreamStatus(row.id, newStatus)}
-                                                        />
-                                                    </td>
-                                                    <td className="px-6 py-4 text-gray-500 italic">Marker for success</td>
-                                                    <td className="px-6 py-4 text-gray-500 italic">Stream unblock</td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">No streams defined.</td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                        <div className="p-6 border-b border-gray-200">
+                            <h2 className="text-xl font-bold text-gray-900">Journey Roadmap</h2>
                         </div>
 
-                        {/* Feedback & Support Notes */}
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 grid grid-cols-2 gap-8">
+                        <div className="divide-y divide-gray-200">
+                            {/* Roadmap */}
                             <div>
-                                <h4 className="font-bold text-gray-900 mb-4">Feedback</h4>
-                                <ul className="space-y-2">
-                                    <li className="text-red-500 text-sm flex items-start gap-2">
-                                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
-                                        Provided expert did not understand domain enough to be valuable
-                                    </li>
-                                </ul>
+                                <div className="p-6">
+                                    {roadmapData ? (
+                                        <div className="space-y-4">
+                                            {Object.entries(roadmapData).map(([key, area]: [string, any]) => {
+                                                const actions = Array.isArray(area) ? area : area?.actions || [];
+                                                const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                                                const priority = area?.support_priority || 'Need some guidance';
+                                                const priorityColor = (priority === 'Need deep support' || priority === 'High') ? 'bg-red-100 text-red-700' : (priority === "Don't need help" || priority === 'Low') ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700';
+                                                if (actions.length === 0) return null;
+                                                return (
+                                                    <div key={key} className="border border-gray-100 rounded-lg p-4 bg-gray-50/50">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <h4 className="font-bold text-gray-800 uppercase text-sm">{label}</h4>
+                                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${priorityColor}`}>{priority}</span>
+                                                        </div>
+                                                        {area?.relevance && <p className="text-xs text-gray-500 mb-3">{area.relevance}</p>}
+                                                        <ul className="space-y-2">
+                                                            {actions.map((action: any, i: number) => (
+                                                                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                                                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0" />
+                                                                    <div>
+                                                                        <span className="font-semibold">{action.title}</span>
+                                                                        {action.timeline && <span className="text-gray-400 ml-2 text-xs">({action.timeline})</span>}
+                                                                        {action.description && <p className="text-xs text-gray-500 mt-0.5">{action.description}</p>}
+                                                                    </div>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : Object.keys(milestonesByCategory).length > 0 ? (
+                                        <div className="space-y-4">
+                                            {Object.entries(milestonesByCategory).map(([category, items]: [string, any]) => (
+                                                <div key={category} className="border border-gray-100 rounded-lg p-4 bg-gray-50/50">
+                                                    <h4 className="font-bold text-gray-800 mb-2">{category}</h4>
+                                                    <ul className="list-disc pl-5 space-y-1">
+                                                        {(items as string[]).map((item, i) => (
+                                                            <li key={i} className="text-gray-600 text-sm">{item}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="italic text-gray-400">No specific roadmap milestones defined yet.</p>
+                                    )}
+                                </div>
                             </div>
-                            <div>
-                                <h4 className="font-bold text-gray-900 mb-4">Support Notes</h4>
-                                <ul className="space-y-2">
-                                    <li className="text-red-500 text-sm flex items-start gap-2">
-                                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
-                                        Validate Supply Chain and Operations requirements are understood through the playbook
-                                    </li>
-                                    <li className="text-red-500 text-sm flex items-start gap-2">
-                                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
-                                        Provide research on relevant government programs to address forex risk management
-                                    </li>
-                                </ul>
+
+                            {/* Support provided */}
+                            <div className="border-t border-gray-200">
+                                <div className="p-6">
+                                    <div className="bg-slate-50/50 rounded-xl p-6 border border-slate-100">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center">
+                                                <Zap className="w-4 h-4 text-white" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-black text-gray-900 text-sm tracking-wide">SUPPORT PROVIDED</h3>
+                                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Resources & Advisory Access</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                                                <Zap className="w-5 h-5 text-blue-500 mb-3" />
+                                                <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Virtual Growth Accelerator</h4>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed">Full access to our digital scaling environment.</p>
+                                            </div>
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                                                <Users className="w-5 h-5 text-blue-500 mb-3" />
+                                                <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Masterclasses</h4>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed">Expert-led sessions with industry-specific training.</p>
+                                            </div>
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                                                <FileText className="w-5 h-5 text-blue-500 mb-3" />
+                                                <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Stream Overviews</h4>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed">Strategy & tips developed by experts for each department.</p>
+                                            </div>
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                                                <FileText className="w-5 h-5 text-blue-500 mb-3" />
+                                                <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Deliverable Playbooks</h4>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed">Step-by-step guides for every project milestone.</p>
+                                            </div>
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col min-h-[140px]">
+                                                <Clock className="w-5 h-5 text-blue-500 mb-3" />
+                                                <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Expert Hours (Sprint)</h4>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed mb-4">First 60 days of intensive support.</p>
+                                                <div className="mt-auto">
+                                                    <div className="text-[8px] font-bold text-blue-600 uppercase mb-1">Specified Hours</div>
+                                                    <div className="bg-gray-50 rounded px-2 py-1 text-xs font-bold flex justify-between">
+                                                        40 <span className="text-gray-400">HRS</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col min-h-[140px]">
+                                                <Clock className="w-5 h-5 text-blue-500 mb-3" />
+                                                <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Expert Hours (Journey)</h4>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed mb-4">Ongoing strategic advisory.</p>
+                                                <div className="mt-auto">
+                                                    <div className="text-[8px] font-bold text-blue-600 uppercase mb-1">Specified Hours</div>
+                                                    <div className="bg-gray-50 rounded px-2 py-1 text-xs font-bold flex justify-between">
+                                                        120 <span className="text-gray-400">HRS</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col">
+                                                <ArrowUpRight className="w-5 h-5 text-blue-500 mb-3" />
+                                                <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Provider Referrals</h4>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed">Vetted network of verified service providers.</p>
+                                            </div>
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col">
+                                                <Search className="w-5 h-5 text-blue-500 mb-3" />
+                                                <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Research Reports</h4>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed">In-depth market and stream analytics documents.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Venture commitment */}
+                            <div className="border-t border-gray-200">
+                                <div className="p-6">
+                                    <div className="bg-slate-50/50 rounded-xl p-6 border border-slate-100">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="w-8 h-8 rounded bg-red-600 flex items-center justify-center">
+                                                <ShieldCheck className="w-4 h-4 text-white" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-black text-gray-900 text-sm tracking-wide uppercase">Venture Commitment</h3>
+                                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Requirements for participation</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
+                                            <div className="flex gap-3">
+                                                <div className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <CheckCircle className="w-3 h-3 text-red-500" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-900 uppercase mb-1">Journey Progression</h4>
+                                                    <p className="text-[10px] text-gray-500 leading-relaxed">Committed to progressing through all journey items as relevant.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <div className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <CheckCircle className="w-3 h-3 text-red-500" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-900 uppercase mb-1">Stream SPOCs</h4>
+                                                    <p className="text-[10px] text-gray-500 leading-relaxed">Dedicated points of contact for each functional stream.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <div className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <CheckCircle className="w-3 h-3 text-red-500" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-900 uppercase mb-1">Monthly Check-ins</h4>
+                                                    <p className="text-[10px] text-gray-500 leading-relaxed">Regular strategy alignment with Venture Partners.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <div className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <CheckCircle className="w-3 h-3 text-red-500" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-900 uppercase mb-1">Direct Funding</h4>
+                                                    <p className="text-[10px] text-gray-500 leading-relaxed">Budget allocation for additional expert requirements.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <div className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <CheckCircle className="w-3 h-3 text-red-500" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-900 uppercase mb-1">Testimonials</h4>
+                                                    <p className="text-[10px] text-gray-500 leading-relaxed">Willingness to share success stories and case studies.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <div className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <CheckCircle className="w-3 h-3 text-red-500" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-900 uppercase mb-1">Impact Data</h4>
+                                                    <p className="text-[10px] text-gray-500 leading-relaxed">Growth and jobs inputs for our impact reporting team.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

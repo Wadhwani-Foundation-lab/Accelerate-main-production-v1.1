@@ -45,7 +45,7 @@ export async function sendPanelInvitationEmail(
     founderName: string,
     ventureName: string
 ): Promise<void> {
-    const subject = `Welcome to Wadhwani Accelerate ${ventureName} : Invitation to Panel Discussion`;
+    const subject = `Wadhwani Accelerate ${ventureName} : Invitation to Panel Discussion`;
 
     const htmlBody = `
 <!DOCTYPE html>
@@ -66,17 +66,12 @@ export async function sendPanelInvitationEmail(
             <h1>Wadhwani Accelerate</h1>
         </div>
         <div class="content">
-            <p>Dear ${founderName},</p>
-            <p>Congratulations! We are pleased to inform you that <strong>${ventureName}</strong> has been recommended for the Wadhwani Accelerate program and is moving to the Panel Review stage.</p>
-            <p>You will soon receive an invitation to present your venture to our expert panel. This is an exciting step in your journey with Wadhwani Accelerate.</p>
-            <p><strong>What to expect next:</strong></p>
-            <ul>
-                <li>A panel discussion will be scheduled where you will present your venture</li>
-                <li>Our panel of experts will review your venture and provide feedback</li>
-                <li>You will be notified of the panel's decision after the review</li>
-            </ul>
-            <p>In the meantime, please ensure your venture profile is up to date on the platform.</p>
-            <p>Best regards,<br>Wadhwani Accelerate Team</p>
+            <p>Hi ${founderName},</p>
+            <p>We're excited to take the next step with you.</p>
+            <p>You will soon be invited to a meeting with our panelists to discuss your business and growth plans. This will be an opportunity for you to share more about your venture and the growth opportunity you are looking to pursue.</p>
+            <p>Our team will reach out shortly with the proposed timeline and details for scheduling the discussion. Please keep an eye on your inbox!</p>
+            <p>We look forward to the conversation.</p>
+            <p>Best regards,<br>Team Wadhwani Accelerate</p>
         </div>
         <div class="footer">
             <p>&copy; Wadhwani Foundation. All rights reserved.</p>
@@ -85,21 +80,18 @@ export async function sendPanelInvitationEmail(
 </body>
 </html>`;
 
-    const plainText = `Dear ${founderName},
+    const plainText = `Hi ${founderName},
 
-Congratulations! We are pleased to inform you that ${ventureName} has been recommended for the Wadhwani Accelerate program and is moving to the Panel Review stage.
+We're excited to take the next step with you.
 
-You will soon receive an invitation to present your venture to our expert panel.
+You will soon be invited to a meeting with our panelists to discuss your business and growth plans. This will be an opportunity for you to share more about your venture and the growth opportunity you are looking to pursue.
 
-What to expect next:
-- A panel discussion will be scheduled where you will present your venture
-- Our panel of experts will review your venture and provide feedback
-- You will be notified of the panel's decision after the review
+Our team will reach out shortly with the proposed timeline and details for scheduling the discussion. Please keep an eye on your inbox!
 
-In the meantime, please ensure your venture profile is up to date on the platform.
+We look forward to the conversation.
 
 Best regards,
-Wadhwani Accelerate Team`;
+Team Wadhwani Accelerate`;
 
     await sendEmail(toEmail, subject, htmlBody, plainText);
 }
