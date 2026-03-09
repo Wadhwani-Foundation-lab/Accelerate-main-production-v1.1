@@ -85,8 +85,6 @@ export const VentureManagerDashboard: React.FC = () => {
     const [generatingRoadmap, setGeneratingRoadmap] = useState(false);
     const [roadmapGenerated, setRoadmapGenerated] = useState(false);
     const [roadmapData, setRoadmapData] = useState<any>(null);
-    const [analyzing, setAnalyzing] = useState(false);
-    const [analysisResult, setAnalysisResult] = useState<any | null>(null);
     const [panelAnalyzing, setPanelAnalyzing] = useState(false);
     const [panelAnalysisResult, setPanelAnalysisResult] = useState<any | null>(null);
     const [panelNotes, setPanelNotes] = useState('');
@@ -140,7 +138,6 @@ export const VentureManagerDashboard: React.FC = () => {
         setSelectedVenture(venture);
         setRoadmapGenerated(false); // Reset roadmap when selecting new venture
         setRoadmapData(null);
-        setAnalysisResult(null);
         setPanelAnalysisResult(null);
         setPanelNotes('');
 
@@ -161,7 +158,6 @@ export const VentureManagerDashboard: React.FC = () => {
             };
 
             setSelectedVenture(fullVenture);
-            setAnalysisResult(freshVenture.ai_analysis || null);
             setPanelAnalysisResult(freshVenture.panel_ai_analysis || null);
 
             // Fetch existing roadmap
@@ -176,26 +172,6 @@ export const VentureManagerDashboard: React.FC = () => {
             }
         } catch (error) {
             console.error('Error fetching venture details:', error);
-        }
-    };
-
-    const runAIAnalysis = async () => {
-        if (!selectedVenture) return;
-        setAnalyzing(true);
-
-        try {
-            const result = await api.generateInsights(selectedVenture.id);
-            const insights = result.insights || result;
-
-            setAnalysisResult(insights);
-            setVentures(prev => prev.map(v =>
-                v.id === selectedVenture.id ? { ...v, ai_analysis: insights } : v
-            ));
-        } catch (error: any) {
-            console.error('Error generating AI insights:', error);
-            alert(error.message || 'Failed to generate AI insights.');
-        } finally {
-            setAnalyzing(false);
         }
     };
 
@@ -897,111 +873,6 @@ export const VentureManagerDashboard: React.FC = () => {
                                                     </div>
                                                 </div>
                                             ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* AI Analysis */}
-                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                                <div className="flex items-center gap-2">
-                                    <Sparkles className="w-5 h-5 text-indigo-500" />
-                                    <span className="text-base font-bold text-gray-700">Generate AI insights</span>
-                                    {analysisResult && !analyzing && (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-xs font-medium text-indigo-600">
-                                            <Sparkles className="w-3 h-3" />
-                                            AI Generated
-                                        </span>
-                                    )}
-                                </div>
-                                <button
-                                    onClick={runAIAnalysis}
-                                    disabled={analyzing || !!analysisResult}
-                                    className="flex items-center gap-2 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-semibold transition-colors shadow-sm"
-                                >
-                                    {analyzing ? (<><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>) : analysisResult ? (<><Sparkles className="w-4 h-4" /> Insights Generated</>) : (<><Sparkles className="w-4 h-4" /> Generate insights</>)}
-                                </button>
-                            </div>
-                            {!analysisResult && !analyzing && (
-                                <div className="py-10 flex flex-col items-center gap-2 text-gray-300">
-                                    <Sparkles className="w-10 h-10" />
-                                    <p className="text-sm">Click "Generate insights" to analyse this venture</p>
-                                </div>
-                            )}
-                            {analyzing && (
-                                <div className="py-10 flex flex-col items-center gap-2 text-indigo-400">
-                                    <Loader2 className="w-8 h-8 animate-spin" />
-                                    <p className="text-sm font-medium">Analysing venture data...</p>
-                                </div>
-                            )}
-                            {analysisResult && !analyzing && (
-                                <div className="space-y-0 divide-y divide-gray-100">
-                                    <div className="p-6">
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <TrendingUp className="w-4 h-4 text-green-500" />
-                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Existing Venture Profile</span>
-                                        </div>
-                                        <div className="space-y-3">
-                                            <div>
-                                                <span className="text-xs font-semibold text-gray-400 uppercase">Profile Summary</span>
-                                                <p className="text-sm text-gray-700 mt-1">{analysisResult.existing_venture_profile?.profile_summary || analysisResult.strengths?.[0] || 'Not available'}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-xs font-semibold text-gray-400 uppercase">Product & Growth History</span>
-                                                <p className="text-sm text-gray-700 mt-1">{analysisResult.existing_venture_profile?.current_product_growth_history || 'Not available'}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="p-6">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="flex items-center gap-2">
-                                                <AlertTriangle className="w-4 h-4 text-amber-500" />
-                                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">New Venture Definition Clarity</span>
-                                            </div>
-                                            {analysisResult.new_venture_clarity?.definition_clarity_flag && (
-                                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                                    analysisResult.new_venture_clarity.definition_clarity_flag === 'Well Defined' ? 'bg-green-100 text-green-700' :
-                                                    analysisResult.new_venture_clarity.definition_clarity_flag === 'Partially Defined' ? 'bg-amber-100 text-amber-700' :
-                                                    'bg-red-100 text-red-700'
-                                                }`}>
-                                                    {analysisResult.new_venture_clarity.definition_clarity_flag}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="grid grid-cols-3 gap-4 mb-4">
-                                            <div>
-                                                <span className="text-xs font-semibold text-gray-400 uppercase">New Product/Service</span>
-                                                <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_product_or_service || 'Not assessed'}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-xs font-semibold text-gray-400 uppercase">New Segment/Market</span>
-                                                <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_segment_or_market || 'Not assessed'}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-xs font-semibold text-gray-400 uppercase">New Geography</span>
-                                                <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_geography || 'Not assessed'}</p>
-                                            </div>
-                                        </div>
-                                        <div className="mb-4">
-                                            <span className="text-xs font-semibold text-gray-400 uppercase">Estimated Incremental Revenue</span>
-                                            <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.estimated_incremental_revenue || 'Not provided'}</p>
-                                        </div>
-                                        <div className="mb-4">
-                                            <span className="text-xs font-semibold text-gray-400 uppercase">Clarity Gaps</span>
-                                            <ul className="mt-1 space-y-1">
-                                                {(analysisResult.new_venture_clarity?.clarity_gaps || []).map((gap: string, i: number) => (
-                                                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                                                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                                                        {gap}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                        <div>
-                                            <span className="text-xs font-semibold text-gray-400 uppercase">Clarity Summary</span>
-                                            <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.clarity_summary || 'Not available'}</p>
                                         </div>
                                     </div>
                                 </div>
