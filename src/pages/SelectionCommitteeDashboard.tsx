@@ -85,8 +85,6 @@ export const SelectionCommitteeDashboard: React.FC = () => {
     const [generatingRoadmap, setGeneratingRoadmap] = useState(false);
     const [roadmapGenerated, setRoadmapGenerated] = useState(false);
     const [roadmapData, setRoadmapData] = useState<any>(null);
-    const [analyzing, setAnalyzing] = useState(false);
-    const [analysisResult, setAnalysisResult] = useState<any | null>(null);
     const [panelAnalyzing, setPanelAnalyzing] = useState(false);
     const [panelAnalysisResult, setPanelAnalysisResult] = useState<any | null>(null);
     const [panelNotes, setPanelNotes] = useState('');
@@ -140,7 +138,7 @@ export const SelectionCommitteeDashboard: React.FC = () => {
         setSelectedVenture(venture);
         setRoadmapGenerated(false); // Reset roadmap when selecting new venture
         setRoadmapData(null);
-        setAnalysisResult(null);
+        setPanelAnalysisResult(null);
 
         // Fetch fresh details with streams
         try {
@@ -159,7 +157,6 @@ export const SelectionCommitteeDashboard: React.FC = () => {
             };
 
             setSelectedVenture(fullVenture);
-            setAnalysisResult(freshVenture.ai_analysis || null);
             setPanelAnalysisResult(freshVenture.panel_ai_analysis || null);
             setPanelNotes('');
 
@@ -175,26 +172,6 @@ export const SelectionCommitteeDashboard: React.FC = () => {
             }
         } catch (error) {
             console.error('Error fetching venture details:', error);
-        }
-    };
-
-    const runAIAnalysis = async () => {
-        if (!selectedVenture) return;
-        setAnalyzing(true);
-
-        try {
-            const result = await api.generateInsights(selectedVenture.id);
-            const insights = result.insights || result;
-
-            setAnalysisResult(insights);
-            setVentures(prev => prev.map(v =>
-                v.id === selectedVenture.id ? { ...v, ai_analysis: insights } : v
-            ));
-        } catch (error: any) {
-            console.error('Error generating AI insights:', error);
-            alert(error.message || 'Failed to generate AI insights.');
-        } finally {
-            setAnalyzing(false);
         }
     };
 
