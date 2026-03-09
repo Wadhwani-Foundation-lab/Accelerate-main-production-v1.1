@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { ArrowLeft, CheckCircle, FileText, Loader2, Zap, Users, ShieldCheck, ArrowUpRight, Search, Clock, PartyPopper } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { StatusSelect } from '../components/StatusSelect';
 
 export const VentureWorkbench = () => {
     const { id } = useParams<{ id: string }>();
@@ -13,8 +12,6 @@ export const VentureWorkbench = () => {
     const [signing, setSigning] = useState(false);
     const [accepted, setAccepted] = useState(false);
     const [milestones, setMilestones] = useState<any[]>([]);
-    const [streams, setStreams] = useState<any[]>([]);
-    const [supportHours, setSupportHours] = useState<any>(null);
     const [roadmapData, setRoadmapData] = useState<any>(null);
     const [showJoinedModal, setShowJoinedModal] = useState(false);
 
@@ -22,36 +19,14 @@ export const VentureWorkbench = () => {
         if (id) fetchVentureData();
     }, [id]);
 
-    const updateStreamStatus = async (streamId: string, newStatus: string) => {
-        try {
-            // Optimistic update
-            setStreams(prev => prev.map(s =>
-                s.id === streamId ? { ...s, status: newStatus } : s
-            ));
-
-            await api.updateStream(streamId, { status: newStatus });
-
-        } catch (error) {
-            console.error('Error updating status:', error);
-            alert('Failed to update status');
-            fetchVentureData();
-        }
-    };
-
     const fetchVentureData = async () => {
         try {
             if (!id) return;
             // Fetch All Venture Data in one call
-            const { venture, streams, milestones, support_hours } = await api.getVenture(id);
-
-            console.log('🔍 Venture Data:', venture);
-            console.log('🔒 Workbench Locked:', venture.workbench_locked);
-            console.log('📊 Status:', venture.status);
+            const { venture, milestones } = await api.getVenture(id);
 
             setVenture(venture);
-            setStreams(streams || []);
             setMilestones(milestones || []);
-            setSupportHours(support_hours);
 
             // Fetch roadmap data from venture_roadmaps
             try {
