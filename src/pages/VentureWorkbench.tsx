@@ -118,7 +118,9 @@ export const VentureWorkbench = () => {
 
                 {!isSigned ? (
                     // SIGNING VIEW
-                    <div id="growth-plan-section" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden max-w-5xl mx-auto">
+                    <div className="max-w-5xl mx-auto">
+                        <h1 className="text-2xl font-bold text-gray-900 mb-4">Review the Journey Roadmap</h1>
+                    <div id="growth-plan-section" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                         <div className="p-6 border-b border-gray-200">
                             <h2 className="text-xl font-bold text-gray-900">Journey Roadmap</h2>
                         </div>
@@ -364,6 +366,7 @@ export const VentureWorkbench = () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
                     </div>
                 ) : (
                     // READ-ONLY WORKBENCH VIEW (Signed / Joined Program)
