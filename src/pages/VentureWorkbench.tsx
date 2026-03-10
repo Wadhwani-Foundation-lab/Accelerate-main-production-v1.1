@@ -367,7 +367,9 @@ export const VentureWorkbench = () => {
                     </div>
                 ) : (
                     // READ-ONLY WORKBENCH VIEW (Signed / Joined Program)
-                    <div id="growth-plan-section" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden max-w-5xl mx-auto">
+                    <div className="max-w-5xl mx-auto">
+                        <h1 className="text-2xl font-bold text-gray-900 mb-4">Review the Journey Roadmap</h1>
+                    <div id="growth-plan-section" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                         {/* Joined Program badge */}
                         <div className="p-4 bg-emerald-50 border-b border-emerald-200 flex items-center gap-3">
                             <CheckCircle className="w-5 h-5 text-emerald-600" />
@@ -578,6 +580,7 @@ export const VentureWorkbench = () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
                     </div>
                 )}
             </div>

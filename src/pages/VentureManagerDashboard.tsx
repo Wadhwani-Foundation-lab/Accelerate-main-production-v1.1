@@ -861,15 +861,9 @@ export const VentureManagerDashboard: React.FC = () => {
                                                         <span className="text-indigo-500 mr-1">Q{i + 1}.</span>
                                                         {q.question}
                                                     </p>
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <div>
-                                                            <span className="text-[10px] font-bold text-blue-500 uppercase">Intent</span>
-                                                            <p className="text-xs text-gray-600 mt-0.5">{q.intent}</p>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-[10px] font-bold text-red-500 uppercase">Red Flag</span>
-                                                            <p className="text-xs text-gray-600 mt-0.5">{q.red_flag}</p>
-                                                        </div>
+                                                    <div>
+                                                        <span className="text-[10px] font-bold text-blue-500 uppercase">Intent</span>
+                                                        <p className="text-xs text-gray-600 mt-0.5">{q.intent}</p>
                                                     </div>
                                                 </div>
                                             ))}

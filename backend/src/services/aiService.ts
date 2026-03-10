@@ -72,7 +72,6 @@ export interface PanelInsights {
     interview_questions: {
         question: string;
         intent: string;
-        red_flag: string;
     }[];
     generated_at: string;
 }
@@ -701,9 +700,9 @@ Provide a comprehensive panel interview briefing in the following JSON format:
   "strengths": ["<Strength 1>", "<Strength 2>", "<Strength 3>"],
   "risks": ["<Risk 1>", "<Risk 2>", "<Risk 3>"],
   "interview_questions": [
-    {"question": "<Q1>", "intent": "<Intent>", "red_flag": "<Red flag>"},
-    {"question": "<Q2>", "intent": "<Intent>", "red_flag": "<Red flag>"},
-    {"question": "<Q3>", "intent": "<Intent>", "red_flag": "<Red flag>"}
+    {"question": "<Q1>", "intent": "<Intent>"},
+    {"question": "<Q2>", "intent": "<Intent>"},
+    {"question": "<Q3>", "intent": "<Intent>"}
   ]
 }
 
@@ -754,14 +753,13 @@ function parsePanelResponse(responseText: string, ventureData: VentureData): Pan
                 ? parsed.interview_questions.map((q: any) => ({
                     question: q.question || 'Question not generated.',
                     intent: q.intent || 'Intent not specified.',
-                    red_flag: q.red_flag || 'Red flag not specified.',
                 }))
                 : [
-                    { question: 'How do you plan to acquire the first 10 customers in the new segment?', intent: 'Validate go-to-market readiness.', red_flag: 'No specific customer acquisition plan.' },
-                    { question: 'What is the breakdown of the 3-year revenue potential?', intent: 'Assess revenue projection granularity.', red_flag: 'Cannot articulate revenue drivers.' },
-                    { question: 'Can you elaborate on the specific compliance hurdles?', intent: 'Understand regulatory awareness.', red_flag: 'Unaware of key regulatory requirements.' },
-                    { question: 'What is the burn rate impact of the new hiring plan?', intent: 'Evaluate capital planning maturity.', red_flag: 'No financial model for team expansion.' },
-                    { question: 'How does the current product adapt to the new market?', intent: 'Assess product-market fit for expansion.', red_flag: 'No adaptation plan or customer validation.' },
+                    { question: 'How do you plan to acquire the first 10 customers in the new segment?', intent: 'Validate go-to-market readiness.' },
+                    { question: 'What is the breakdown of the 3-year revenue potential?', intent: 'Assess revenue projection granularity.' },
+                    { question: 'Can you elaborate on the specific compliance hurdles?', intent: 'Understand regulatory awareness.' },
+                    { question: 'What is the burn rate impact of the new hiring plan?', intent: 'Evaluate capital planning maturity.' },
+                    { question: 'How does the current product adapt to the new market?', intent: 'Assess product-market fit for expansion.' },
                 ],
             generated_at: new Date().toISOString(),
         };
@@ -794,11 +792,11 @@ function parsePanelResponse(responseText: string, ventureData: VentureData): Pan
             strengths: ['Strong revenue base.', `Clear focus on ${ventureData.growth_focus || 'growth'}.`, 'Experienced team structure.', 'Proven market fit in current segment.', 'Scalable business model.'],
             risks: ['Competitive landscape concerns.', 'Capital efficiency risk.', 'Go-to-market strategy needs refinement.', 'Limited runway for expansion.', 'Dependency on key personnel.'],
             interview_questions: [
-                { question: 'How do you plan to acquire the first 10 customers in the new segment?', intent: 'Validate go-to-market readiness.', red_flag: 'No specific customer acquisition plan.' },
-                { question: 'What is the breakdown of the 3-year revenue potential?', intent: 'Assess revenue projection granularity.', red_flag: 'Cannot articulate revenue drivers.' },
-                { question: 'Can you elaborate on the specific compliance hurdles?', intent: 'Understand regulatory awareness.', red_flag: 'Unaware of key regulatory requirements.' },
-                { question: 'What is the burn rate impact of the new hiring plan?', intent: 'Evaluate capital planning maturity.', red_flag: 'No financial model for team expansion.' },
-                { question: 'How does the current product adapt to the new market?', intent: 'Assess product-market fit for expansion.', red_flag: 'No adaptation plan or customer validation.' },
+                { question: 'How do you plan to acquire the first 10 customers in the new segment?', intent: 'Validate go-to-market readiness.' },
+                { question: 'What is the breakdown of the 3-year revenue potential?', intent: 'Assess revenue projection granularity.' },
+                { question: 'Can you elaborate on the specific compliance hurdles?', intent: 'Understand regulatory awareness.' },
+                { question: 'What is the burn rate impact of the new hiring plan?', intent: 'Evaluate capital planning maturity.' },
+                { question: 'How does the current product adapt to the new market?', intent: 'Assess product-market fit for expansion.' },
             ],
             generated_at: new Date().toISOString(),
         };
