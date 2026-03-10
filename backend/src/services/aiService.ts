@@ -594,12 +594,17 @@ export async function generatePanelInsights(
     try {
         const message = await anthropic.messages.create({
             model: 'claude-sonnet-4-5-20250929',
-            max_tokens: 2500,
+            max_tokens: 4096,
             temperature: 0.7,
             messages: [{ role: 'user', content: prompt }]
         });
 
         const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+        console.log('Panel insights - stop_reason:', message.stop_reason);
+        console.log('Panel insights - response length:', responseText.length);
+        if (message.stop_reason === 'max_tokens') {
+            console.warn('Panel insights response was truncated due to max_tokens limit');
+        }
         return parsePanelResponse(responseText, ventureData);
     } catch (error: any) {
         console.error('Error calling Claude API for panel insights:', error);
@@ -762,19 +767,19 @@ function parsePanelResponse(responseText: string, ventureData: VentureData): Pan
             executive_summary: parsed.executive_summary || 'Analysis completed. Manual panel review recommended.',
             market_context: parsed.market_context || 'Market context requires panel discussion.',
             gap_deep_dive: {
-                critical_gaps: Array.isArray(parsed.gap_deep_dive?.critical_gaps) && parsed.gap_deep_dive.critical_gaps.length === 3
-                    ? parsed.gap_deep_dive.critical_gaps
+                critical_gaps: Array.isArray(parsed.gap_deep_dive?.critical_gaps) && parsed.gap_deep_dive.critical_gaps.length >= 1
+                    ? parsed.gap_deep_dive.critical_gaps.slice(0, 3)
                     : ['Strategic gap assessment requires manual review.', 'Team capability evaluation pending panel discussion.', 'Execution readiness to be validated in interview.'],
-                addressable_gaps: Array.isArray(parsed.gap_deep_dive?.addressable_gaps) && parsed.gap_deep_dive.addressable_gaps.length === 3
-                    ? parsed.gap_deep_dive.addressable_gaps
+                addressable_gaps: Array.isArray(parsed.gap_deep_dive?.addressable_gaps) && parsed.gap_deep_dive.addressable_gaps.length >= 1
+                    ? parsed.gap_deep_dive.addressable_gaps.slice(0, 3)
                     : ['Go-to-market strategy can be refined with Accelerate support.', 'Capital planning can be strengthened through mentorship.', 'Operational scaling playbook available through program resources.'],
                 gap_summary: parsed.gap_deep_dive?.gap_summary || 'Gap analysis requires panel discussion.',
             },
             revenue_deep_dive: {
                 current_health: parsed.revenue_deep_dive?.current_health || 'Revenue health requires panel evaluation.',
                 projection_credibility: parsed.revenue_deep_dive?.projection_credibility || '3-year target needs validation.',
-                key_revenue_risks: Array.isArray(parsed.revenue_deep_dive?.key_revenue_risks) && parsed.revenue_deep_dive.key_revenue_risks.length === 3
-                    ? parsed.revenue_deep_dive.key_revenue_risks
+                key_revenue_risks: Array.isArray(parsed.revenue_deep_dive?.key_revenue_risks) && parsed.revenue_deep_dive.key_revenue_risks.length >= 1
+                    ? parsed.revenue_deep_dive.key_revenue_risks.slice(0, 3)
                     : ['Revenue concentration risk to be assessed.', 'Growth rate sustainability to be validated.', 'Margin profile requires clarification.'],
                 revenue_summary: parsed.revenue_deep_dive?.revenue_summary || 'Revenue analysis requires panel deep-dive.',
             },
@@ -784,13 +789,13 @@ function parsePanelResponse(responseText: string, ventureData: VentureData): Pan
                 execution_feasibility: parsed.growth_opportunity_deep_dive?.execution_feasibility || 'Execution readiness requires validation.',
                 growth_summary: parsed.growth_opportunity_deep_dive?.growth_summary || 'Growth opportunity evaluation pending.',
             },
-            strengths: Array.isArray(parsed.strengths) && parsed.strengths.length === 5
-                ? parsed.strengths
+            strengths: Array.isArray(parsed.strengths) && parsed.strengths.length >= 1
+                ? parsed.strengths.slice(0, 5)
                 : ['Strong revenue base.', `Clear focus on ${ventureData.growth_focus || 'growth'}.`, 'Experienced team structure.', 'Proven market fit in current segment.', 'Scalable business model.'],
-            risks: Array.isArray(parsed.risks) && parsed.risks.length === 5
-                ? parsed.risks
+            risks: Array.isArray(parsed.risks) && parsed.risks.length >= 1
+                ? parsed.risks.slice(0, 5)
                 : ['Competitive landscape concerns.', 'Capital efficiency risk.', 'Go-to-market strategy needs refinement.', 'Limited runway for expansion.', 'Dependency on key personnel.'],
-            interview_questions: Array.isArray(parsed.interview_questions) && parsed.interview_questions.length === 5
+            interview_questions: Array.isArray(parsed.interview_questions) && parsed.interview_questions.length >= 1
                 ? parsed.interview_questions.map((q: any) => ({
                     question: q.question || 'Question not generated.',
                     intent: q.intent || 'Intent not specified.',
