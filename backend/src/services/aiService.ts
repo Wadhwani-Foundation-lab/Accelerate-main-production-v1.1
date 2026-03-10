@@ -200,8 +200,8 @@ You will receive a venture application containing:
 ${vsmNotes || 'No additional notes provided.'}
 ${ventureData.corporate_presentation_text ? `
 **Corporate Presentation Content:**
-${ventureData.corporate_presentation_text.slice(0, 8000)}
-${ventureData.corporate_presentation_text.length > 8000 ? '\n[... truncated ...]' : ''}
+${ventureData.corporate_presentation_text.slice(0, 3000)}
+${ventureData.corporate_presentation_text.length > 3000 ? '\n[... truncated ...]' : ''}
 ` : ''}
 **Your Task:**
 Provide your assessment in the following JSON format:
@@ -380,8 +380,8 @@ ${ctx.interactionNotes || 'No interaction notes available.'}
 ${aiSummary}
 ${ventureData.corporate_presentation_text ? `
 **Corporate Presentation Content:**
-${ventureData.corporate_presentation_text.slice(0, 8000)}
-${ventureData.corporate_presentation_text.length > 8000 ? '\n[... truncated ...]' : ''}
+${ventureData.corporate_presentation_text.slice(0, 3000)}
+${ventureData.corporate_presentation_text.length > 3000 ? '\n[... truncated ...]' : ''}
 ` : ''}
 ## OUTPUT FORMAT
 
@@ -594,8 +594,8 @@ export async function generatePanelInsights(
     try {
         const message = await anthropic.messages.create({
             model: 'claude-sonnet-4-5-20250929',
-            max_tokens: 4096,
-            temperature: 0.7,
+            max_tokens: 3000,
+            temperature: 0.3,
             messages: [{ role: 'user', content: prompt }]
         });
 
@@ -622,18 +622,7 @@ function buildPanelInsightsPrompt(
     vsmNotes: string,
     panelNotes: string
 ): string {
-    return `You are a senior venture evaluation analyst preparing a deep-dive briefing for the interview panel of the Accelerate Assisted Growth Platform. The venture has already passed initial screening and been assigned a program tier. Your role is to help the panel conduct a thorough, evidence-based interview that probes the three critical evaluation dimensions:
-
-1. **Gaps** — What are the venture's capability, strategic, and execution gaps? How addressable are they through the Accelerate program?
-2. **Revenue** — How credible are the revenue assumptions? What are the unit economics, growth drivers, and risks to the financial trajectory?
-3. **Growth Opportunity** — How large and defensible is the market opportunity? Does the venture have a realistic path to capture it?
-
-You will receive:
-- The full venture application (business details, growth idea, support areas, support description)
-- The screening manager's tier recommendation and notes from initial review
-- Panel member notes (optional pre-interview observations)
-- Corporate presentation (optional attachment)
-- Any prior AI screening insights generated during the screening stage
+    return `You are a venture evaluation analyst preparing a panel interview briefing. Analyze the venture on three dimensions: Gaps (capability/execution gaps), Revenue (credibility of financial projections), and Growth Opportunity (market size and execution feasibility).
 
 **Venture Information:**
 - Company Name: ${ventureData.name}
@@ -665,13 +654,13 @@ ${vsmNotes || 'No screening notes provided.'}
 ${panelNotes || 'No panel notes provided.'}
 ${ventureData.corporate_presentation_text ? `
 **Corporate Presentation Content:**
-${ventureData.corporate_presentation_text.slice(0, 8000)}
-${ventureData.corporate_presentation_text.length > 8000 ? '\n[... truncated ...]' : ''}
+${ventureData.corporate_presentation_text.slice(0, 3000)}
+${ventureData.corporate_presentation_text.length > 3000 ? '\n[... truncated ...]' : ''}
 ` : ''}
 **Prior Screening Insights (if available):**
-${JSON.stringify(ventureData.prior_ai_analysis || 'No prior AI insights available.')}
+${JSON.stringify(ventureData.prior_ai_analysis || 'No prior AI insights available.').slice(0, 2000)}
 
-Based on all available data, generate a deep-dive panel briefing.
+Based on all available data, generate a concise panel briefing. Keep each field brief (1-2 sentences max). Return ONLY valid JSON, no markdown.
 
 **Your Task:**
 Provide a comprehensive panel interview briefing in the following JSON format:
@@ -709,46 +698,12 @@ Provide a comprehensive panel interview briefing in the following JSON format:
     "execution_feasibility": "<1-2 sentences on whether the team, resources, and timeline are realistic for the proposed growth>",
     "growth_summary": "<1-2 sentences on overall growth opportunity quality>"
   },
-  "strengths": [
-    "<Strength 1>",
-    "<Strength 2>",
-    "<Strength 3>",
-    "<Strength 4>",
-    "<Strength 5>"
-  ],
-  "risks": [
-    "<Risk 1>",
-    "<Risk 2>",
-    "<Risk 3>",
-    "<Risk 4>",
-    "<Risk 5>"
-  ],
+  "strengths": ["<Strength 1>", "<Strength 2>", "<Strength 3>"],
+  "risks": ["<Risk 1>", "<Risk 2>", "<Risk 3>"],
   "interview_questions": [
-    {
-      "question": "<Interview question 1>",
-      "intent": "<What the panel is trying to validate with this question>",
-      "red_flag": "<What answer would be a warning sign>"
-    },
-    {
-      "question": "<Interview question 2>",
-      "intent": "<Intent>",
-      "red_flag": "<Red flag>"
-    },
-    {
-      "question": "<Interview question 3>",
-      "intent": "<Intent>",
-      "red_flag": "<Red flag>"
-    },
-    {
-      "question": "<Interview question 4>",
-      "intent": "<Intent>",
-      "red_flag": "<Red flag>"
-    },
-    {
-      "question": "<Interview question 5>",
-      "intent": "<Intent>",
-      "red_flag": "<Red flag>"
-    }
+    {"question": "<Q1>", "intent": "<Intent>", "red_flag": "<Red flag>"},
+    {"question": "<Q2>", "intent": "<Intent>", "red_flag": "<Red flag>"},
+    {"question": "<Q3>", "intent": "<Intent>", "red_flag": "<Red flag>"}
   ]
 }
 
