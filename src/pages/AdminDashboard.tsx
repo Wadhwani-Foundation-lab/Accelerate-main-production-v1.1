@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import {
     Loader2, Search, FileText, Clock, Users, Building2, Download,
-    ChevronUp, ChevronDown, UserPlus, X, CheckCircle, XCircle,
+    ChevronUp, ChevronDown, UserPlus, X,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────
