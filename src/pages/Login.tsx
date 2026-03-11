@@ -26,7 +26,9 @@ export const Login: React.FC = () => {
             target = '/committee/dashboard';
         } else if (role === 'ops_manager') {
             target = '/ops/dashboard';
-        } else if (role === 'success_mgr' || role === 'admin') {
+        } else if (role === 'admin') {
+            target = '/admin/dashboard';
+        } else if (role === 'success_mgr') {
             target = '/vsm/dashboard';
         }
         logger.info('Login', `Navigating to ${target} for role: ${role}`);

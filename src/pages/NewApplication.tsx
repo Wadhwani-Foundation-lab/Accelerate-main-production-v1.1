@@ -146,18 +146,19 @@ export const NewApplication: React.FC = () => {
         setFormData(prev => ({ ...prev, growthFocus: updated }));
     };
 
-    // Auto-update target jobs based on revenue selection
+    // Auto-update target jobs: Target Jobs = Median(revenue range) × 2.5
+    // Median = (Min + Max) / 2
     useEffect(() => {
         let jobs = '';
         switch (formData.revenuePotential12m) {
             case '5Cr - 15 Cr':
-                jobs = '5';
+                jobs = '25';   // median=10, 10×2.5=25
                 break;
             case '15Cr - 50Cr':
-                jobs = '20';
+                jobs = '81';   // median=32.5, 32.5×2.5=81.25
                 break;
             case '50Cr+':
-                jobs = '30';
+                jobs = '188';  // median=75 (50-100), 75×2.5=187.5
                 break;
             default:
                 jobs = '';

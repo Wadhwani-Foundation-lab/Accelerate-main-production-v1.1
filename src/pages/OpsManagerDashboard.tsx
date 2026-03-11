@@ -500,7 +500,13 @@ export const OpsManagerDashboard: React.FC = () => {
                                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Jobs</span>
                                         <div className="text-lg font-bold text-gray-900 flex items-center gap-1">
                                             <Users className="w-4 h-4 text-gray-400" />
-                                            {profileVenture.target_jobs || 'N/A'}
+                                            {profileVenture.target_jobs || (() => {
+                                                const rev = String(profileVenture.revenue_potential_3y || '');
+                                                if (rev.startsWith('15Cr') || rev.startsWith('15 Cr')) return '81';
+                                                if (rev.startsWith('50Cr') || rev.startsWith('50 Cr') || rev === '50Cr+') return '188';
+                                                if (rev.startsWith('5Cr') || rev.startsWith('5 Cr')) return '25';
+                                                return 'N/A';
+                                            })()}
                                         </div>
                                     </div>
                                 </div>

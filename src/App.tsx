@@ -20,6 +20,8 @@ import { ScheduledCallsPage } from './pages/ScheduledCallsPage';
 import { PanelAvailability } from './pages/PanelAvailability';
 import { PublicApplication } from './pages/PublicApplication';
 import { VentureWorkbench } from './pages/VentureWorkbench';
+import { AdminLayout } from './layouts/AdminLayout';
+import { AdminDashboard } from './pages/AdminDashboard';
 
 /**
  * Header Component
@@ -114,6 +116,13 @@ function App() {
           <Route path="/ops/dashboard" element={<OpsManagerLayout />}>
             <Route index element={<OpsManagerDashboard />} />
             <Route path="scheduled-calls" element={<ScheduledCallsPage />} />
+          </Route>
+
+          {/* Admin Dashboard Routes */}
+          <Route path="/admin/dashboard" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard tab="applications" />} />
+            <Route path="screening-performance" element={<AdminDashboard tab="performance" />} />
+            <Route path="users" element={<AdminDashboard tab="users" />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

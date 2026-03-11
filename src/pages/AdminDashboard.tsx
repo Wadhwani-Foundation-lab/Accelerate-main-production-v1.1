@@ -1,0 +1,816 @@
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
+import {
+    Loader2, Search, FileText, Clock, Users, Building2, Download,
+    ChevronUp, ChevronDown, UserPlus, X, CheckCircle, XCircle,
+} from 'lucide-react';
+
+// ─── Types ───────────────────────────────────────────────────────────
+interface Venture {
+    id: string;
+    name: string;
+    founder_name?: string;
+    status: string;
+    program_recommendation?: string;
+    created_at: string;
+    assigned_vsm_id?: string;
+    assigned_panelist_id?: string;
+    agreement_status?: string;
+}
+
+interface StaffUser {
+    id: string;
+    full_name: string;
+    email: string;
+    role: string;
+    created_at: string;
+}
+
+interface PerformanceRow {
+    id: string;
+    name: string;
+    role: string;
+    roleLabel: string;
+    pendingReviews: number;
+    completedReviews: number;
+    approved: number;
+    rejected: number;
+    avgTurnaroundDays: number;
+}
+
+export type AdminTab = 'applications' | 'performance' | 'users';
+type SortField = 'name' | 'created_at' | 'status' | 'program_recommendation' | 'assigned_to' | 'total_aging' | 'status_aging';
+type SortDir = 'asc' | 'desc';
+
+// ─── Helpers ─────────────────────────────────────────────────────────
+function getDisplayStatus(v: Venture): string {
+    const s = v.status;
+    const rec = (v.program_recommendation || '').toLowerCase();
+    if (s === 'Panel Review' && rec.includes('prime')) return 'Pending with Panel (Prime)';
+    if (s === 'Panel Review' && rec.includes('core')) return 'Pending with Panel (Core)';
+    if (s === 'Panel Review' && rec.includes('select')) return 'Pending with Panel (Select)';
+    if (s === 'Panel Review') return 'Pending with Panel';
+    if (s === 'Contract Sent' || s === 'Agreement Sent') return 'Pending with Business';
+    if (s === 'Joined Program' || (s === 'Approved' && v.agreement_status?.toLowerCase() === 'signed')) return 'Accepted by Business';
+    if (s === 'Rejected') return 'Declined by Business';
+    if (s === 'Under Review' || s === 'Submitted') return 'Pending with Screening Manager';
+    return s;
+}
+
+function shortProgramName(rec?: string): string {
+    if (!rec) return '';
+    const lower = rec.toLowerCase();
+    if (lower.includes('prime')) return 'Prime';
+    if (lower.includes('core')) return 'Core';
+    if (lower.includes('select')) return 'Select';
+    if (lower.includes('selfserve')) return 'Selfserve';
+    return rec;
+}
+
+function getStatusBadge(label: string) {
+    let style = { color: 'text-gray-700', bg: 'bg-gray-50 border-gray-200' };
+    if (label.includes('Screening')) style = { color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' };
+    else if (label.includes('Panel')) style = { color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200' };
+    else if (label.includes('Pending with Business')) style = { color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200' };
+    else if (label.includes('Accepted')) style = { color: 'text-green-700', bg: 'bg-green-50 border-green-200' };
+    else if (label.includes('Declined')) style = { color: 'text-red-700', bg: 'bg-red-50 border-red-200' };
+    return <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${style.bg} ${style.color}`}>{label}</span>;
+}
+
+function daysSince(dateStr: string): number {
+    return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function roleLabel(role: string): string {
+    const m: Record<string, string> = {
+        success_mgr: 'Screening Manager',
+        venture_mgr: 'Panel (Prime)',
+        committee_member: 'Panel (Core/Select)',
+        ops_manager: 'Ops Manager',
+        admin: 'Admin',
+    };
+    return m[role] || role;
+}
+
+// ─── Main Component ──────────────────────────────────────────────────
+interface AdminDashboardProps {
+    tab?: AdminTab;
+}
+
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applications' }) => {
+    const [ventures, setVentures] = useState<Venture[]>([]);
+    const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
+    const [profiles, setProfiles] = useState<Record<string, { full_name: string; role: string }>>({});
+    const [statusHistory, setStatusHistory] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    // Application filters
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [sortField, setSortField] = useState<SortField>('created_at');
+    const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+    // Performance filters
+    const [perfSearch, setPerfSearch] = useState('');
+    const [perfRoleFilter, setPerfRoleFilter] = useState('');
+
+    // User filters
+    const [userSearch, setUserSearch] = useState('');
+
+    // Add user modal
+    const [showAddUser, setShowAddUser] = useState(false);
+    const [newUserName, setNewUserName] = useState('');
+    const [newUserEmail, setNewUserEmail] = useState('');
+    const [newUserRole, setNewUserRole] = useState('success_mgr');
+    const [addingUser, setAddingUser] = useState(false);
+    const [addUserError, setAddUserError] = useState('');
+
+    // ─── Fetch Data ──────────────────────────────────────────────────
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            // Ventures with assessments
+            const { data: ventureData } = await supabase
+                .from('ventures')
+                .select('*, assessments:venture_assessments(*)');
+
+            const flat: Venture[] = (ventureData || []).map((v: any) => {
+                const assessment = (v.assessments || []).find((a: any) => a.is_current) || v.assessments?.[0] || {};
+                return { ...v, program_recommendation: assessment.program_recommendation };
+            });
+            setVentures(flat);
+
+            // Profiles (all staff)
+            const { data: profileData } = await supabase
+                .from('profiles')
+                .select('id, full_name, role');
+            const profileMap: Record<string, { full_name: string; role: string }> = {};
+            (profileData || []).forEach((p: any) => { profileMap[p.id] = p; });
+            setProfiles(profileMap);
+
+            // Staff users for Users tab
+            const staffList: StaffUser[] = (profileData || [])
+                .filter((p: any) => p.role && p.role !== 'entrepreneur')
+                .map((p: any) => ({ id: p.id, full_name: p.full_name || '', email: '', role: p.role, created_at: '' }));
+            setStaffUsers(staffList);
+
+            // Status history for aging
+            const { data: historyData } = await supabase
+                .from('venture_status_history')
+                .select('venture_id, new_status, changed_at')
+                .order('changed_at', { ascending: false });
+            setStatusHistory(historyData || []);
+        } catch (err) {
+            console.error('Admin fetch error:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Fetch emails for staff users
+    const fetchStaffEmails = async () => {
+        try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
+            if (!token) return;
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+            const res = await fetch(`${API_URL}/api/admin/users`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setStaffUsers(data.users || []);
+            }
+        } catch (err) {
+            console.error('Error fetching staff emails:', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+        fetchStaffEmails();
+    }, []);
+
+    // ─── Helpers for program matching (handles "Accelerate Prime" / "Prime" etc.) ──
+    const isPrime = (rec?: string) => !!rec && rec.toLowerCase().includes('prime');
+    const isCore = (rec?: string) => !!rec && rec.toLowerCase().includes('core');
+    const isSelect = (rec?: string) => !!rec && rec.toLowerCase().includes('select');
+    const isSelfserve = (rec?: string) => !!rec && rec.toLowerCase().includes('selfserve');
+    const isJoined = (v: Venture) => v.status === 'Joined Program' || (v.status === 'Approved' && v.agreement_status?.toLowerCase() === 'signed');
+    const panelApprovedStatuses = ['Approved', 'Contract Sent', 'Agreement Sent', 'Joined Program'];
+
+    // ─── Computed Stats ──────────────────────────────────────────────
+    const totalApplications = ventures.length;
+    const pendingScreening = ventures.filter(v => ['Submitted', 'Under Review'].includes(v.status)).length;
+    const pendingPanel = ventures.filter(v => v.status === 'Panel Review').length;
+    const pendingPanelPrime = ventures.filter(v => v.status === 'Panel Review' && isPrime(v.program_recommendation)).length;
+    const pendingPanelCore = ventures.filter(v => v.status === 'Panel Review' && isCore(v.program_recommendation)).length;
+    const pendingPanelSelect = ventures.filter(v => v.status === 'Panel Review' && isSelect(v.program_recommendation)).length;
+
+    const withBusiness = ventures.filter(v => ['Contract Sent', 'Agreement Sent', 'Joined Program', 'Approved', 'Rejected'].includes(v.status)).length;
+    const pendingBusiness = ventures.filter(v => ['Contract Sent', 'Agreement Sent'].includes(v.status)).length;
+    const joinedProgram = ventures.filter(v => isJoined(v)).length;
+    const declinedBusiness = ventures.filter(v => v.status === 'Rejected').length;
+
+    const joinedPrime = ventures.filter(v => isJoined(v) && isPrime(v.program_recommendation)).length;
+    const joinedCore = ventures.filter(v => isJoined(v) && isCore(v.program_recommendation)).length;
+    const joinedSelect = ventures.filter(v => isJoined(v) && isSelect(v.program_recommendation)).length;
+    const joinedSelfserve = ventures.filter(v => isJoined(v) && isSelfserve(v.program_recommendation)).length;
+
+    // Panel received = ventures that have a program recommendation
+    const panelVentures = ventures.filter(v => v.program_recommendation);
+    const panelReceivedPrime = panelVentures.filter(v => isPrime(v.program_recommendation)).length;
+    const panelReceivedCore = panelVentures.filter(v => isCore(v.program_recommendation)).length;
+    const panelReceivedSelect = panelVentures.filter(v => isSelect(v.program_recommendation)).length;
+    const panelApprovedPrime = panelVentures.filter(v => isPrime(v.program_recommendation) && panelApprovedStatuses.includes(v.status)).length;
+    const panelApprovedCore = panelVentures.filter(v => isCore(v.program_recommendation) && panelApprovedStatuses.includes(v.status)).length;
+    const panelApprovedSelect = panelVentures.filter(v => isSelect(v.program_recommendation) && panelApprovedStatuses.includes(v.status)).length;
+    const panelRejectedPrime = panelVentures.filter(v => isPrime(v.program_recommendation) && v.status === 'Rejected').length;
+    const panelRejectedCore = panelVentures.filter(v => isCore(v.program_recommendation) && v.status === 'Rejected').length;
+    const panelRejectedSelect = panelVentures.filter(v => isSelect(v.program_recommendation) && v.status === 'Rejected').length;
+
+    // ─── Status Aging ────────────────────────────────────────────────
+    function getStatusAging(ventureId: string): number {
+        const latest = statusHistory.find(h => h.venture_id === ventureId);
+        if (latest) return daysSince(latest.changed_at);
+        const v = ventures.find(x => x.id === ventureId);
+        return v ? daysSince(v.created_at) : 0;
+    }
+
+    // ─── Applications Table ──────────────────────────────────────────
+    const uniqueStatuses = Array.from(new Set(ventures.map(v => getDisplayStatus(v)))).sort();
+
+    const filteredVentures = ventures
+        .filter(v => {
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                if (!v.name.toLowerCase().includes(q) && !(v.founder_name || '').toLowerCase().includes(q)) return false;
+            }
+            if (statusFilter && getDisplayStatus(v) !== statusFilter) return false;
+            return true;
+        })
+        .sort((a, b) => {
+            let av: any, bv: any;
+            switch (sortField) {
+                case 'name': av = a.name.toLowerCase(); bv = b.name.toLowerCase(); break;
+                case 'created_at': av = a.created_at; bv = b.created_at; break;
+                case 'status': av = getDisplayStatus(a); bv = getDisplayStatus(b); break;
+                case 'program_recommendation': av = a.program_recommendation || ''; bv = b.program_recommendation || ''; break;
+                case 'total_aging': av = daysSince(a.created_at); bv = daysSince(b.created_at); break;
+                case 'status_aging': av = getStatusAging(a.id); bv = getStatusAging(b.id); break;
+                default: av = a.created_at; bv = b.created_at;
+            }
+            if (av < bv) return sortDir === 'asc' ? -1 : 1;
+            if (av > bv) return sortDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+    const toggleSort = (field: SortField) => {
+        if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        else { setSortField(field); setSortDir('asc'); }
+    };
+
+    const SortIcon = ({ field }: { field: SortField }) => (
+        sortField === field
+            ? (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)
+            : <ChevronDown className="w-3 h-3 opacity-30" />
+    );
+
+    // ─── Export CSV ──────────────────────────────────────────────────
+    const exportCSV = () => {
+        const headers = ['Business Name', 'Submitted Date', 'Status', 'Program', 'Assigned To', 'Total Aging (days)', 'Status Aging (days)'];
+        const rows = filteredVentures.map(v => [
+            v.name,
+            new Date(v.created_at).toLocaleDateString(),
+            getDisplayStatus(v),
+            v.program_recommendation || '-',
+            profiles[v.assigned_vsm_id || '']?.full_name || profiles[v.assigned_panelist_id || '']?.full_name || '-',
+            daysSince(v.created_at),
+            getStatusAging(v.id),
+        ]);
+        const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `applications_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+    };
+
+    // ─── Performance Data ────────────────────────────────────────────
+    const performanceData: PerformanceRow[] = Object.values(profiles)
+        .filter(p => ['success_mgr', 'venture_mgr', 'committee_member'].includes(p.role))
+        .map(p => {
+            const pid = Object.keys(profiles).find(k => profiles[k] === p) || '';
+            const assigned = ventures.filter(v => v.assigned_vsm_id === pid || v.assigned_panelist_id === pid);
+            const pending = assigned.filter(v => ['Submitted', 'Under Review', 'Panel Review'].includes(v.status)).length;
+            const completed = assigned.filter(v => !['Submitted', 'Under Review', 'Panel Review', 'Draft'].includes(v.status)).length;
+            const approved = assigned.filter(v => ['Approved', 'Contract Sent', 'Agreement Sent', 'Joined Program'].includes(v.status)).length;
+            const rejected = assigned.filter(v => v.status === 'Rejected').length;
+
+            // Avg turnaround: days from assignment to review completion
+            const reviewedVentures = assigned.filter(v => !['Submitted', 'Under Review', 'Panel Review', 'Draft'].includes(v.status));
+            let avgDays = 0;
+            if (reviewedVentures.length > 0) {
+                const totalDays = reviewedVentures.reduce((sum, v) => {
+                    const hist = statusHistory.filter(h => h.venture_id === v.id);
+                    if (hist.length >= 2) {
+                        const first = new Date(hist[hist.length - 1].changed_at);
+                        const last = new Date(hist[0].changed_at);
+                        return sum + Math.max(1, Math.floor((last.getTime() - first.getTime()) / (1000 * 60 * 60 * 24)));
+                    }
+                    return sum + 1;
+                }, 0);
+                avgDays = Math.round(totalDays / reviewedVentures.length);
+            }
+
+            return {
+                id: pid,
+                name: p.full_name || 'Unknown',
+                role: p.role,
+                roleLabel: roleLabel(p.role),
+                pendingReviews: pending,
+                completedReviews: completed,
+                approved,
+                rejected,
+                avgTurnaroundDays: avgDays,
+            };
+        })
+        .filter(p => {
+            if (perfSearch && !p.name.toLowerCase().includes(perfSearch.toLowerCase())) return false;
+            if (perfRoleFilter && p.role !== perfRoleFilter) return false;
+            return true;
+        })
+        .sort((a, b) => b.completedReviews - a.completedReviews);
+
+    // ─── Add User Handler ────────────────────────────────────────────
+    const handleAddUser = async () => {
+        setAddingUser(true);
+        setAddUserError('');
+        try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+            const res = await fetch(`${API_URL}/api/admin/users`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ full_name: newUserName, email: newUserEmail, role: newUserRole }),
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || err.message || 'Failed to create user');
+            }
+            setShowAddUser(false);
+            setNewUserName('');
+            setNewUserEmail('');
+            setNewUserRole('success_mgr');
+            fetchStaffEmails();
+        } catch (err: any) {
+            setAddUserError(err.message);
+        } finally {
+            setAddingUser(false);
+        }
+    };
+
+    // ─── Users Tab Data ──────────────────────────────────────────────
+    const filteredUsers = staffUsers.filter(u => {
+        if (userSearch) {
+            const q = userSearch.toLowerCase();
+            if (!u.full_name.toLowerCase().includes(q) && !u.email.toLowerCase().includes(q)) return false;
+        }
+        return true;
+    });
+
+    // ─── Render ──────────────────────────────────────────────────────
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-96">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="max-w-[1400px] mx-auto space-y-6">
+
+            {/* ─── TAB: APPLICATION DASHBOARD ─── */}
+            {tab === 'applications' && (
+                <div className="space-y-6">
+                    <div>
+                        <h1 className="text-xl font-semibold text-gray-900">Applications Overview</h1>
+                        <p className="text-sm text-gray-500 mt-0.5">Track application pipeline and program enrollment.</p>
+                    </div>
+
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-4 gap-4">
+                        {[
+                            {
+                                label: 'Total Applications',
+                                value: totalApplications,
+                                sub: 'Received to date',
+                                icon: FileText,
+                                iconBg: 'bg-indigo-50',
+                                iconColor: 'text-indigo-500',
+                            },
+                            {
+                                label: 'Pending Screening',
+                                value: pendingScreening,
+                                sub: 'Awaiting review',
+                                icon: Clock,
+                                iconBg: 'bg-amber-50',
+                                iconColor: 'text-amber-500',
+                            },
+                            {
+                                label: 'Pending with Panel',
+                                value: pendingPanel,
+                                icon: Users,
+                                iconBg: 'bg-rose-50',
+                                iconColor: 'text-rose-500',
+                                breakdown: [
+                                    { label: 'Prime', value: pendingPanelPrime, color: 'text-purple-600' },
+                                    { label: 'Core', value: pendingPanelCore, color: 'text-indigo-600' },
+                                    { label: 'Select', value: pendingPanelSelect, color: 'text-blue-600' },
+                                ],
+                            },
+                            {
+                                label: 'With Business',
+                                value: withBusiness,
+                                icon: Building2,
+                                iconBg: 'bg-emerald-50',
+                                iconColor: 'text-emerald-500',
+                                breakdown: [
+                                    { label: 'Pending', value: pendingBusiness, color: 'text-amber-600' },
+                                    { label: 'Joined', value: joinedProgram, color: 'text-green-600' },
+                                    { label: 'Declined', value: declinedBusiness, color: 'text-red-500' },
+                                ],
+                            },
+                        ].map(card => (
+                            <div key={card.label} className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 flex flex-col justify-between">
+                                <div className="flex items-start justify-between mb-3">
+                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{card.label}</span>
+                                    <div className={`w-8 h-8 rounded-lg ${card.iconBg} flex items-center justify-center`}>
+                                        <card.icon className={`w-4 h-4 ${card.iconColor}`} />
+                                    </div>
+                                </div>
+                                <div className="text-2xl font-bold text-gray-900">{card.value}</div>
+                                {card.sub && <div className="text-xs text-gray-400 mt-1">{card.sub}</div>}
+                                {card.breakdown && (
+                                    <div className="flex gap-3 mt-2 pt-2 border-t border-gray-100">
+                                        {card.breakdown.map(b => (
+                                            <span key={b.label} className="text-xs text-gray-500">
+                                                {b.label} <span className={`font-semibold ${b.color}`}>{b.value}</span>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Middle Row: Joined Programs + Panel Received */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-sm font-semibold text-gray-900">Businesses Joined Programs</h3>
+                                <span className="text-2xl font-bold text-indigo-600">{joinedProgram}</span>
+                            </div>
+                            <div className="space-y-2.5">
+                                {[
+                                    { label: 'Prime', count: joinedPrime, color: 'bg-green-500' },
+                                    { label: 'Core', count: joinedCore, color: 'bg-blue-500' },
+                                    { label: 'Select', count: joinedSelect, color: 'bg-sky-400' },
+                                    { label: 'Selfserve', count: joinedSelfserve, color: 'bg-purple-500' },
+                                ].map(p => (
+                                    <div key={p.label} className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-2 h-2 rounded-full ${p.color}`} />
+                                            <span className="text-sm text-gray-600">{p.label}</span>
+                                        </div>
+                                        <span className="text-sm font-semibold text-gray-900">{p.count}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-sm font-semibold text-gray-900">Applications Received by Panel</h3>
+                                <span className="text-2xl font-bold text-indigo-600">{panelReceivedPrime + panelReceivedCore + panelReceivedSelect}</span>
+                            </div>
+                            <table className="w-full text-xs">
+                                <thead>
+                                    <tr className="text-gray-400 uppercase tracking-wide">
+                                        <th className="text-left py-1.5 font-medium">Program</th>
+                                        <th className="text-center py-1.5 font-medium">Received</th>
+                                        <th className="text-center py-1.5 font-medium">Approved</th>
+                                        <th className="text-center py-1.5 font-medium">Rejected</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-sm">
+                                    {[
+                                        { label: 'Prime', received: panelReceivedPrime, approved: panelApprovedPrime, rejected: panelRejectedPrime },
+                                        { label: 'Core', received: panelReceivedCore, approved: panelApprovedCore, rejected: panelRejectedCore },
+                                        { label: 'Select', received: panelReceivedSelect, approved: panelApprovedSelect, rejected: panelRejectedSelect },
+                                    ].map(r => (
+                                        <tr key={r.label} className="border-t border-gray-100">
+                                            <td className="py-2 font-medium text-gray-700">{r.label}</td>
+                                            <td className="text-center py-2 text-gray-600">{r.received}</td>
+                                            <td className="text-center py-2 text-green-600 font-medium">{r.approved}</td>
+                                            <td className="text-center py-2 text-red-500 font-medium">{r.rejected}</td>
+                                        </tr>
+                                    ))}
+                                    <tr className="border-t border-gray-300">
+                                        <td className="py-2 font-semibold text-gray-900">Total</td>
+                                        <td className="text-center py-2 font-semibold text-gray-900">{panelReceivedPrime + panelReceivedCore + panelReceivedSelect}</td>
+                                        <td className="text-center py-2 font-semibold text-green-600">{panelApprovedPrime + panelApprovedCore + panelApprovedSelect}</td>
+                                        <td className="text-center py-2 font-semibold text-red-500">{panelRejectedPrime + panelRejectedCore + panelRejectedSelect}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Applications Table */}
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">All Applications</h2>
+                            <button onClick={exportCSV} className="flex items-center gap-1.5 text-indigo-600 text-xs font-medium hover:text-indigo-700 transition-colors">
+                                <Download className="w-3.5 h-3.5" /> Export CSV
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="relative flex-1 max-w-xs">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search business name..."
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                    className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                />
+                            </div>
+                            <select
+                                value={statusFilter}
+                                onChange={e => setStatusFilter(e.target.value)}
+                                className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            >
+                                <option value="">All Statuses</option>
+                                {uniqueStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                        </div>
+
+                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                            <table className="w-full text-sm">
+                                <thead className="bg-gray-50/80 border-b border-gray-200">
+                                    <tr>
+                                        {[
+                                            { field: 'name' as SortField, label: 'Business Name' },
+                                            { field: 'created_at' as SortField, label: 'Submitted' },
+                                            { field: 'status' as SortField, label: 'Status' },
+                                            { field: 'program_recommendation' as SortField, label: 'Program' },
+                                            { field: 'assigned_to' as SortField, label: 'Assigned To' },
+                                            { field: 'total_aging' as SortField, label: 'Total Aging' },
+                                            { field: 'status_aging' as SortField, label: 'Status Aging' },
+                                        ].map(col => (
+                                            <th key={col.field} className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide cursor-pointer hover:text-gray-700 transition-colors" onClick={() => toggleSort(col.field)}>
+                                                <span className="flex items-center gap-1">{col.label} <SortIcon field={col.field} /></span>
+                                            </th>
+                                        ))}
+                                        <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {filteredVentures.map(v => {
+                                        const totalAging = daysSince(v.created_at);
+                                        const statusAging = getStatusAging(v.id);
+                                        const assignedName = profiles[v.assigned_panelist_id || '']?.full_name || profiles[v.assigned_vsm_id || '']?.full_name || '-';
+                                        return (
+                                            <tr key={v.id} className="hover:bg-gray-50/50 transition-colors">
+                                                <td className="px-4 py-2.5 font-medium text-gray-900 text-sm">{v.name}</td>
+                                                <td className="px-4 py-2.5 text-gray-500 text-sm">{new Date(v.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                                <td className="px-4 py-2.5">{getStatusBadge(getDisplayStatus(v))}</td>
+                                                <td className="px-4 py-2.5">
+                                                    {v.program_recommendation ? (() => {
+                                                        const short = shortProgramName(v.program_recommendation);
+                                                        return <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                                            short === 'Prime' ? 'bg-purple-50 text-purple-700' :
+                                                            short === 'Core' ? 'bg-indigo-50 text-indigo-700' :
+                                                            short === 'Select' ? 'bg-blue-50 text-blue-700' :
+                                                            'bg-gray-50 text-gray-700'
+                                                        }`}>{short}</span>;
+                                                    })() : <span className="text-gray-300">—</span>}
+                                                </td>
+                                                <td className="px-4 py-2.5 text-gray-500 text-sm">{assignedName === '-' ? <span className="text-gray-300">—</span> : assignedName}</td>
+                                                <td className="px-4 py-2.5 text-gray-500 text-sm">{totalAging}d</td>
+                                                <td className={`px-4 py-2.5 text-sm font-medium ${statusAging > 14 ? 'text-red-600' : statusAging > 7 ? 'text-amber-600' : 'text-gray-500'}`}>{statusAging}d</td>
+                                                <td className="px-4 py-2.5">
+                                                    <button className="text-indigo-600 text-xs font-medium hover:text-indigo-700 transition-colors">View</button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                    {filteredVentures.length === 0 && (
+                                        <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400 text-sm">No applications found</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ─── TAB: SCREENING PERFORMANCE ─── */}
+            {tab === 'performance' && (
+                <div className="space-y-4">
+                    <div>
+                        <h1 className="text-xl font-semibold text-gray-900">Screening Performance</h1>
+                        <p className="text-sm text-gray-500 mt-0.5">Review activity and turnaround times for screening managers and panelists.</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="relative flex-1 max-w-xs">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Search user..."
+                                value={perfSearch}
+                                onChange={e => setPerfSearch(e.target.value)}
+                                className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            />
+                        </div>
+                        <select
+                            value={perfRoleFilter}
+                            onChange={e => setPerfRoleFilter(e.target.value)}
+                            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        >
+                            <option value="">All Roles</option>
+                            <option value="success_mgr">Screening Manager</option>
+                            <option value="venture_mgr">Panel (Prime)</option>
+                            <option value="committee_member">Panel (Core/Select)</option>
+                        </select>
+                    </div>
+
+                    <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-50/80 border-b border-gray-200">
+                                <tr>
+                                    <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">User</th>
+                                    <th className="text-center px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Pending</th>
+                                    <th className="text-center px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Completed</th>
+                                    <th className="text-center px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Approved</th>
+                                    <th className="text-center px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Rejected</th>
+                                    <th className="text-center px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Avg. Turnaround</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {performanceData.map(p => (
+                                    <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="px-4 py-2.5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-xs font-semibold text-indigo-600">
+                                                    {p.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-medium text-gray-900">{p.name}</div>
+                                                    <div className="text-xs text-gray-400">{p.roleLabel}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="text-center px-4 py-2.5">
+                                            <span className={`text-sm font-medium ${p.pendingReviews > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{p.pendingReviews}</span>
+                                        </td>
+                                        <td className="text-center px-4 py-2.5 text-sm text-gray-600">{p.completedReviews}</td>
+                                        <td className="text-center px-4 py-2.5">
+                                            <span className="text-sm font-medium text-green-600">{p.approved}</span>
+                                        </td>
+                                        <td className="text-center px-4 py-2.5">
+                                            <span className="text-sm font-medium text-red-500">{p.rejected}</span>
+                                        </td>
+                                        <td className="text-center px-4 py-2.5 text-sm text-gray-600">{p.avgTurnaroundDays}d</td>
+                                    </tr>
+                                ))}
+                                {performanceData.length === 0 && (
+                                    <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400 text-sm">No performance data available</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* ─── TAB: USERS ─── */}
+            {tab === 'users' && (
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-xl font-semibold text-gray-900">User Management</h1>
+                            <p className="text-sm text-gray-500 mt-0.5">Manage access and roles for the operations team.</p>
+                        </div>
+                        <button
+                            onClick={() => setShowAddUser(true)}
+                            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm"
+                        >
+                            <UserPlus className="w-4 h-4" /> Add User
+                        </button>
+                    </div>
+
+                    <div className="relative max-w-xs">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Search by name or email..."
+                            value={userSearch}
+                            onChange={e => setUserSearch(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        />
+                    </div>
+
+                    <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-50/80 border-b border-gray-200">
+                                <tr>
+                                    <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Name</th>
+                                    <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Email</th>
+                                    <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Role</th>
+                                    <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {filteredUsers.map(u => (
+                                    <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="px-4 py-2.5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-xs font-semibold text-indigo-600">
+                                                    {u.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                                </div>
+                                                <span className="text-sm font-medium text-gray-900">{u.full_name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-2.5 text-sm text-gray-500">{u.email}</td>
+                                        <td className="px-4 py-2.5">
+                                            <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full ${
+                                                u.role === 'success_mgr' ? 'bg-amber-50 text-amber-700' :
+                                                u.role === 'venture_mgr' ? 'bg-purple-50 text-purple-700' :
+                                                u.role === 'committee_member' ? 'bg-indigo-50 text-indigo-700' :
+                                                u.role === 'admin' ? 'bg-gray-100 text-gray-700' :
+                                                'bg-gray-50 text-gray-600'
+                                            }`}>
+                                                {roleLabel(u.role)}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-2.5">
+                                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                                Active
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {filteredUsers.length === 0 && (
+                                    <tr><td colSpan={4} className="px-4 py-12 text-center text-gray-400 text-sm">No users found</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Add User Modal */}
+                    {showAddUser && (
+                        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+                                <div className="flex items-center justify-between mb-5">
+                                    <h3 className="text-base font-semibold text-gray-900">Add New User</h3>
+                                    <button onClick={() => setShowAddUser(false)} className="text-gray-400 hover:text-gray-600 transition-colors"><X className="w-5 h-5" /></button>
+                                </div>
+                                {addUserError && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">{addUserError}</div>}
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Full Name</label>
+                                        <input type="text" value={newUserName} onChange={e => setNewUserName(e.target.value)} placeholder="Enter full name" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Email</label>
+                                        <input type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} placeholder="user@example.com" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Role</label>
+                                        <select value={newUserRole} onChange={e => setNewUserRole(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                            <option value="success_mgr">Screening Manager</option>
+                                            <option value="venture_mgr">Panel (Prime)</option>
+                                            <option value="committee_member">Panel (Core/Select)</option>
+                                            <option value="ops_manager">Ops Manager</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                    </div>
+                                    <button
+                                        onClick={handleAddUser}
+                                        disabled={addingUser || !newUserName || !newUserEmail}
+                                        className="w-full bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
+                                    >
+                                        {addingUser ? 'Creating...' : 'Create User'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};

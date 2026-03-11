@@ -17,6 +17,7 @@ interface Venture {
     revenue_12m: number;
     revenue_potential_3y: number;
     full_time_employees: number;
+    target_jobs?: string;
     founder_name?: string;
     growth_current?: any;
     commitment?: any;
@@ -387,17 +388,11 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Jobs</span>
                                 <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
                                     <Users className="w-4 h-4 text-gray-400" />
-                                    {(() => {
+                                    {selectedVenture.target_jobs || (() => {
                                         const rev = String(selectedVenture.revenue_potential_3y || '');
-                                        if (rev === '5Cr - 15 Cr') return '5';
-                                        if (rev === '15Cr - 50Cr') return '20';
-                                        if (rev === '50Cr+') return '30';
-                                        const num = parseFloat(rev);
-                                        if (!isNaN(num)) {
-                                            if (num < 15) return '5';
-                                            if (num < 50) return '20';
-                                            return '30';
-                                        }
+                                        if (rev.startsWith('15Cr') || rev.startsWith('15 Cr')) return '81';
+                                        if (rev.startsWith('50Cr') || rev.startsWith('50 Cr') || rev === '50Cr+') return '188';
+                                        if (rev.startsWith('5Cr') || rev.startsWith('5 Cr')) return '25';
                                         return '0';
                                     })()}
                                 </div>
