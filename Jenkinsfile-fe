@@ -3,7 +3,6 @@ pipeline {
 
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'Accelerate-dev-v1', description: 'Branch to build')
-        choice(name: 'DEPLOY_ENV', choices: ['dev'], description: 'Environment to deploy')
     }
 
     environment {
