@@ -830,7 +830,7 @@ const OtherDetailsSection: React.FC<{ profileVenture: any }> = ({ profileVenture
 const SummaryCard: React.FC<{
     title: string;
     count: number;
-    breakdown: { prime: number; core: number; select: number };
+    breakdown: { prime: number; coreSelect: number };
     icon: React.ReactNode;
     color: string;
 }> = ({ title, count, breakdown, icon, color }) => (

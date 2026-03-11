@@ -354,8 +354,6 @@ export const PanelFeedbackForm: React.FC = () => {
             // (trigger auto-logs to venture_status_history)
             if (finalRecommendation === 'proceed') {
                 await api.updateVenture(ventureId!, { status: 'Approved' });
-            } else if (finalRecommendation === 'reject' || finalRecommendation === 'not_recommended') {
-                await api.updateVenture(ventureId!, { status: 'Rejected' });
             }
 
             // Send selection welcome email if panel recommends proceeding
