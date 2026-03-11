@@ -730,12 +730,23 @@ export const VSMDashboard: React.FC = () => {
                             <span className="text-sm text-gray-400">Loading applications...</span>
                         </div>
                     ) : ventures.length === 0 ? (
-                        <div className="text-center p-16 bg-white rounded-2xl border border-dashed border-gray-300 text-gray-400">
-                            <div className="text-lg font-medium mb-1">No applications yet</div>
-                            <div className="text-sm">New venture applications will appear here once submitted.</div>
+                        <div className="text-center py-16 text-gray-400">
+                            <p className="text-lg font-medium">No ventures assigned</p>
+                            <p className="text-sm mt-1">Ventures will appear here once assigned to you.</p>
                         </div>
                     ) : (
                         <div className="space-y-3">
+                                {ventures
+                                    .filter(v => {
+                                        if (revenueFilter === 'all') return true;
+                                        const revenue = String(v.revenue_12m || v.commitment?.lastYearRevenue || '');
+                                        return revenue === revenueFilter;
+                                    }).length === 0 && revenueFilter !== 'all' && (
+                                    <div className="text-center py-16 text-gray-400">
+                                        <p className="text-lg font-medium">No ventures match this filter</p>
+                                        <p className="text-sm mt-1">Try selecting a different revenue range.</p>
+                                    </div>
+                                )}
                                 {ventures
                                     .filter(v => {
                                         if (revenueFilter === 'all') return true;
@@ -999,7 +1010,7 @@ export const VSMDashboard: React.FC = () => {
                             <div className="grid grid-cols-3 gap-4">
                                 {/* Row 1 */}
                                 {['Product', 'Go-To-Market (GTM)', 'Capital Planning'].map(stream => {
-                                    const rawStatus = selectedVenture.needs.find((n: any) =>
+                                    const rawStatus = (selectedVenture.needs || []).find((n: any) =>
                                         n.stream === stream ||
                                         (stream === 'Go-To-Market (GTM)' && n.stream === 'GTM') ||
                                         (stream === 'Capital Planning' && n.stream === 'Funding')
@@ -1042,7 +1053,7 @@ export const VSMDashboard: React.FC = () => {
                                 })}
                                 {/* Row 2 */}
                                 {['Supply Chain', 'Operations', 'Team'].map(stream => {
-                                    const rawStatus = selectedVenture.needs.find((n: any) =>
+                                    const rawStatus = (selectedVenture.needs || []).find((n: any) =>
                                         n.stream === stream ||
                                         (stream === 'Supply Chain' && n.stream === 'SupplyChain')
                                     )?.status || 'N/A';

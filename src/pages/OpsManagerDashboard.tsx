@@ -90,15 +90,15 @@ export const OpsManagerDashboard: React.FC = () => {
 
     const openVentureProfile = async (venture: Venture) => {
         setProfileLoading(true);
-        setProfileVenture({ name: venture.name, founder_name: venture.founder_name, needs: [] });
+        setProfileVenture({ name: venture.name || 'Unknown Venture', founder_name: venture.founder_name || '', needs: [] });
         try {
             const { venture: full, streams } = await api.getVenture(venture.id);
             const mappedNeeds = (streams || []).map((s: any) => ({
                 id: s.id,
-                stream: s.stream_name,
-                status: s.status
+                stream: s.stream_name || '',
+                status: s.status || 'N/A'
             }));
-            setProfileVenture({ ...full, needs: mappedNeeds });
+            setProfileVenture({ ...(full || {}), needs: mappedNeeds });
         } catch (err) {
             console.error('Error fetching venture profile:', err);
         } finally {
@@ -303,8 +303,20 @@ export const OpsManagerDashboard: React.FC = () => {
                         <tbody>
                             {filteredVentures.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
-                                        No ventures found
+                                    <td colSpan={8} className="px-4 py-12 text-center">
+                                        {ventures.length === 0 ? (
+                                            <div className="space-y-2">
+                                                <Users className="w-8 h-8 text-gray-300 mx-auto" />
+                                                <p className="text-gray-500 font-medium">No ventures available</p>
+                                                <p className="text-gray-400 text-xs">There are no ventures in the system yet.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                <Search className="w-8 h-8 text-gray-300 mx-auto" />
+                                                <p className="text-gray-500 font-medium">No ventures match your filters</p>
+                                                <p className="text-gray-400 text-xs">Try adjusting your search or filter criteria.</p>
+                                            </div>
+                                        )}
                                     </td>
                                 </tr>
                             ) : (
@@ -323,7 +335,7 @@ export const OpsManagerDashboard: React.FC = () => {
                                                     className="text-left group"
                                                 >
                                                     <div className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">{venture.name}</div>
-                                                    <div className="text-xs text-gray-400">{venture.founder_name}</div>
+                                                    <div className="text-xs text-gray-400">{venture.founder_name || '-'}</div>
                                                 </button>
                                             </td>
                                             <td className="px-4 py-3">
@@ -421,7 +433,9 @@ export const OpsManagerDashboard: React.FC = () => {
                     venture={scheduleModalVenture}
                     panelists={scheduleModalVenture.assigned_panelist_id
                         ? panelists.filter(p => p.id === scheduleModalVenture.assigned_panelist_id)
-                        : panelists.filter(p => scheduleModalVenture.program_recommendation?.includes(p.program))
+                        : scheduleModalVenture.program_recommendation
+                            ? panelists.filter(p => p.program && scheduleModalVenture.program_recommendation?.includes(p.program))
+                            : panelists
                     }
                     onClose={() => setScheduleModalVenture(null)}
                     onScheduled={() => {
@@ -442,7 +456,7 @@ export const OpsManagerDashboard: React.FC = () => {
                         {/* Drawer Header */}
                         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
                             <div>
-                                <h2 className="text-xl font-bold text-gray-900">{profileVenture.name}</h2>
+                                <h2 className="text-xl font-bold text-gray-900">{profileVenture.name || 'Unknown Venture'}</h2>
                                 {profileVenture.program_recommendation && (
                                     <span className="inline-flex items-center px-3 py-1 mt-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
                                         {profileVenture.program_recommendation}
