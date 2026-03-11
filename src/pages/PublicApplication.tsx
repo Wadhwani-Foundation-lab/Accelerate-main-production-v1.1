@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Check, Loader2, Mic, Info, CheckCircle2, Rocket 
 import { logger } from '../utils/logger';
 import { StatusSelect } from '../components/StatusSelect';
 import { PhoneInput } from '../components/PhoneInput';
+import { useToast } from '../components/ui/Toast';
 
 // Steps configuration - matching the reference screens exactly
 const STEPS = [
@@ -36,6 +37,7 @@ type GrowthType = 'product' | 'segment' | 'geography';
 
 export const PublicApplication: React.FC = () => {
     const navigate = useNavigate();
+    const { toast } = useToast();
     const [currentStep, setCurrentStep] = useState(1);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -167,7 +169,7 @@ export const PublicApplication: React.FC = () => {
 
     const handleSubmit = async () => {
         if (!formData.email || !formData.businessName || !formData.managingDirector) {
-            alert('Please fill in your name, email, and business name.');
+            toast('Please fill in your name, email, and business name.', 'warning');
             return;
         }
         setIsSubmitting(true);
@@ -249,7 +251,7 @@ export const PublicApplication: React.FC = () => {
             setIsSubmitted(true);
         } catch (err) {
             logger.error('PublicApplication', 'Error submitting application', err);
-            alert('Failed to submit application. Please try again.');
+            toast('Failed to submit application. Please try again.', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -260,7 +262,7 @@ export const PublicApplication: React.FC = () => {
         const hasErrors = Object.values(validationErrors).some(error => error !== '');
 
         if (hasErrors) {
-            alert('Please fix the validation errors before proceeding.');
+            toast('Please fix the validation errors before proceeding.', 'warning');
             return;
         }
 
@@ -817,7 +819,7 @@ export const PublicApplication: React.FC = () => {
                                     onChange={e => {
                                         const file = e.target.files?.[0] || null;
                                         if (file && file.size > 5 * 1024 * 1024) {
-                                            alert('File size exceeds 5MB limit. Please choose a smaller file.');
+                                            toast('File size exceeds 5MB limit.', 'warning');
                                             e.target.value = '';
                                             return;
                                         }

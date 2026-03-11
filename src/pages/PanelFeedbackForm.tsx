@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { StarRating } from '../components/ui/StarRating';
 import type { StreamStatus, ExpansionType, FinalRecommendation, ProgramCategory } from '../types/panelFeedback';
+import { useToast } from '../components/ui/Toast';
 
 const STREAM_STATUS_OPTIONS: { value: StreamStatus; label: string }[] = [
     { value: 'not_started', label: 'Not Started' },
@@ -98,6 +99,7 @@ export const PanelFeedbackForm: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
+    const { toast } = useToast();
 
     const isPrime = location.pathname.startsWith('/vmanager/');
 
@@ -300,7 +302,7 @@ export const PanelFeedbackForm: React.FC = () => {
                 };
             } else {
                 if (!finalRecommendation) {
-                    alert('Please select a Final Recommendation in Section D.');
+                    toast('Please select a Final Recommendation in Section D.', 'warning');
                     setSubmitting(false);
                     return;
                 }
@@ -363,7 +365,7 @@ export const PanelFeedbackForm: React.FC = () => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (err: any) {
             console.error('Error submitting feedback:', err);
-            alert('Failed to submit feedback: ' + err.message);
+            toast('Failed to submit feedback: ' + err.message, 'error');
         } finally {
             setSubmitting(false);
         }

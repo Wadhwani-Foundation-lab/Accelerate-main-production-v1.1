@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, FileText, CheckCircle2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/ui/Toast';
 
 const STEPS = [
     { id: 1, label: 'BUSINESS' },
@@ -32,6 +33,7 @@ export const VentureDetails: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const { user } = useAuth();
+    const { toast } = useToast();
     const [venture, setVenture] = useState<any>(null);
     const [streams, setStreams] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -274,7 +276,7 @@ export const VentureDetails: React.FC = () => {
                                                 window.open(url, '_blank');
                                             } catch (err) {
                                                 console.error('Failed to get document URL:', err);
-                                                alert('Failed to download document. Please try again.');
+                                                toast('Failed to download document. Please try again.', 'error');
                                             }
                                         }}
                                         className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm font-semibold"

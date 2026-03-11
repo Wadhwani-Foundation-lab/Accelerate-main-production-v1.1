@@ -3,10 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { ArrowLeft, CheckCircle, FileText, Loader2, Zap, Users, ShieldCheck, ArrowUpRight, Search, Clock, PartyPopper } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { useToast } from '../components/ui/Toast';
 
 export const VentureWorkbench = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { toast } = useToast();
     const [venture, setVenture] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [signing, setSigning] = useState(false);
@@ -59,7 +61,7 @@ export const VentureWorkbench = () => {
             setShowJoinedModal(true);
         } catch (error) {
             console.error('Error signing agreement:', error);
-            alert('Failed to sign agreement. Please try again.');
+            toast('Failed to sign agreement. Please try again.', 'error');
         } finally {
             setSigning(false);
         }

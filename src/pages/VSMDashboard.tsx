@@ -20,6 +20,7 @@ import {
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { STATUS_CONFIG } from '../components/StatusSelect';
+import { useToast } from '../components/ui/Toast';
 
 // Types
 interface Venture {
@@ -411,6 +412,7 @@ const RecommendProgramSection: React.FC<{
 
 export const VSMDashboard: React.FC = () => {
     const { user } = useAuth();
+    const { toast } = useToast();
     const [ventures, setVentures] = useState<Venture[]>([]);
     const [selectedVenture, setSelectedVenture] = useState<Venture | null>(null);
     const [loading, setLoading] = useState(true);
@@ -589,7 +591,7 @@ export const VSMDashboard: React.FC = () => {
 
         // VALIDATION
         if (!program) {
-            alert("Please select a Recommended Program before submitting.");
+            toast('Please select a Recommended Program before submitting.', 'warning');
             return;
         }
 
@@ -626,7 +628,7 @@ export const VSMDashboard: React.FC = () => {
             setSelectedVenture(prev => prev ? { ...prev, ...updatePayload } : null);
 
             // Success feedback
-            alert('✓ Recommendation submitted successfully!\n\nStatus: Pending with Panel\nProgram: ' + program);
+            toast('Recommendation submitted. Status: Pending with Panel — ' + program, 'success');
 
             // Navigate back to list after 1 second
             setTimeout(() => {
@@ -637,7 +639,7 @@ export const VSMDashboard: React.FC = () => {
 
         } catch (error: any) {
             console.error('Error saving:', error);
-            alert('Failed to save assessment: ' + error.message);
+            toast('Failed to save assessment: ' + error.message, 'error');
         } finally {
             setSaving(false);
         }
@@ -657,7 +659,7 @@ export const VSMDashboard: React.FC = () => {
             ));
         } catch (error: any) {
             console.error('Error generating AI insights:', error);
-            alert(error.message || 'Failed to generate AI insights. Please check if the API key is configured.');
+            toast(error.message || 'Failed to generate AI insights.', 'error');
         } finally {
             setAnalyzing(false);
         }
@@ -675,11 +677,11 @@ export const VSMDashboard: React.FC = () => {
 
             setSelectedVenture(prev => prev ? { ...prev, growth_target: editProfileData } : null);
             setIsEditingProfile(false);
-            alert("Venture profile updated.");
+            toast('Venture profile updated.', 'success');
 
         } catch (e) {
             console.error("Error updating profile", e);
-            alert("Failed to update profile");
+            toast('Failed to update profile.', 'error');
         }
     };
 
@@ -1107,7 +1109,7 @@ export const VSMDashboard: React.FC = () => {
                                                     window.open(url, '_blank');
                                                 } catch (err) {
                                                     console.error('Failed to get document URL:', err);
-                                                    alert('Failed to download document. Please try again.');
+                                                    toast('Failed to download document. Please try again.', 'error');
                                                 }
                                             }}
                                             className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm font-semibold"

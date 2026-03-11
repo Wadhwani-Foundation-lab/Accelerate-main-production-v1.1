@@ -869,6 +869,7 @@ class ApiClient {
 
         if (rpcError) {
             console.error('Failed to save document URL:', rpcError);
+            throw new Error('Document uploaded but failed to save reference. Please try again.');
         }
 
         return { filePath };

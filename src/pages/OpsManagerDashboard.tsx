@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { ScheduleCallModal } from '../components/ScheduleCallModal';
 import { STATUS_CONFIG } from '../components/StatusSelect';
+import { useToast } from '../components/ui/Toast';
 
 interface Venture {
     id: string;
@@ -75,6 +76,7 @@ function getDisplayStatus(venture: Venture): { label: string; color: string; bg:
 }
 
 export const OpsManagerDashboard: React.FC = () => {
+    const { toast } = useToast();
     const [ventures, setVentures] = useState<Venture[]>([]);
     const [panelists, setPanelists] = useState<Panelist[]>([]);
     const [callCounts, setCallCounts] = useState<CallCount[]>([]);
@@ -688,7 +690,7 @@ export const OpsManagerDashboard: React.FC = () => {
                                                             window.open(url, '_blank');
                                                         } catch (err) {
                                                             console.error('Failed to get document URL:', err);
-                                                            alert('Failed to download document. Please try again.');
+                                                            toast('Failed to download document. Please try again.', 'error');
                                                         }
                                                     }}
                                                     className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm font-semibold"

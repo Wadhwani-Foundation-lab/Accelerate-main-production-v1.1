@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { InteractionsSection } from '../components/Interactions/InteractionsSection';
 import { STATUS_CONFIG } from '../components/StatusSelect';
+import { useToast } from '../components/ui/Toast';
 
 interface Venture {
     id: string;
@@ -80,6 +81,7 @@ const OtherDetailsReadOnlySection: React.FC<{ selectedVenture: any }> = ({ selec
 export const SelectionCommitteeDashboard: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const { toast } = useToast();
     const [ventures, setVentures] = useState<Venture[]>([]);
     const [selectedVenture, setSelectedVenture] = useState<Venture | null>(null);
     const [loading, setLoading] = useState(true);
@@ -190,7 +192,7 @@ export const SelectionCommitteeDashboard: React.FC = () => {
             ));
         } catch (error: any) {
             console.error('Error generating panel insights:', error);
-            alert(error.message || 'Failed to generate panel insights.');
+            toast(error.message || 'Failed to generate panel insights.', 'error');
         } finally {
             setPanelAnalyzing(false);
         }
@@ -210,7 +212,7 @@ export const SelectionCommitteeDashboard: React.FC = () => {
             setRoadmapGenerated(true);
         } catch (error: any) {
             console.error('Error generating roadmap:', error);
-            alert(error.message || 'Failed to generate roadmap.');
+            toast(error.message || 'Failed to generate roadmap.', 'error');
         } finally {
             setGeneratingRoadmap(false);
         }
@@ -615,7 +617,7 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                                                     window.open(url, '_blank');
                                                 } catch (err) {
                                                     console.error('Failed to get document URL:', err);
-                                                    alert('Failed to download document. Please try again.');
+                                                    toast('Failed to download document. Please try again.', 'error');
                                                 }
                                             }}
                                             className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm font-semibold"
