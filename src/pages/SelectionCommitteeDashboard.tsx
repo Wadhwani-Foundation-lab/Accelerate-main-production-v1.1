@@ -36,6 +36,14 @@ interface Venture {
     workbench_locked?: boolean;
 }
 
+function displayProgram(rec?: string): string {
+    if (!rec) return '';
+    if (rec.toLowerCase().includes('prime')) return 'Accelerate Prime';
+    if (rec.toLowerCase().includes('core') || rec.toLowerCase().includes('select')) return 'Accelerate Core/Select';
+    if (rec.toLowerCase().includes('selfserve')) return 'Self-Serve';
+    return rec;
+}
+
 const OtherDetailsReadOnlySection: React.FC<{ selectedVenture: any }> = ({ selectedVenture }) => {
     const [open, setOpen] = useState(true);
     return (
@@ -108,12 +116,12 @@ export const SelectionCommitteeDashboard: React.FC = () => {
             console.log('🔍 Venture recommendations:', allVentures?.map((v: any) => ({
                 name: v.name,
                 program_recommendation: v.program_recommendation,
-                matches: ['Accelerate Core', 'Accelerate Select'].includes(v.program_recommendation)
+                matches: ['Accelerate Core', 'Accelerate Select', 'Accelerate Core/Select'].includes(v.program_recommendation)
             })));
 
             // Filter for Core and Select programs only
             const accelerateVentures = allVentures?.filter(
-                (v: Venture) => ['Accelerate Core', 'Accelerate Select'].includes(v.program_recommendation || '')
+                (v: Venture) => ['Accelerate Core', 'Accelerate Select', 'Accelerate Core/Select'].includes(v.program_recommendation || '')
             ) || [];
 
             console.log('✅ Filtered Accelerate ventures (Core & Select):', accelerateVentures);
@@ -272,7 +280,7 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                     ) : filteredVentures.length === 0 ? (
                         <div className="text-center p-16 bg-white rounded-2xl border border-dashed border-gray-300 text-gray-400">
                             <div className="text-lg font-medium mb-1">No applications found</div>
-                            <div className="text-sm">Ventures recommended for Accelerate Core or Select will appear here.</div>
+                            <div className="text-sm">Ventures recommended for Accelerate Core/Select will appear here.</div>
                         </div>
                     ) : (
                         <div className="space-y-3">
@@ -359,7 +367,7 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                             <div className="flex-1">
                                 <p className="text-sm font-semibold text-indigo-900">Screening Manager Assessment</p>
                                 <p className="text-xs text-indigo-700 mt-1">
-                                    This venture was assessed by the Screening Manager and recommended for {selectedVenture.program_recommendation}.
+                                    This venture was assessed by the Screening Manager and recommended for {displayProgram(selectedVenture.program_recommendation)}.
                                     {selectedVenture.vsm_reviewed_at && ` Reviewed on ${new Date(selectedVenture.vsm_reviewed_at).toLocaleDateString()}.`}
                                 </p>
                             </div>
@@ -879,7 +887,7 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                             <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm font-medium text-indigo-700">Recommended Program:</span>
-                                    <span className="text-lg font-bold text-indigo-900">{selectedVenture.program_recommendation}</span>
+                                    <span className="text-lg font-bold text-indigo-900">{displayProgram(selectedVenture.program_recommendation)}</span>
                                 </div>
                                 {selectedVenture.internal_comments && (
                                     <div className="mt-3 pt-3 border-t border-indigo-200">

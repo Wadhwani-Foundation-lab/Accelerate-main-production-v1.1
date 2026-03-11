@@ -99,7 +99,7 @@ function App() {
             <Route path="availability" element={<PanelAvailability />} />
           </Route>
 
-          {/* Panel (Core, Select) Dashboard Routes */}
+          {/* Panel (Core/Select) Dashboard Routes */}
           <Route path="/committee/dashboard" element={
             <ProtectedRoute allowedRoles={['committee_member']}>
               <VSMDashboardLayout />

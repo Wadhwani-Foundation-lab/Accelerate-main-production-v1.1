@@ -16,6 +16,7 @@ export const VentureWorkbench = () => {
     const [milestones, setMilestones] = useState<any[]>([]);
     const [roadmapData, setRoadmapData] = useState<any>(null);
     const [showJoinedModal, setShowJoinedModal] = useState(false);
+    const [declining, setDeclining] = useState(false);
 
     useEffect(() => {
         if (id) fetchVentureData();
@@ -45,6 +46,25 @@ export const VentureWorkbench = () => {
             console.error('Error fetching venture data:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDecline = async () => {
+        if (!id) return;
+        if (!window.confirm('Are you sure you want to decline? This action cannot be undone.')) return;
+        setDeclining(true);
+        try {
+            await api.updateVenture(id, {
+                agreement_status: 'Declined',
+                status: 'Rejected'
+            });
+            toast('You have declined the program offer.', 'info');
+            navigate('/dashboard');
+        } catch (error) {
+            console.error('Error declining:', error);
+            toast('Failed to decline. Please try again.', 'error');
+        } finally {
+            setDeclining(false);
         }
     };
 
@@ -89,6 +109,7 @@ export const VentureWorkbench = () => {
     }
 
     const isSigned = venture.agreement_status === 'Signed';
+    const isDeclined = venture.status === 'Rejected' || venture.agreement_status === 'Declined';
 
     // Group milestones by category for display
     const milestonesByCategory = milestones.reduce((acc: any, curr: any) => {
@@ -113,12 +134,31 @@ export const VentureWorkbench = () => {
                         Joined Program
                     </span>
                 )}
+                {isDeclined && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+                        Declined
+                    </span>
+                )}
             </div>
 
             <div className="max-w-7xl mx-auto">
                 {/* Workbench Locked Banner - removed */}
 
-                {!isSigned ? (
+                {isDeclined ? (
+                    // DECLINED VIEW
+                    <div className="max-w-5xl mx-auto">
+                        <div className="bg-white rounded-xl shadow-sm border border-red-200 p-8 text-center">
+                            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <ShieldCheck className="w-8 h-8 text-red-500" />
+                            </div>
+                            <h2 className="text-xl font-bold text-gray-900 mb-2">Program Offer Declined</h2>
+                            <p className="text-gray-500 mb-6">You have declined the program offer for this venture.</p>
+                            <Button onClick={() => navigate('/dashboard')} variant="outline">
+                                Back to Dashboard
+                            </Button>
+                        </div>
+                    </div>
+                ) : !isSigned ? (
                     // SIGNING VIEW
                     <div className="max-w-5xl mx-auto">
                         <h1 className="text-2xl font-bold text-gray-900 mb-4">Review the Journey Roadmap</h1>
@@ -349,8 +389,17 @@ export const VentureWorkbench = () => {
                             {/* Actions */}
                             <div className="flex border-t border-gray-200">
                                 <div className="w-1/2 p-4 border-r border-gray-200 flex justify-center">
-                                    <Button variant="outline" className="w-full max-w-[200px] text-gray-700 border-gray-300 font-bold hover:bg-gray-100 hover:text-gray-900">
-                                        Decline
+                                    <Button
+                                        variant="outline"
+                                        className="w-full max-w-[200px] text-gray-700 border-gray-300 font-bold hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                                        disabled={declining}
+                                        onClick={handleDecline}
+                                    >
+                                        {declining ? (
+                                            <span className="flex items-center justify-center gap-2">
+                                                <Loader2 className="w-4 h-4 animate-spin" /> Declining...
+                                            </span>
+                                        ) : 'Decline'}
                                     </Button>
                                 </div>
                                 <div className="w-1/2 p-4 flex justify-center">

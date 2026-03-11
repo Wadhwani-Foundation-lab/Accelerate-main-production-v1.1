@@ -200,13 +200,11 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
                             <span className="text-sm text-gray-600">For <span className="font-semibold">{venture.name}</span></span>
                             {venture.program_recommendation && (
                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                    venture.program_recommendation === 'Prime'
+                                    (venture.program_recommendation || '').toLowerCase().includes('prime')
                                         ? 'bg-purple-50 text-purple-700'
-                                        : venture.program_recommendation === 'Core'
-                                            ? 'bg-blue-50 text-blue-700'
-                                            : 'bg-teal-50 text-teal-700'
+                                        : 'bg-blue-50 text-blue-700'
                                 }`}>
-                                    {venture.program_recommendation}
+                                    {(venture.program_recommendation || '').toLowerCase().includes('prime') ? 'Prime' : 'Core/Select'}
                                 </span>
                             )}
                         </div>

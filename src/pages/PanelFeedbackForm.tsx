@@ -350,6 +350,14 @@ export const PanelFeedbackForm: React.FC = () => {
 
             await api.createPanelFeedback(ventureId!, payload);
 
+            // Update venture status based on panel recommendation
+            // (trigger auto-logs to venture_status_history)
+            if (finalRecommendation === 'proceed') {
+                await api.updateVenture(ventureId!, { status: 'Approved' });
+            } else if (finalRecommendation === 'reject' || finalRecommendation === 'not_recommended') {
+                await api.updateVenture(ventureId!, { status: 'Rejected' });
+            }
+
             // Send selection welcome email if panel recommends proceeding
             if (finalRecommendation === 'proceed') {
                 const category = programCategory || (isPrime ? 'prime' : '');

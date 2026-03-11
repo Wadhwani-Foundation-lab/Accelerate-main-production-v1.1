@@ -879,7 +879,7 @@ export const VentureManagerDashboard: React.FC = () => {
                             <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm font-medium text-purple-700">Recommended Program:</span>
-                                    <span className="text-lg font-bold text-purple-900">{selectedVenture.program_recommendation}</span>
+                                    <span className="text-lg font-bold text-purple-900">{selectedVenture.program_recommendation?.toLowerCase().includes('prime') ? 'Accelerate Prime' : selectedVenture.program_recommendation}</span>
                                 </div>
                                 {selectedVenture.internal_comments && (
                                     <div className="mt-3 pt-3 border-t border-purple-200">

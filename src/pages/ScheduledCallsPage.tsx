@@ -87,12 +87,11 @@ function getVentureStatusBadge(venture?: ScheduledCall['venture']) {
     const status = venture.status;
     const program = venture.program_recommendation;
 
+    if (status === 'Panel Review' && (program || '').toLowerCase().includes('prime')) {
+        return { label: 'Pending with Panel (Prime)', color: 'text-purple-700', bg: 'bg-purple-50' };
+    }
     if (status === 'Panel Review') {
-        return {
-            label: `Pending with Panel (${program || 'Core/Select'})`,
-            color: 'text-indigo-700',
-            bg: 'bg-indigo-50',
-        };
+        return { label: 'Pending with Panel (Core/Select)', color: 'text-indigo-700', bg: 'bg-indigo-50' };
     }
     if (status === 'Approved') {
         return { label: 'Accepted by Business', color: 'text-green-700', bg: 'bg-green-50' };

@@ -65,8 +65,7 @@ function getVentureDisplayStatus(venture: Venture): { label: string; color: stri
         return { label: 'Pending with Panel (Prime)', color: 'text-purple-700', bg: 'bg-purple-50' };
     }
     if (status === 'Panel Review') {
-        const prog = rec?.replace('Accelerate ', '') || 'Core/Select';
-        return { label: `Pending with Panel (${prog})`, color: 'text-indigo-700', bg: 'bg-indigo-50' };
+        return { label: 'Pending with Panel (Core/Select)', color: 'text-indigo-700', bg: 'bg-indigo-50' };
     }
     if (status === 'Approved') {
         return { label: 'Accepted by Business', color: 'text-green-700', bg: 'bg-green-50' };
@@ -327,8 +326,7 @@ const RecommendProgramSection: React.FC<{
                 >
                     <option value="">Select a program…</option>
                     <option value="Selfserve">Self-Serve</option>
-                    <option value="Accelerate Core">Accelerate Core</option>
-                    <option value="Accelerate Select">Accelerate Select</option>
+                    <option value="Accelerate Core/Select">Accelerate Core/Select</option>
                     <option value="Accelerate Prime">Accelerate Prime</option>
                 </select>
             </div>
@@ -464,10 +462,9 @@ export const VSMDashboard: React.FC = () => {
             }
 
             // Map program names to panelist program types
-            let programType = '';
-            if (program === 'Accelerate Prime') programType = 'Prime';
-            else if (program === 'Accelerate Core') programType = 'Core';
-            else if (program === 'Accelerate Select') programType = 'Select';
+            let programTypes: string[] = [];
+            if (program === 'Accelerate Prime') programTypes = ['Prime'];
+            else if (program === 'Accelerate Core/Select') programTypes = ['Core', 'Select'];
             else {
                 setPanelists([]);
                 setSelectedPanelist('');
@@ -475,8 +472,8 @@ export const VSMDashboard: React.FC = () => {
             }
 
             try {
-                const data = await api.getPanelistsByProgram(programType);
-                setPanelists(data);
+                const results = await Promise.all(programTypes.map(pt => api.getPanelistsByProgram(pt)));
+                setPanelists(results.flat());
             } catch (error) {
                 console.error('Error fetching panelists:', error);
                 setPanelists([]);
@@ -524,7 +521,7 @@ export const VSMDashboard: React.FC = () => {
             if (userRole === 'venture_mgr') {
                 filteredData = filteredData.filter((v: any) => v.program_recommendation === 'Accelerate Prime');
             } else if (userRole === 'committee') {
-                filteredData = filteredData.filter((v: any) => ['Accelerate Core', 'Accelerate Select'].includes(v.program_recommendation || ''));
+                filteredData = filteredData.filter((v: any) => ['Accelerate Core', 'Accelerate Select', 'Accelerate Core/Select'].includes(v.program_recommendation || ''));
             }
 
             // Map data to ensure needs array exists and streams are mapped to needs

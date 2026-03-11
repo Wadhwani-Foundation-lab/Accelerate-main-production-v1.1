@@ -18,12 +18,12 @@ export const VSMDashboardLayout: React.FC = () => {
     const getRoleLabel = () => {
         const role = user?.user_metadata?.role;
         if (role === 'venture_mgr') return 'Panel (Prime)';
-        if (role === 'committee_member') return 'Panel (Core, Select)';
+        if (role === 'committee_member') return 'Panel (Core/Select)';
         return 'Screening Manager';
     };
 
     const roleLabel = getRoleLabel();
-    const dashboardLabel = roleLabel === 'Panel (Core, Select)' ? 'Panel (Core, Select) Dashboard' : `${roleLabel} Dashboard`;
+    const dashboardLabel = roleLabel === 'Panel (Core/Select)' ? 'Panel (Core/Select) Dashboard' : `${roleLabel} Dashboard`;
 
 
     return (
@@ -37,7 +37,7 @@ export const VSMDashboardLayout: React.FC = () => {
                     </div>
 
                     <nav className="space-y-1">
-                        {roleLabel === 'Panel (Core, Select)' || roleLabel === 'Panel (Prime)' ? (() => {
+                        {roleLabel === 'Panel (Core/Select)' || roleLabel === 'Panel (Prime)' ? (() => {
                             const basePath = location.pathname.startsWith('/vmanager') ? '/vmanager/dashboard' : '/committee/dashboard';
                             return (
                                 <>

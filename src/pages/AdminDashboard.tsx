@@ -47,9 +47,7 @@ function getDisplayStatus(v: Venture): string {
     const s = v.status;
     const rec = (v.program_recommendation || '').toLowerCase();
     if (s === 'Panel Review' && rec.includes('prime')) return 'Pending with Panel (Prime)';
-    if (s === 'Panel Review' && rec.includes('core')) return 'Pending with Panel (Core)';
-    if (s === 'Panel Review' && rec.includes('select')) return 'Pending with Panel (Select)';
-    if (s === 'Panel Review') return 'Pending with Panel';
+    if (s === 'Panel Review') return 'Pending with Panel (Core/Select)';
     if (s === 'Contract Sent' || s === 'Agreement Sent') return 'Pending with Business';
     if (s === 'Joined Program' || (s === 'Approved' && v.agreement_status?.toLowerCase() === 'signed')) return 'Accepted by Business';
     if (s === 'Rejected') return 'Declined by Business';
@@ -61,20 +59,28 @@ function shortProgramName(rec?: string): string {
     if (!rec) return '';
     const lower = rec.toLowerCase();
     if (lower.includes('prime')) return 'Prime';
-    if (lower.includes('core')) return 'Core';
-    if (lower.includes('select')) return 'Select';
+    if (lower.includes('core') || lower.includes('select')) return 'Core/Select';
     if (lower.includes('selfserve')) return 'Selfserve';
     return rec;
 }
 
+function shortStatusLabel(label: string): string {
+    if (label === 'Pending with Screening Manager') return 'Screening';
+    if (label.startsWith('Pending with Panel')) return 'Panel Review';
+    if (label === 'Accepted by Business') return 'Accepted';
+    if (label === 'Declined by Business') return 'Declined';
+    if (label === 'Pending with Business') return 'Pending';
+    return label;
+}
+
 function getStatusBadge(label: string) {
     let style = { color: 'text-gray-700', bg: 'bg-gray-50 border-gray-200' };
-    if (label.includes('Screening')) style = { color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' };
-    else if (label.includes('Panel')) style = { color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200' };
-    else if (label.includes('Pending with Business')) style = { color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200' };
-    else if (label.includes('Accepted')) style = { color: 'text-green-700', bg: 'bg-green-50 border-green-200' };
-    else if (label.includes('Declined')) style = { color: 'text-red-700', bg: 'bg-red-50 border-red-200' };
-    return <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${style.bg} ${style.color}`}>{label}</span>;
+    if (label === 'Screening') style = { color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' };
+    else if (label === 'Panel Review') style = { color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200' };
+    else if (label === 'Pending') style = { color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200' };
+    else if (label === 'Accepted') style = { color: 'text-green-700', bg: 'bg-green-50 border-green-200' };
+    else if (label === 'Declined') style = { color: 'text-red-700', bg: 'bg-red-50 border-red-200' };
+    return <span className={`px-2 py-0.5 text-xs font-medium rounded-full border whitespace-nowrap ${style.bg} ${style.color}`}>{label}</span>;
 }
 
 function daysSince(dateStr: string): number {
@@ -117,6 +123,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
     // User filters
     const [userSearch, setUserSearch] = useState('');
 
+    // Timeline drawer
+    const [timelineVenture, setTimelineVenture] = useState<Venture | null>(null);
+
     // Add user modal
     const [showAddUser, setShowAddUser] = useState(false);
     const [newUserName, setNewUserName] = useState('');
@@ -146,6 +155,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                 .select('id, full_name, role');
             const profileMap: Record<string, { full_name: string; role: string }> = {};
             (profileData || []).forEach((p: any) => { profileMap[p.id] = p; });
+
+            // Panelists (assigned_panelist_id references panelists table, not profiles)
+            const { data: panelistData } = await supabase
+                .from('panelists')
+                .select('id, name, program');
+            (panelistData || []).forEach((p: any) => {
+                if (!profileMap[p.id]) {
+                    profileMap[p.id] = { full_name: p.name, role: p.program === 'Prime' ? 'venture_mgr' : 'committee_member' };
+                }
+            });
             setProfiles(profileMap);
 
             // Staff users for Users tab
@@ -157,8 +176,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
             // Status history for aging
             const { data: historyData } = await supabase
                 .from('venture_status_history')
-                .select('venture_id, new_status, changed_at')
-                .order('changed_at', { ascending: false });
+                .select('venture_id, previous_value, new_value, created_at, changed_by, changed_by_role')
+                .order('created_at', { ascending: false });
             setStatusHistory(historyData || []);
         } catch (err) {
             console.error('Admin fetch error:', err);
@@ -231,13 +250,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
     // ─── Status Aging ────────────────────────────────────────────────
     function getStatusAging(ventureId: string): number {
         const latest = statusHistory.find(h => h.venture_id === ventureId);
-        if (latest) return daysSince(latest.changed_at);
+        if (latest) return daysSince(latest.created_at);
         const v = ventures.find(x => x.id === ventureId);
         return v ? daysSince(v.created_at) : 0;
     }
 
     // ─── Applications Table ──────────────────────────────────────────
-    const uniqueStatuses = Array.from(new Set(ventures.map(v => getDisplayStatus(v)))).sort();
+    const uniqueStatuses = Array.from(new Set(ventures.map(v => shortStatusLabel(getDisplayStatus(v))))).filter(s => s !== 'Draft').sort();
 
     const filteredVentures = ventures
         .filter(v => {
@@ -245,7 +264,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                 const q = searchQuery.toLowerCase();
                 if (!v.name.toLowerCase().includes(q) && !(v.founder_name || '').toLowerCase().includes(q)) return false;
             }
-            if (statusFilter && getDisplayStatus(v) !== statusFilter) return false;
+            if (statusFilter && shortStatusLabel(getDisplayStatus(v)) !== statusFilter) return false;
             return true;
         })
         .sort((a, b) => {
@@ -314,8 +333,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                 const totalDays = reviewedVentures.reduce((sum, v) => {
                     const hist = statusHistory.filter(h => h.venture_id === v.id);
                     if (hist.length >= 2) {
-                        const first = new Date(hist[hist.length - 1].changed_at);
-                        const last = new Date(hist[0].changed_at);
+                        const first = new Date(hist[hist.length - 1].created_at);
+                        const last = new Date(hist[0].created_at);
                         return sum + Math.max(1, Math.floor((last.getTime() - first.getTime()) / (1000 * 60 * 60 * 24)));
                     }
                     return sum + 1;
@@ -426,8 +445,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                 iconColor: 'text-rose-500',
                                 breakdown: [
                                     { label: 'Prime', value: pendingPanelPrime, color: 'text-purple-600' },
-                                    { label: 'Core', value: pendingPanelCore, color: 'text-indigo-600' },
-                                    { label: 'Select', value: pendingPanelSelect, color: 'text-blue-600' },
+                                    { label: 'Core/Select', value: pendingPanelCore + pendingPanelSelect, color: 'text-indigo-600' },
                                 ],
                             },
                             {
@@ -475,8 +493,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                             <div className="space-y-2.5">
                                 {[
                                     { label: 'Prime', count: joinedPrime, color: 'bg-green-500' },
-                                    { label: 'Core', count: joinedCore, color: 'bg-blue-500' },
-                                    { label: 'Select', count: joinedSelect, color: 'bg-sky-400' },
+                                    { label: 'Core/Select', count: joinedCore + joinedSelect, color: 'bg-blue-500' },
                                     { label: 'Selfserve', count: joinedSelfserve, color: 'bg-purple-500' },
                                 ].map(p => (
                                     <div key={p.label} className="flex items-center justify-between">
@@ -507,8 +524,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                 <tbody className="text-sm">
                                     {[
                                         { label: 'Prime', received: panelReceivedPrime, approved: panelApprovedPrime, rejected: panelRejectedPrime },
-                                        { label: 'Core', received: panelReceivedCore, approved: panelApprovedCore, rejected: panelRejectedCore },
-                                        { label: 'Select', received: panelReceivedSelect, approved: panelApprovedSelect, rejected: panelRejectedSelect },
+                                        { label: 'Core/Select', received: panelReceivedCore + panelReceivedSelect, approved: panelApprovedCore + panelApprovedSelect, rejected: panelRejectedCore + panelRejectedSelect },
                                     ].map(r => (
                                         <tr key={r.label} className="border-t border-gray-100">
                                             <td className="py-2 font-medium text-gray-700">{r.label}</td>
@@ -586,7 +602,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                             <tr key={v.id} className="hover:bg-gray-50/50 transition-colors">
                                                 <td className="px-4 py-2.5 font-medium text-gray-900 text-sm">{v.name}</td>
                                                 <td className="px-4 py-2.5 text-gray-500 text-sm">{new Date(v.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                                                <td className="px-4 py-2.5">{getStatusBadge(getDisplayStatus(v))}</td>
+                                                <td className="px-4 py-2.5">{getStatusBadge(shortStatusLabel(getDisplayStatus(v)))}</td>
                                                 <td className="px-4 py-2.5">
                                                     {v.program_recommendation ? (() => {
                                                         const short = shortProgramName(v.program_recommendation);
@@ -602,7 +618,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                                 <td className="px-4 py-2.5 text-gray-500 text-sm">{totalAging}d</td>
                                                 <td className={`px-4 py-2.5 text-sm font-medium ${statusAging > 14 ? 'text-red-600' : statusAging > 7 ? 'text-amber-600' : 'text-gray-500'}`}>{statusAging}d</td>
                                                 <td className="px-4 py-2.5">
-                                                    <button className="text-indigo-600 text-xs font-medium hover:text-indigo-700 transition-colors">View</button>
+                                                    <button onClick={() => setTimelineVenture(v)} className="text-indigo-600 text-xs font-medium hover:text-indigo-700 transition-colors">View</button>
                                                 </td>
                                             </tr>
                                         );
@@ -809,6 +825,157 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+            {/* ─── TIMELINE DRAWER ─── */}
+            {timelineVenture && (
+                <div className="fixed inset-0 z-50 flex justify-end">
+                    <div className="absolute inset-0 bg-black/20" onClick={() => setTimelineVenture(null)} />
+                    <div className="relative w-full max-w-md bg-white shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200">
+                        {/* Header */}
+                        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+                            <h2 className="text-lg font-bold text-gray-900">Application Timeline</h2>
+                            <button onClick={() => setTimelineVenture(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-6">
+                            {/* Venture Info */}
+                            <div className="mb-6">
+                                <h3 className="text-xl font-bold text-gray-900">{timelineVenture.name}</h3>
+                                <div className="flex items-center gap-2 mt-2">
+                                    {getStatusBadge(shortStatusLabel(getDisplayStatus(timelineVenture)))}
+                                    {timelineVenture.program_recommendation && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                            {shortProgramName(timelineVenture.program_recommendation)}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="border-t border-gray-200 pt-5">
+                                <h4 className="text-sm font-semibold text-gray-700 mb-4">Application History</h4>
+                                {(() => {
+                                    // Build timeline: start with submission, then status changes
+                                    const history = statusHistory
+                                        .filter(h => h.venture_id === timelineVenture.id)
+                                        .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+                                    // Build timeline events
+                                    const events: { title: string; subtitle: string; person: string; date: string; icon: 'green' | 'blue' | 'red' | 'amber' }[] = [];
+
+                                    // Application submitted (use venture created_at)
+                                    events.push({
+                                        title: 'Application submitted',
+                                        subtitle: 'Application received from business portal',
+                                        person: timelineVenture.founder_name || timelineVenture.name,
+                                        date: timelineVenture.created_at,
+                                        icon: 'green',
+                                    });
+
+                                    // Status changes from history
+                                    for (const h of history) {
+                                        const newVal = h.new_value;
+                                        const prevVal = h.previous_value;
+                                        const changedByName = profiles[h.changed_by]?.full_name || '';
+                                        const role = h.changed_by_role;
+
+                                        if (newVal === 'Under Review') {
+                                            events.push({ title: 'Screening started', subtitle: 'Application under review by screening manager', person: changedByName, date: h.created_at, icon: 'blue' });
+                                        } else if (newVal === 'Panel Review') {
+                                            const prog = shortProgramName(timelineVenture.program_recommendation);
+                                            events.push({ title: 'Screening manager review complete', subtitle: prog ? `Recommended for ${prog}` : 'Sent to panel', person: changedByName, date: h.created_at, icon: 'green' });
+                                        } else if (newVal === 'Approved') {
+                                            const prog = shortProgramName(timelineVenture.program_recommendation);
+                                            const panelLabel = prog === 'Prime' ? 'Panel (Prime)' : 'Panel (Core/Select)';
+                                            events.push({ title: `${panelLabel} review complete`, subtitle: 'Program approved', person: changedByName, date: h.created_at, icon: 'green' });
+                                        } else if (newVal === 'Contract Sent' || newVal === 'Agreement Sent') {
+                                            events.push({ title: 'Agreement sent', subtitle: 'Contract sent to business for review', person: changedByName, date: h.created_at, icon: 'blue' });
+                                        } else if (newVal === 'Joined Program') {
+                                            // Infer panel approval if previous status was Panel Review (no explicit Approved entry)
+                                            if (prevVal === 'Panel Review') {
+                                                const prog = shortProgramName(timelineVenture.program_recommendation);
+                                                const panelLabel = prog === 'Prime' ? 'Panel (Prime)' : 'Panel (Core/Select)';
+                                                const assignedPanelist = profiles[timelineVenture.assigned_panelist_id || '']?.full_name || '';
+                                                events.push({ title: `${panelLabel} review complete`, subtitle: 'Program approved', person: assignedPanelist, date: h.created_at, icon: 'green' });
+                                            }
+                                            events.push({ title: 'Business accepted', subtitle: 'Business joined the program', person: changedByName || timelineVenture.name, date: h.created_at, icon: 'green' });
+                                        } else if (newVal === 'Rejected') {
+                                            // Infer panel rejection if previous status was Panel Review
+                                            if (prevVal === 'Panel Review' && role === 'entrepreneur') {
+                                                const prog = shortProgramName(timelineVenture.program_recommendation);
+                                                const panelLabel = prog === 'Prime' ? 'Panel (Prime)' : 'Panel (Core/Select)';
+                                                const assignedPanelist = profiles[timelineVenture.assigned_panelist_id || '']?.full_name || '';
+                                                events.push({ title: `${panelLabel} review complete`, subtitle: 'Program approved', person: assignedPanelist, date: h.created_at, icon: 'green' });
+                                            }
+                                            const isBusinessDecline = role === 'entrepreneur';
+                                            events.push({
+                                                title: isBusinessDecline ? 'Business declined' : 'Application rejected',
+                                                subtitle: isBusinessDecline ? 'Business declined the program offer' : 'Application was not approved',
+                                                person: changedByName || timelineVenture.name,
+                                                date: h.created_at,
+                                                icon: 'red',
+                                            });
+                                        }
+                                    }
+
+                                    if (events.length <= 1 && history.length === 0) {
+                                        return <p className="text-sm text-gray-400 text-center py-8">No history available yet.</p>;
+                                    }
+
+                                    const iconColors = {
+                                        green: 'bg-emerald-500',
+                                        blue: 'bg-blue-500',
+                                        red: 'bg-red-500',
+                                        amber: 'bg-amber-500',
+                                    };
+
+                                    return (
+                                        <div className="relative">
+                                            {/* Vertical line */}
+                                            <div className="absolute left-[17px] top-2 bottom-2 w-0.5 bg-gray-200" />
+
+                                            <div className="space-y-6">
+                                                {events.map((evt, i) => (
+                                                    <div key={i} className="relative flex gap-4">
+                                                        {/* Icon */}
+                                                        <div className={`w-[34px] h-[34px] rounded-full ${iconColors[evt.icon]} flex items-center justify-center flex-shrink-0 z-10 shadow-sm`}>
+                                                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                {evt.icon === 'red'
+                                                                    ? <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                                    : <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                }
+                                                            </svg>
+                                                        </div>
+
+                                                        {/* Content */}
+                                                        <div className="flex-1 min-w-0 pb-1">
+                                                            <div className="flex items-start justify-between gap-2">
+                                                                <div>
+                                                                    <p className="text-sm font-semibold text-gray-900">{evt.title}</p>
+                                                                    <p className="text-xs text-gray-500 mt-0.5">{evt.subtitle}</p>
+                                                                </div>
+                                                                <span className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
+                                                                    {new Date(evt.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, {new Date(evt.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                                                </span>
+                                                            </div>
+                                                            {evt.person && (
+                                                                <div className="flex items-center gap-1.5 mt-1.5 text-xs text-gray-400">
+                                                                    <Users className="w-3 h-3" />
+                                                                    {evt.person}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

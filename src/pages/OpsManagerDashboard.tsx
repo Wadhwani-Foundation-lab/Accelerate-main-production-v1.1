@@ -53,15 +53,32 @@ interface CallCount {
 type ProgramFilter = string;
 type CallStatusFilter = '' | 'no_calls' | 'has_calls';
 
+function shortStatusLabel(label: string): string {
+    if (label.includes('Screening')) return 'Screening';
+    if (label.includes('Panel')) return 'Panel Review';
+    if (label.includes('Accepted')) return 'Accepted';
+    if (label.includes('Declined')) return 'Declined';
+    if (label.includes('Pending')) return 'Pending';
+    return label;
+}
+
+function displayProgram(rec?: string): string {
+    if (!rec) return '';
+    if (rec.toLowerCase().includes('prime')) return 'Accelerate Prime';
+    if (rec.toLowerCase().includes('core') || rec.toLowerCase().includes('select')) return 'Accelerate Core/Select';
+    if (rec.toLowerCase().includes('selfserve')) return 'Self-Serve';
+    return rec;
+}
+
 function getDisplayStatus(venture: Venture): { label: string; color: string; bg: string } {
     const status = venture.status;
     const rec = venture.program_recommendation;
 
-    if (status === 'Panel Review' && rec === 'Prime') {
+    if (status === 'Panel Review' && (rec || '').toLowerCase().includes('prime')) {
         return { label: 'Pending with Panel (Prime)', color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200' };
     }
     if (status === 'Panel Review') {
-        return { label: `Pending with Panel (${rec || 'Core/Select'})`, color: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200' };
+        return { label: 'Pending with Panel (Core/Select)', color: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200' };
     }
     if (status === 'Approved') {
         return { label: 'Accepted by Business', color: 'text-green-700', bg: 'bg-green-50 border-green-200' };
@@ -166,8 +183,8 @@ export const OpsManagerDashboard: React.FC = () => {
 
     // Derive unique display status values from data
     const uniqueStatuses = Array.from(
-        new Set(ventures.map(v => getDisplayStatus(v).label))
-    ).sort();
+        new Set(ventures.map(v => shortStatusLabel(getDisplayStatus(v).label)))
+    ).filter(s => s !== 'Draft').sort();
 
     // Filter ventures
     const committeeVentures = ventures.filter(v => v.status === 'Panel Review');
@@ -177,7 +194,7 @@ export const OpsManagerDashboard: React.FC = () => {
             if (!v.name.toLowerCase().includes(q) && !(v.founder_name || '').toLowerCase().includes(q)) return false;
         }
         if (programFilter) {
-            if (getDisplayStatus(v).label !== programFilter) return false;
+            if (shortStatusLabel(getDisplayStatus(v).label) !== programFilter) return false;
         }
         if (callStatusFilter === 'no_calls') {
             if (getCallCount(v.id).total > 0) return false;
@@ -195,9 +212,11 @@ export const OpsManagerDashboard: React.FC = () => {
 
     const getProgramBreakdown = (ventureList: Venture[]) => {
         const prime = ventureList.filter(v => (v.program_recommendation || '').includes('Prime')).length;
-        const core = ventureList.filter(v => (v.program_recommendation || '').includes('Core')).length;
-        const select = ventureList.filter(v => (v.program_recommendation || '').includes('Select')).length;
-        return { prime, core, select };
+        const coreSelect = ventureList.filter(v => {
+            const rec = (v.program_recommendation || '').toLowerCase();
+            return rec.includes('core') || rec.includes('select');
+        }).length;
+        return { prime, coreSelect };
     };
 
     const pendingBreakdown = getProgramBreakdown(committeeVentures);
@@ -340,26 +359,36 @@ export const OpsManagerDashboard: React.FC = () => {
                                             </td>
                                             <td className="px-4 py-3">
                                                 {venture.program_recommendation ? (
-                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                                        venture.program_recommendation === 'Prime'
-                                                            ? 'bg-purple-50 text-purple-700'
-                                                            : venture.program_recommendation === 'Core'
-                                                                ? 'bg-blue-50 text-blue-700'
-                                                                : 'bg-teal-50 text-teal-700'
+                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap border ${
+                                                        (venture.program_recommendation || '').toLowerCase().includes('prime')
+                                                            ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                                            : 'bg-blue-50 text-blue-700 border-blue-200'
                                                     }`}>
-                                                        {venture.program_recommendation}
+                                                        {(venture.program_recommendation || '').toLowerCase().includes('prime') ? 'Prime' : 'Core/Select'}
                                                     </span>
                                                 ) : (
-                                                    <span className="text-gray-400">-</span>
+                                                    <span className="text-xs text-gray-300">—</span>
                                                 )}
                                             </td>
                                             <td className="px-4 py-3">
-                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${displayStatus.bg} ${displayStatus.color}`}>
-                                                    {displayStatus.label}
-                                                </span>
+                                                {(() => {
+                                                    const label = displayStatus.label;
+                                                    let short = label;
+                                                    let style = 'bg-gray-50 text-gray-600 border-gray-200';
+                                                    if (label.includes('Screening')) { short = 'Screening'; style = 'bg-amber-50 text-amber-700 border-amber-200'; }
+                                                    else if (label.includes('Panel')) { short = label.includes('Prime') ? 'Panel Review' : 'Panel Review'; style = 'bg-indigo-50 text-indigo-700 border-indigo-200'; }
+                                                    else if (label.includes('Accepted')) { short = 'Accepted'; style = 'bg-emerald-50 text-emerald-700 border-emerald-200'; }
+                                                    else if (label.includes('Declined')) { short = 'Declined'; style = 'bg-red-50 text-red-700 border-red-200'; }
+                                                    else if (label.includes('Pending')) { short = 'Pending'; style = 'bg-blue-50 text-blue-700 border-blue-200'; }
+                                                    return <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap border ${style}`}>{short}</span>;
+                                                })()}
                                             </td>
-                                            <td className="px-4 py-3 text-gray-600">
-                                                {assignedPanelist?.name || '-'}
+                                            <td className="px-4 py-3">
+                                                {assignedPanelist?.name ? (
+                                                    <span className="text-sm text-gray-700 font-medium whitespace-nowrap">{assignedPanelist.name}</span>
+                                                ) : (
+                                                    <span className="text-xs text-gray-300">—</span>
+                                                )}
                                             </td>
                                             <td className="px-4 py-3 text-gray-600">
                                                 {venture.vsm_reviewed_at
@@ -459,7 +488,7 @@ export const OpsManagerDashboard: React.FC = () => {
                                 <h2 className="text-xl font-bold text-gray-900">{profileVenture.name || 'Unknown Venture'}</h2>
                                 {profileVenture.program_recommendation && (
                                     <span className="inline-flex items-center px-3 py-1 mt-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
-                                        {profileVenture.program_recommendation}
+                                        {displayProgram(profileVenture.program_recommendation)}
                                     </span>
                                 )}
                             </div>
@@ -488,7 +517,7 @@ export const OpsManagerDashboard: React.FC = () => {
                                         <div className="flex-1">
                                             <p className="text-sm font-semibold text-indigo-900">Screening Manager Assessment</p>
                                             <p className="text-xs text-indigo-700 mt-1">
-                                                This venture was assessed and recommended for {profileVenture.program_recommendation}.
+                                                This venture was assessed and recommended for {displayProgram(profileVenture.program_recommendation)}.
                                                 {profileVenture.vsm_reviewed_at && ` Reviewed on ${new Date(profileVenture.vsm_reviewed_at).toLocaleDateString()}.`}
                                             </p>
                                         </div>
@@ -737,7 +766,7 @@ export const OpsManagerDashboard: React.FC = () => {
                                         <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm font-medium text-indigo-700">Recommended Program:</span>
-                                                <span className="text-lg font-bold text-indigo-900">{profileVenture.program_recommendation}</span>
+                                                <span className="text-lg font-bold text-indigo-900">{displayProgram(profileVenture.program_recommendation)}</span>
                                             </div>
                                             {profileVenture.internal_comments && (
                                                 <div className="mt-3 pt-3 border-t border-indigo-200">
@@ -815,8 +844,7 @@ const SummaryCard: React.FC<{
         <div className="text-sm font-medium text-gray-700 mb-2">{title}</div>
         <div className="flex items-center gap-3 text-xs text-gray-500">
             <span>Prime: {breakdown.prime}</span>
-            <span>Core: {breakdown.core}</span>
-            <span>Select: {breakdown.select}</span>
+            <span>Core/Select: {breakdown.coreSelect}</span>
         </div>
     </div>
 );

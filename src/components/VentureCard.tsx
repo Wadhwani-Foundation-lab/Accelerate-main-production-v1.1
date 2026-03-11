@@ -10,7 +10,7 @@ export interface Venture {
     program: 'Accelerate' | 'Ignite' | 'Liftoff';
     location: string;
     submittedAt: string;
-    agreement_status?: 'Draft' | 'Sent' | 'Signed';
+    agreement_status?: 'Draft' | 'Sent' | 'Signed' | 'Declined';
     workbench_locked?: boolean;
 }
 
@@ -93,7 +93,16 @@ export const VentureCard: React.FC<VentureCardProps> = ({ venture }) => {
 
                 {/* Action buttons */}
                 <div className="flex items-center gap-2.5 pt-4 border-t border-gray-100">
-                    {venture.status === 'Joined Program' ? (
+                    {venture.status === 'Rejected' ? (
+                        <button
+                            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium bg-red-50 text-red-400 border border-red-200 cursor-not-allowed"
+                            disabled
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <LayoutGrid className="w-3.5 h-3.5" />
+                            Declined
+                        </button>
+                    ) : venture.status === 'Joined Program' ? (
                         <button
                             className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-colors shadow-sm"
                             onClick={(e) => {
