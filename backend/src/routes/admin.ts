@@ -93,6 +93,19 @@ router.post(
                 console.error('Profile creation error:', profileError);
             }
 
+            // Auto-create panelist record for panel roles
+            if (role === 'venture_mgr' || role === 'committee_member') {
+                const program = role === 'venture_mgr' ? 'Prime'
+                    : (req.body.program || 'Core');
+                const { error: panelistError } = await serviceClient
+                    .from('panelists')
+                    .upsert({ name: full_name, email, program }, { onConflict: 'email' });
+
+                if (panelistError) {
+                    console.error('Panelist creation error:', panelistError);
+                }
+            }
+
             createdResponse(res, {
                 message: 'User created successfully',
                 user: { id: data.user.id, email, full_name, role },
