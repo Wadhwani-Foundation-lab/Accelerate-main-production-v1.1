@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import * as ventureService from '../services/ventureService';
+import { autoAssignScreeningManager } from '../services/ventureService';
 import * as aiService from '../services/aiService';
 import { extractDocumentText } from '../services/documentService';
 import { authenticateUser } from '../middleware/auth';
@@ -145,6 +146,15 @@ router.post(
                     .then(() => console.log(`Welcome email sent to ${body.email} for venture ${body.name}`))
                     .catch((err) => console.error('Failed to send welcome email:', err));
             }
+
+            // 5. Auto-assign screening manager based on revenue (fire-and-forget)
+            autoAssignScreeningManager(venture.id)
+                .then(result => {
+                    if (result.assignedTo) {
+                        console.log(`[PublicApply] Auto-assigned screening manager: ${result.assignedTo} for venture ${body.name}`);
+                    }
+                })
+                .catch(err => console.error('[PublicApply] Auto-assign failed:', err));
 
             createdResponse(res, {
                 message: 'Application submitted successfully',
@@ -392,6 +402,16 @@ router.post(
             const supabase = createAuthenticatedClient(token);
 
             const venture = await ventureService.submitVenture(supabase, req.params.id, req.user.id);
+
+            // Auto-assign screening manager based on revenue (fire-and-forget)
+            autoAssignScreeningManager(req.params.id)
+                .then(result => {
+                    if (result.assignedTo) {
+                        console.log(`[Submit] Auto-assigned screening manager: ${result.assignedTo} for venture ${venture.name}`);
+                    }
+                })
+                .catch(err => console.error('[Submit] Auto-assign failed:', err));
+
             successResponse(res, {
                 message: 'Venture submitted for review',
                 venture

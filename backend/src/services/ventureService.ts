@@ -7,6 +7,113 @@ import {
     CreateStreamRequest,
     VentureQueryParams
 } from '../types';
+import { createServiceRoleClient } from '../config/supabase';
+
+// Revenue tiers for screening manager assignment
+const BELOW_25CR_REVENUES = ['Pre Revenue', '1Cr-5Cr', '5Cr-25Cr'];
+const ABOVE_25CR_REVENUES = ['25Cr-75Cr', '>75Cr'];
+
+// Screening managers by revenue tier (looked up by full_name in profiles)
+const SCREENING_MANAGER_TIERS: Record<string, string[]> = {
+    below_25cr: ['Sanghamitra', 'Shweta Singh'],
+    above_25cr: ['Shruti TS', 'Anuradha Nirwan'],
+};
+
+/**
+ * Auto-assign a screening manager based on venture's current revenue.
+ * Uses round-robin (least loaded) within the appropriate tier.
+ */
+export async function autoAssignScreeningManager(
+    ventureId: string
+): Promise<{ assignedTo: string | null; error?: string }> {
+    const adminClient = createServiceRoleClient();
+
+    try {
+        // 1. Get the venture's revenue_12m from venture_applications
+        const { data: app, error: appError } = await adminClient
+            .from('venture_applications')
+            .select('revenue_12m')
+            .eq('venture_id', ventureId)
+            .maybeSingle();
+
+        if (appError) {
+            console.error('[AutoAssign] Error fetching application:', appError);
+            return { assignedTo: null, error: appError.message };
+        }
+
+        const revenue = app?.revenue_12m;
+        if (!revenue) {
+            console.warn(`[AutoAssign] No revenue_12m for venture ${ventureId}, skipping assignment`);
+            return { assignedTo: null, error: 'No revenue data' };
+        }
+
+        // 2. Determine tier
+        let tier: 'below_25cr' | 'above_25cr';
+        if (BELOW_25CR_REVENUES.includes(revenue)) {
+            tier = 'below_25cr';
+        } else if (ABOVE_25CR_REVENUES.includes(revenue)) {
+            tier = 'above_25cr';
+        } else {
+            console.warn(`[AutoAssign] Unknown revenue value "${revenue}" for venture ${ventureId}`);
+            return { assignedTo: null, error: `Unknown revenue value: ${revenue}` };
+        }
+
+        const managerNames = SCREENING_MANAGER_TIERS[tier];
+
+        // 3. Look up manager profiles by name and role
+        const { data: managers, error: profileError } = await adminClient
+            .from('profiles')
+            .select('id, full_name')
+            .eq('role', 'success_mgr')
+            .in('full_name', managerNames);
+
+        if (profileError || !managers || managers.length === 0) {
+            console.error('[AutoAssign] Could not find screening managers for tier:', tier, profileError);
+            return { assignedTo: null, error: 'No matching managers found' };
+        }
+
+        // 4. Round-robin: pick the manager with fewest current assignments
+        const managerIds = managers.map(m => m.id);
+        const { data: assignmentCounts } = await adminClient
+            .from('ventures')
+            .select('assigned_vsm_id')
+            .in('assigned_vsm_id', managerIds);
+
+        const countMap: Record<string, number> = {};
+        for (const mid of managerIds) {
+            countMap[mid] = 0;
+        }
+        if (assignmentCounts) {
+            for (const row of assignmentCounts) {
+                if (row.assigned_vsm_id && countMap[row.assigned_vsm_id] !== undefined) {
+                    countMap[row.assigned_vsm_id]++;
+                }
+            }
+        }
+
+        // Pick manager with least assignments
+        const selectedManager = managers.reduce((best, m) =>
+            countMap[m.id] < countMap[best.id] ? m : best
+        );
+
+        // 5. Assign
+        const { error: updateError } = await adminClient
+            .from('ventures')
+            .update({ assigned_vsm_id: selectedManager.id })
+            .eq('id', ventureId);
+
+        if (updateError) {
+            console.error('[AutoAssign] Error assigning VSM:', updateError);
+            return { assignedTo: null, error: updateError.message };
+        }
+
+        console.log(`[AutoAssign] Venture ${ventureId} (revenue: ${revenue}, tier: ${tier}) → assigned to ${selectedManager.full_name}`);
+        return { assignedTo: selectedManager.full_name };
+    } catch (err: any) {
+        console.error('[AutoAssign] Unexpected error:', err);
+        return { assignedTo: null, error: err.message };
+    }
+}
 
 /**
  * Get all ventures for a user (with optional filters)
@@ -23,7 +130,11 @@ export async function getVentures(
     if (userRole === 'entrepreneur') {
         query = query.eq('user_id', userId);
     }
-    // VSM and committee can see all ventures
+    // Screening managers can only see ventures assigned to them
+    if (userRole === 'success_mgr') {
+        query = query.eq('assigned_vsm_id', userId);
+    }
+    // Other roles (committee, ops_manager, admin, venture_mgr) can see all ventures
 
     // Apply filters
     if (filters?.status) {
