@@ -57,23 +57,6 @@ async function getContext(req: Request) {
 // ============ VENTURE ROUTES ============
 
 /**
- * GET /api/ventures/test-email
- * Diagnostic endpoint to test email service (TEMPORARY)
- */
-router.get('/test-email', async (req: Request, res: Response) => {
-    try {
-        const testEmail = (req.query.email as string) || 'vipul.pandey@wadhwanifoundation.org';
-        console.log(`[TestEmail] Sending test email to ${testEmail}...`);
-        await sendWelcomeEmail(testEmail, 'Test User', 'Test Venture');
-        console.log(`[TestEmail] Email sent successfully to ${testEmail}`);
-        res.json({ success: true, message: `Test email sent to ${testEmail}` });
-    } catch (err: any) {
-        console.error('[TestEmail] Email failed:', err);
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
-
-/**
  * POST /api/ventures/public-apply
  * Public endpoint - no auth required
  * Creates a venture + application + streams and sends welcome email
