@@ -124,7 +124,7 @@ export async function getVentures(
     userRole: string,
     filters?: VentureQueryParams
 ) {
-    let query = client.from('ventures').select('*', { count: 'exact' });
+    let query = client.from('ventures').select('*, streams:venture_streams(*), application:venture_applications(*), assessments:venture_assessments(*)', { count: 'exact' });
 
     // Entrepreneurs can only see their own ventures
     if (userRole === 'entrepreneur') {

@@ -67,30 +67,34 @@ class ApiClient {
     // ============ VENTURE ENDPOINTS ============
 
     async getVentures(params: VentureQueryParams = {}) {
-        let query = supabase
-            .from('ventures')
-            .select('*, streams:venture_streams(*), application:venture_applications(*), assessments:venture_assessments(*)', { count: 'exact' });
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const session = await supabase.auth.getSession();
 
-        if (params.status) {
-            query = query.eq('status', params.status);
-        }
-        if (params.program) {
-            query = query.eq('program', params.program);
-        }
-        if (params.limit) {
-            query = query.limit(params.limit);
-        }
-        if (params.offset) {
-            query = query.range(params.offset, params.offset + (params.limit || 10) - 1);
+        const queryParams = new URLSearchParams();
+        if (params.status) queryParams.set('status', params.status);
+        if (params.program) queryParams.set('program', params.program);
+        if (params.limit) queryParams.set('limit', String(params.limit));
+        if (params.offset) queryParams.set('offset', String(params.offset));
+        if (params.sortBy) queryParams.set('sortBy', params.sortBy);
+        if (params.sortOrder) queryParams.set('sortOrder', params.sortOrder);
+
+        const url = `${API_URL}/api/ventures${queryParams.toString() ? `?${queryParams}` : ''}`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${session.data.session?.access_token}`
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to fetch ventures');
         }
 
-        query = query.order(params.sortBy || 'created_at', { ascending: (params.sortOrder || 'desc') === 'asc' });
-
-        const { data, error, count } = await query;
-        if (error) throw error;
+        const result = await response.json();
+        const venturesData = result.data?.ventures || result.ventures || [];
 
         // Flatten application + assessment data onto each venture for backward compatibility
-        const ventures = (data || []).map((v: any) => {
+        const ventures = venturesData.map((v: any) => {
             const app = v.application?.[0] || v.application || {};
             const assessments = v.assessments || [];
             const assessment = assessments.find((a: any) => a.is_current) || assessments[0] || {};
@@ -105,7 +109,7 @@ class ApiClient {
             };
         });
 
-        return { ventures, total: count };
+        return { ventures, total: result.data?.total || ventures.length };
     }
 
     async createVenture(data: any) {
