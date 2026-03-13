@@ -42,10 +42,15 @@ export async function sendEmail(
         },
     };
 
+    const EMAIL_TIMEOUT_MS = 30000;
+    const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Email send timed out after ${EMAIL_TIMEOUT_MS / 1000}s`)), EMAIL_TIMEOUT_MS)
+    );
+
     try {
-        const poller = await client.beginSend(message);
+        const poller = await Promise.race([client.beginSend(message), timeoutPromise]);
         console.log(`[EmailService] Email send initiated for ${to}, polling for result...`);
-        const result = await poller.pollUntilDone();
+        const result = await Promise.race([poller.pollUntilDone(), timeoutPromise]);
         console.log(`[EmailService] Email to ${to} — status: ${result.status}, id: ${result.id}`);
         if (result.status !== 'Succeeded') {
             console.error(`[EmailService] Email to ${to} did not succeed. Status: ${result.status}, Error: ${JSON.stringify(result.error)}`);
