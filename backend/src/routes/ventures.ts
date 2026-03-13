@@ -140,11 +140,20 @@ router.post(
                 });
             }
 
-            // 4. Send welcome email (fire-and-forget)
+            // 4. Send welcome email (await to report status)
+            let emailStatus = 'skipped';
             if (body.email) {
-                sendWelcomeEmail(body.email, body.founder_name, body.name)
-                    .then(() => console.log(`Welcome email sent to ${body.email} for venture ${body.name}`))
-                    .catch((err) => console.error('Failed to send welcome email:', err));
+                console.log(`[PublicApply] Triggering welcome email to ${body.email} for venture "${body.name}"`);
+                try {
+                    await sendWelcomeEmail(body.email, body.founder_name, body.name);
+                    emailStatus = 'sent';
+                    console.log(`[PublicApply] Welcome email sent successfully to ${body.email}`);
+                } catch (err: any) {
+                    emailStatus = 'failed';
+                    console.error(`[PublicApply] Failed to send welcome email to ${body.email}:`, err.message || err);
+                }
+            } else {
+                console.warn('[PublicApply] No email provided in application body, skipping welcome email');
             }
 
             // 5. Auto-assign screening manager based on revenue (fire-and-forget)
@@ -159,6 +168,7 @@ router.post(
             createdResponse(res, {
                 message: 'Application submitted successfully',
                 venture: { id: venture.id, name: venture.name },
+                emailStatus,
             });
         } catch (error) {
             console.error('Error in public apply:', error);

@@ -230,7 +230,8 @@ export const PublicApplication: React.FC = () => {
             }
 
             const result = await response.json();
-            logger.info('PublicApplication', 'Application submitted successfully');
+            const emailStatus = result.emailStatus || 'unknown';
+            logger.info('PublicApplication', `Application submitted successfully | Email status: ${emailStatus}`);
 
             // Upload corporate presentation if provided (non-blocking)
             const ventureId = result.venture?.id || result.data?.venture?.id;

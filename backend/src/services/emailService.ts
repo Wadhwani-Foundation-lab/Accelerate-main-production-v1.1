@@ -3,13 +3,18 @@ import { EmailClient } from '@azure/communication-email';
 const connectionString = process.env.AZURE_COMMUNICATION_CONNECTION_STRING || '';
 const senderAddress = process.env.AZURE_EMAIL_SENDER || 'accelerate@wadhwanifoundation.org';
 
+// Log email config status on startup
+console.log(`[EmailService] Initialized — connection string configured: ${!!connectionString}, sender: ${senderAddress}`);
+
 let emailClient: EmailClient | null = null;
 
 function getEmailClient(): EmailClient {
     if (!emailClient) {
         if (!connectionString) {
+            console.error('[EmailService] AZURE_COMMUNICATION_CONNECTION_STRING is NOT set. Email will not work.');
             throw new Error('AZURE_COMMUNICATION_CONNECTION_STRING is not configured');
         }
+        console.log('[EmailService] Creating Azure EmailClient...');
         emailClient = new EmailClient(connectionString);
     }
     return emailClient;
@@ -21,6 +26,8 @@ export async function sendEmail(
     htmlBody: string,
     plainText?: string
 ): Promise<void> {
+    console.log(`[EmailService] Attempting to send email to: ${to}, subject: "${subject}"`);
+
     const client = getEmailClient();
 
     const message = {
@@ -35,9 +42,23 @@ export async function sendEmail(
         },
     };
 
-    const poller = await client.beginSend(message);
-    const result = await poller.pollUntilDone();
-    console.log(`Email sent to ${to}, status: ${result.status}, id: ${result.id}`);
+    try {
+        const poller = await client.beginSend(message);
+        console.log(`[EmailService] Email send initiated for ${to}, polling for result...`);
+        const result = await poller.pollUntilDone();
+        console.log(`[EmailService] Email to ${to} — status: ${result.status}, id: ${result.id}`);
+        if (result.status !== 'Succeeded') {
+            console.error(`[EmailService] Email to ${to} did not succeed. Status: ${result.status}, Error: ${JSON.stringify(result.error)}`);
+        }
+    } catch (error: any) {
+        console.error(`[EmailService] Failed to send email to ${to}:`, {
+            message: error.message,
+            code: error.code,
+            statusCode: error.statusCode,
+            stack: error.stack?.split('\n').slice(0, 3).join('\n'),
+        });
+        throw error;
+    }
 }
 
 export async function sendPanelInvitationEmail(
