@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, TrendingUp, Loader2, Briefcase, Users, Target, AlertTriangle, HelpCircle, Map, ChevronRight, Zap, FileText, ChevronUp, Plus, Shield, DollarSign, Rocket, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
+import { Sparkles, TrendingUp, Loader2, Briefcase, Users, Target, AlertTriangle, HelpCircle, Map, ChevronRight, Zap, FileText, ChevronUp, Plus } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
