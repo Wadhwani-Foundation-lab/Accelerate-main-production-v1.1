@@ -189,6 +189,7 @@ class ApiClient {
             internal_comments: currentAssessment.internal_comments,
             ai_analysis: currentAssessment.ai_analysis,
             panel_ai_analysis: currentAssessment.panel_ai_analysis,
+            gate_questions: currentAssessment.gate_questions,
             program_recommendation: currentAssessment.program_recommendation,
             vsm_reviewed_at: currentAssessment.assessment_date,
         };
@@ -540,6 +541,30 @@ class ApiClient {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.message || 'Failed to generate panel insights');
+        }
+
+        const data = await response.json();
+        return data;
+    }
+
+    async saveGateQuestions(ventureId: string, gateQuestions: any[]) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+        const response = await fetch(`${API_URL}/api/ventures/${ventureId}/gate-questions`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ gate_questions: gateQuestions })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to save gate questions');
         }
 
         const data = await response.json();

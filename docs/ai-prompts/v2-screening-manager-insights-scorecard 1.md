@@ -21,7 +21,7 @@ The prompt produces a **single scorecard table** with 7 dimensions — each rate
 | **API Endpoint** | `POST /api/ventures/:id/generate-insights?type=screening` |
 | **Allowed Roles** | `success_mgr`, `venture_mgr`, `committee_member`, `admin` |
 | **Estimated Cost** | ~$0.02-0.04 per generation |
-| **Tools Required** | `web_search_20250305` — used by the AI for Sector growth data lookup |
+| **Tools Required** | `web_search_20260209` — used by the AI for Sector growth data lookup |
 
 ---
 
@@ -84,7 +84,7 @@ interface VentureData {
 ```javascript
 tools: [
     {
-        "type": "web_search_20250305",
+        "type": "web_search_20260209",
         "name": "web_search"
     }
 ]

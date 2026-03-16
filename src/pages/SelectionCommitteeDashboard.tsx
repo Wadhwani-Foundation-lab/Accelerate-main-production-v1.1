@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { InteractionsSection } from '../components/Interactions/InteractionsSection';
+import { PanelGateQuestions } from '../components/PanelGateQuestions';
 import { STATUS_CONFIG } from '../components/StatusSelect';
 import { useToast } from '../components/ui/Toast';
 
@@ -99,6 +100,8 @@ export const SelectionCommitteeDashboard: React.FC = () => {
     const [panelAnalyzing, setPanelAnalyzing] = useState(false);
     const [panelAnalysisResult, setPanelAnalysisResult] = useState<any | null>(null);
     const [panelNotes, setPanelNotes] = useState('');
+    const [interactionCount, setInteractionCount] = useState(0);
+    const [gateQuestions, setGateQuestions] = useState<any | null>(null);
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
     useEffect(() => {
@@ -150,6 +153,8 @@ export const SelectionCommitteeDashboard: React.FC = () => {
         setRoadmapGenerated(false); // Reset roadmap when selecting new venture
         setRoadmapData(null);
         setPanelAnalysisResult(null);
+        setInteractionCount(0);
+        setGateQuestions(null);
 
         // Fetch fresh details with streams
         try {
@@ -169,6 +174,7 @@ export const SelectionCommitteeDashboard: React.FC = () => {
 
             setSelectedVenture(fullVenture);
             setPanelAnalysisResult(freshVenture.panel_ai_analysis || null);
+            setGateQuestions(freshVenture.gate_questions || null);
             setPanelNotes('');
 
             // Fetch existing roadmap
@@ -651,12 +657,15 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                         {/* Other Support Details */}
                         <OtherDetailsReadOnlySection selectedVenture={selectedVenture} />
 
-                        {/* Panel Interview Insights - V2 */}
+                        {/* Interactions Section */}
+                        <InteractionsSection ventureId={selectedVenture.id} onInteractionsLoaded={setInteractionCount} />
+
+                        {/* Panel Interview Insights - V2 Scorecard */}
                         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                                 <div className="flex items-center gap-2">
                                     <Target className="w-5 h-5 text-teal-500" />
-                                    <span className="text-base font-bold text-gray-700">Panel Interview Insights</span>
+                                    <span className="text-base font-bold text-gray-700">Panel SCALE Scorecard</span>
                                     {panelAnalysisResult && !panelAnalyzing && (
                                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-xs font-medium text-teal-600">
                                             <Sparkles className="w-3 h-3" />
@@ -666,21 +675,29 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                                 </div>
                                 <button
                                     onClick={runPanelAIAnalysis}
-                                    disabled={panelAnalyzing || !!panelAnalysisResult}
+                                    disabled={panelAnalyzing || !!panelAnalysisResult || interactionCount === 0}
+                                    title={interactionCount === 0 ? 'Add at least one interaction before generating panel insights' : ''}
                                     className="flex items-center gap-2 px-5 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white text-sm font-semibold transition-colors shadow-sm"
                                 >
                                     {panelAnalyzing ? (<><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>) : panelAnalysisResult ? (<><Sparkles className="w-4 h-4" /> Insights Generated</>) : (<><Target className="w-4 h-4" /> Generate Panel Insights</>)}
                                 </button>
                             </div>
 
+                            {/* No interactions warning */}
+                            {!panelAnalysisResult && !panelAnalyzing && interactionCount === 0 && (
+                                <div className="px-6 py-3 bg-amber-50 border-b border-amber-100">
+                                    <p className="text-sm text-amber-700 font-medium">Add at least one interaction (call transcript, meeting notes, etc.) before generating panel insights.</p>
+                                </div>
+                            )}
+
                             {/* Panel Notes Input */}
-                            {!panelAnalysisResult && !panelAnalyzing && (
+                            {!panelAnalysisResult && !panelAnalyzing && interactionCount > 0 && (
                                 <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Panel Notes (optional)</label>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Additional Panel Notes (optional)</label>
                                     <textarea
                                         value={panelNotes}
                                         onChange={(e) => setPanelNotes(e.target.value)}
-                                        placeholder="Add any pre-interview observations or focus areas for the AI analysis..."
+                                        placeholder="Add any additional panel discussion notes, observations, or focus areas for the AI analysis..."
                                         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-300 resize-none"
                                         rows={3}
                                     />
@@ -690,193 +707,96 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                             {!panelAnalysisResult && !panelAnalyzing && (
                                 <div className="py-10 flex flex-col items-center gap-2 text-gray-300">
                                     <Target className="w-10 h-10" />
-                                    <p className="text-sm">Click "Generate Panel Insights" for a deep-dive interview briefing</p>
+                                    <p className="text-sm">{interactionCount === 0 ? 'Add interactions above, then generate panel insights' : 'Click "Generate Panel Insights" to create a dual-column scorecard'}</p>
                                 </div>
                             )}
 
                             {panelAnalyzing && (
                                 <div className="py-10 flex flex-col items-center gap-2 text-teal-400">
                                     <Loader2 className="w-8 h-8 animate-spin" />
-                                    <p className="text-sm font-medium">Generating deep-dive panel briefing...</p>
+                                    <p className="text-sm font-medium">Generating panel scorecard...</p>
                                 </div>
                             )}
 
                             {panelAnalysisResult && !panelAnalyzing && (
-                                <div className="space-y-0 divide-y divide-gray-100">
-                                    {/* Panel Recommendation Badge */}
-                                    <div className="p-6">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Panel Recommendation</span>
-                                            <span className={`px-4 py-1.5 rounded-full text-sm font-bold ${
-                                                panelAnalysisResult.panel_recommendation === 'Accept' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
-                                                panelAnalysisResult.panel_recommendation === 'Accept with Conditions' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
-                                                panelAnalysisResult.panel_recommendation === 'Defer' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
-                                                'bg-red-100 text-red-700 border border-red-200'
-                                            }`}>
-                                                {panelAnalysisResult.panel_recommendation}
-                                            </span>
-                                        </div>
+                                panelAnalysisResult.panel_scorecard ? (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="border-b border-gray-200">
+                                                    <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Dimension</th>
+                                                    <th className="text-center px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">App Rating</th>
+                                                    <th className="text-center px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Panel Rating</th>
+                                                    <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Panel Brief</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {panelAnalysisResult.panel_scorecard.map((item: any, i: number) => {
+                                                    const panelStyle = item.panel_rating === 'Green' ? { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' } :
+                                                        item.panel_rating === 'Red' ? { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' } :
+                                                        { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' };
+                                                    const appStyle = item.application_rating === 'Green' ? { text: 'text-green-700', dot: 'bg-green-500' } :
+                                                        item.application_rating === 'Red' ? { text: 'text-red-700', dot: 'bg-red-500' } :
+                                                        { text: 'text-amber-700', dot: 'bg-amber-500' };
+                                                    return (
+                                                        <tr key={i} className={`${panelStyle.bg} hover:opacity-90 transition-opacity`}>
+                                                            <td className="px-4 py-4 font-semibold text-gray-800 whitespace-nowrap">{item.dimension}</td>
+                                                            <td className="px-3 py-4 text-center">
+                                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-white/80 ${appStyle.text}`}>
+                                                                    <span className={`w-2 h-2 rounded-full ${appStyle.dot}`} />
+                                                                    {item.application_rating}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-3 py-4 text-center">
+                                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${panelStyle.bg} ${panelStyle.text} border border-current/20`}>
+                                                                    <span className={`w-2 h-2 rounded-full ${panelStyle.dot}`} />
+                                                                    {item.panel_rating}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-4 text-gray-700">{item.panel_brief}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
                                     </div>
-
-                                    {/* Executive Summary */}
-                                    <div className="p-6">
-                                        <span className="text-xs font-semibold text-gray-400 uppercase">Executive Summary</span>
-                                        <p className="text-sm text-gray-700 mt-2 leading-relaxed">{panelAnalysisResult.executive_summary}</p>
+                                ) : (
+                                    /* Legacy panel insights - backward compat */
+                                    <div className="space-y-0 divide-y divide-gray-100">
+                                        <div className="p-6">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Panel Recommendation</span>
+                                                <span className={`px-4 py-1.5 rounded-full text-sm font-bold ${
+                                                    panelAnalysisResult.panel_recommendation === 'Accept' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
+                                                    panelAnalysisResult.panel_recommendation === 'Accept with Conditions' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
+                                                    panelAnalysisResult.panel_recommendation === 'Defer' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                                                    'bg-red-100 text-red-700 border border-red-200'
+                                                }`}>
+                                                    {panelAnalysisResult.panel_recommendation}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="p-6">
+                                            <span className="text-xs font-semibold text-gray-400 uppercase">Executive Summary</span>
+                                            <p className="text-sm text-gray-700 mt-2 leading-relaxed">{panelAnalysisResult.executive_summary}</p>
+                                        </div>
+                                        {panelAnalysisResult.market_context && (
+                                            <div className="p-6">
+                                                <span className="text-xs font-semibold text-gray-400 uppercase">Market Context</span>
+                                                <p className="text-sm text-gray-700 mt-2 leading-relaxed">{panelAnalysisResult.market_context}</p>
+                                            </div>
+                                        )}
                                     </div>
-
-                                    {/* Market Context */}
-                                    <div className="p-6">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <Map className="w-4 h-4 text-blue-500" />
-                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Market Context</span>
-                                        </div>
-                                        <p className="text-sm text-gray-700 leading-relaxed">{panelAnalysisResult.market_context}</p>
-                                    </div>
-
-                                    {/* Gap Deep Dive */}
-                                    <div className="p-6">
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <Shield className="w-4 h-4 text-red-500" />
-                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Gap Deep Dive</span>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4 mb-4">
-                                            <div>
-                                                <span className="text-xs font-semibold text-red-500 uppercase">Critical Gaps</span>
-                                                <ul className="mt-2 space-y-2">
-                                                    {(panelAnalysisResult.gap_deep_dive?.critical_gaps || []).map((gap: string, i: number) => (
-                                                        <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                                                            <XCircle className="w-3.5 h-3.5 text-red-400 mt-0.5 flex-shrink-0" />
-                                                            {gap}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                            <div>
-                                                <span className="text-xs font-semibold text-emerald-500 uppercase">Addressable Gaps</span>
-                                                <ul className="mt-2 space-y-2">
-                                                    {(panelAnalysisResult.gap_deep_dive?.addressable_gaps || []).map((gap: string, i: number) => (
-                                                        <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                                                            <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                                                            {gap}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                        <p className="text-sm text-gray-600 italic">{panelAnalysisResult.gap_deep_dive?.gap_summary}</p>
-                                    </div>
-
-                                    {/* Revenue Deep Dive */}
-                                    <div className="p-6">
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <DollarSign className="w-4 h-4 text-green-500" />
-                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Revenue Deep Dive</span>
-                                        </div>
-                                        <div className="space-y-3 mb-4">
-                                            <div>
-                                                <span className="text-xs font-semibold text-gray-400 uppercase">Current Health</span>
-                                                <p className="text-sm text-gray-700 mt-1">{panelAnalysisResult.revenue_deep_dive?.current_health}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-xs font-semibold text-gray-400 uppercase">Projection Credibility</span>
-                                                <p className="text-sm text-gray-700 mt-1">{panelAnalysisResult.revenue_deep_dive?.projection_credibility}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-xs font-semibold text-gray-400 uppercase">Key Revenue Risks</span>
-                                                <ul className="mt-1 space-y-1">
-                                                    {(panelAnalysisResult.revenue_deep_dive?.key_revenue_risks || []).map((risk: string, i: number) => (
-                                                        <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                                                            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                                                            {risk}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                        <p className="text-sm text-gray-600 italic">{panelAnalysisResult.revenue_deep_dive?.revenue_summary}</p>
-                                    </div>
-
-                                    {/* Growth Opportunity Deep Dive */}
-                                    <div className="p-6">
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <Rocket className="w-4 h-4 text-purple-500" />
-                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Growth Opportunity Deep Dive</span>
-                                        </div>
-                                        <div className="space-y-3 mb-4">
-                                            <div>
-                                                <span className="text-xs font-semibold text-gray-400 uppercase">Market Size Signal</span>
-                                                <p className="text-sm text-gray-700 mt-1">{panelAnalysisResult.growth_opportunity_deep_dive?.market_size_signal}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-xs font-semibold text-gray-400 uppercase">Competitive Positioning</span>
-                                                <p className="text-sm text-gray-700 mt-1">{panelAnalysisResult.growth_opportunity_deep_dive?.competitive_positioning}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-xs font-semibold text-gray-400 uppercase">Execution Feasibility</span>
-                                                <p className="text-sm text-gray-700 mt-1">{panelAnalysisResult.growth_opportunity_deep_dive?.execution_feasibility}</p>
-                                            </div>
-                                        </div>
-                                        <p className="text-sm text-gray-600 italic">{panelAnalysisResult.growth_opportunity_deep_dive?.growth_summary}</p>
-                                    </div>
-
-                                    {/* Strengths & Risks */}
-                                    <div className="p-6">
-                                        <div className="grid grid-cols-2 gap-6">
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-3">
-                                                    <TrendingUp className="w-4 h-4 text-green-500" />
-                                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Strengths</span>
-                                                </div>
-                                                <ul className="space-y-2">
-                                                    {(panelAnalysisResult.strengths || []).map((s: string, i: number) => (
-                                                        <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                                                            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />
-                                                            {s}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-3">
-                                                    <AlertTriangle className="w-4 h-4 text-red-500" />
-                                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Risks</span>
-                                                </div>
-                                                <ul className="space-y-2">
-                                                    {(panelAnalysisResult.risks || []).map((r: string, i: number) => (
-                                                        <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                                                            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
-                                                            {r}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Interview Questions */}
-                                    <div className="p-6">
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <MessageSquare className="w-4 h-4 text-indigo-500" />
-                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Interview Questions</span>
-                                        </div>
-                                        <div className="space-y-4">
-                                            {(panelAnalysisResult.interview_questions || []).map((q: any, i: number) => (
-                                                <div key={i} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                                                    <p className="text-sm font-semibold text-gray-800 mb-2">
-                                                        <span className="text-indigo-500 mr-1">Q{i + 1}.</span>
-                                                        {q.question}
-                                                    </p>
-                                                    <div>
-                                                        <span className="text-[10px] font-bold text-blue-500 uppercase">Intent</span>
-                                                        <p className="text-xs text-gray-600 mt-0.5">{q.intent}</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
+                                )
                             )}
                         </div>
+
+                        {/* Panel Gate Questions */}
+                        <PanelGateQuestions
+                            ventureId={selectedVenture.id}
+                            savedGateQuestions={gateQuestions}
+                            onSaved={setGateQuestions}
+                        />
 
                         {/* Program Recommendation */}
                         <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -897,9 +817,6 @@ export const SelectionCommitteeDashboard: React.FC = () => {
                                 )}
                             </div>
                         </div>
-
-                        {/* Interactions Section */}
-                        <InteractionsSection ventureId={selectedVenture.id} />
 
                         {/* Journey Roadmap */}
                         <div className="bg-gradient-to-br from-indigo-50 to-white rounded-2xl border border-indigo-200 p-8 shadow-sm">

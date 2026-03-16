@@ -9,15 +9,20 @@ export interface VentureData {
     id: string;
     name: string;
     founder_name?: string;
-    revenue_12m?: number;
-    revenue_potential_3y?: number;
-    full_time_employees?: number;
-    growth_focus?: string;
+    revenue_12m?: string;           // Text range e.g. "5Cr-25Cr"
+    revenue_potential_3y?: string;   // Text range e.g. "50Cr+"
+    full_time_employees?: string;    // Text range e.g. "10-25"
+    growth_focus?: string | string[];
     growth_current?: any;
     growth_target?: any;
     commitment?: any;
     vsm_notes?: string;
     corporate_presentation_text?: string;
+    program_type?: string;
+    growth_dimensions_selected?: string[];
+    target_jobs?: number;
+    min_investment?: number;
+    incremental_hiring?: string;
 }
 
 export interface RoadmapAction {
@@ -46,73 +51,54 @@ export interface RoadmapData {
     operations: FunctionalAreaRoadmap;
 }
 
+export interface PanelScorecardDimension {
+    dimension: string;
+    application_rating: string;
+    panel_rating: 'Green' | 'Yellow' | 'Red';
+    panel_brief: string;
+}
+
 export interface PanelInsights {
-    panel_recommendation: string;
-    executive_summary: string;
-    market_context: string;
-    gap_deep_dive: {
-        critical_gaps: string[];
-        addressable_gaps: string[];
-        gap_summary: string;
-    };
-    revenue_deep_dive: {
-        current_health: string;
-        projection_credibility: string;
-        key_revenue_risks: string[];
-        revenue_summary: string;
-    };
-    growth_opportunity_deep_dive: {
-        market_size_signal: string;
-        competitive_positioning: string;
-        execution_feasibility: string;
-        growth_summary: string;
-    };
-    strengths: string[];
-    risks: string[];
-    interview_questions: {
-        question: string;
-        intent: string;
-    }[];
+    panel_scorecard: PanelScorecardDimension[];
     generated_at: string;
 }
 
+export interface ScorecardDimension {
+    dimension: string;
+    assessment: string;
+    rating: 'Green' | 'Yellow' | 'Red';
+    brief: string;
+}
+
 export interface AIInsights {
-    existing_venture_profile: {
-        profile_summary: string;
-        current_product_growth_history: string;
-    };
-    new_venture_clarity: {
-        new_product_or_service: string;
-        new_segment_or_market: string;
-        new_geography: string;
-        estimated_incremental_revenue: string;
-        definition_clarity_flag: string;
-        clarity_gaps: string[];
-        clarity_summary: string;
-    };
+    scorecard: ScorecardDimension[];
     generated_at: string;
 }
 
 /**
- * Generate AI insights for a venture using Claude API
+ * Generate AI insights for a venture using Claude API (V2 SCALE Scorecard)
  */
 export async function generateVentureInsights(
     ventureData: VentureData,
     vsmNotes: string = ''
 ): Promise<AIInsights> {
-    // Check if API key is configured
     if (!process.env.ANTHROPIC_API_KEY) {
         throw new Error('ANTHROPIC_API_KEY is not configured in environment variables');
     }
 
-    // Construct the prompt for Claude
     const prompt = buildInsightsPrompt(ventureData, vsmNotes);
 
     try {
         const message = await anthropic.messages.create({
             model: 'claude-sonnet-4-5-20250929',
-            max_tokens: 2000,
+            max_tokens: 2500,
             temperature: 0.7,
+            tools: [
+                {
+                    type: 'web_search_20260209',
+                    name: 'web_search',
+                } as any,
+            ],
             messages: [
                 {
                     role: 'user',
@@ -121,19 +107,19 @@ export async function generateVentureInsights(
             ]
         });
 
-        // Extract the text content from Claude's response
-        const responseText = message.content[0].type === 'text'
-            ? message.content[0].text
-            : '';
+        // Extract text from potentially multi-block response (web_search produces tool_use + text blocks)
+        const responseText = message.content
+            .filter((block: any) => block.type === 'text')
+            .map((block: any) => block.text)
+            .join('\n');
 
-        // Parse the structured response
-        const insights = parseClaudeResponse(responseText, ventureData);
+        console.log(`[Insights] Claude response blocks: ${message.content.length}, text length: ${responseText.length}, stop_reason: ${message.stop_reason}`);
 
+        const insights = parseScorecardResponse(responseText);
         return insights;
     } catch (error: any) {
         console.error('Error calling Claude API:', error);
 
-        // Provide helpful error messages
         if (error.status === 401) {
             throw new Error('Invalid Anthropic API key. Please check your ANTHROPIC_API_KEY.');
         } else if (error.status === 429) {
@@ -145,23 +131,67 @@ export async function generateVentureInsights(
 }
 
 /**
- * Build the prompt for Claude to generate venture insights
+ * Build the V2 SCALE scorecard prompt for Claude
+ * Adapted for text-range revenue fields and missing DB fields
  */
 function buildInsightsPrompt(ventureData: VentureData, vsmNotes: string): string {
-    return `You are an expert screening analyst for the Accelerate Assisted Growth Platform. Your role is to evaluate a venture application and produce a focused screening reference for the Screening Manager.
+    const growthDimensions = Array.isArray(ventureData.growth_dimensions_selected)
+        ? ventureData.growth_dimensions_selected
+        : (Array.isArray(ventureData.growth_focus) ? ventureData.growth_focus : []);
 
-Your output must cover exactly two things:
+    return `You are an expert screening analyst for the Wadhwani Accelerate Assisted Growth Platform. Your role is to evaluate a venture application and produce a SCALE scorecard — a simple, glanceable table that the Screening Manager can use for quick decision-making.
 
-1. **Existing Venture Profile** — A concise summary of the current business, highlighting its current products and growth history.
-2. **New Venture Definition Clarity** — Assess how clearly the applicant has defined their proposed new growth idea, and whether the application is ready to be recommended to the interview panel.
+Your output is a scorecard with exactly 7 dimensions. For each dimension, provide:
+- A **rating**: Green, Yellow, or Red
+- A **brief** (exactly 2 sentences): Sentence 1 states the key data point or finding specific to this venture. Sentence 2 explains the implication or why it maps to the given rating. Briefs must be dynamic — reference the venture's actual data, never use generic boilerplate.
 
-You will receive a venture application containing:
-- Business details (company name, type, city, state, designation, products/services, customer segments, regions, employee count, revenue)
-- Growth idea details (type: new product/service, new segment, or new geography; expected incremental revenue in 3 years; funding plan)
-- Support areas requested (Product, Go-To-Market, Capital Planning, Team, Supply Chain, Operations)
-- Support description (free text from applicant)
-- Screening manager notes (optional free text with additional context from initial review)
-- Corporate presentation (optional attachment)
+Do NOT write lengthy narratives. The screening manager wants a quick-glance table, not a report.
+
+**SCALE Scorecard Dimensions:**
+
+1. **Size** — Current revenue scale. Is the venture large enough for the program?
+   - Green: Core with ₹25Cr–₹85Cr ARR; Select with ₹85Cr–₹425Cr ARR; Prime (Startups) with ₹4Cr+ ARR and visible path to ₹25Cr in 3 years.
+   - Yellow: Below threshold for the applicable program but showing growth momentum.
+   - Red: Significantly below minimum threshold or pre-revenue.
+   - IMPORTANT: Revenue is provided as a TEXT RANGE (e.g. "5Cr-25Cr", "25Cr-75Cr", "50Cr+"). Interpret the range against the thresholds. If the range overlaps or falls within the threshold, use the midpoint to decide.
+   - The program type is NOT explicitly set — you must INFER it from the revenue range: revenue < ₹25Cr → likely Prime; ₹25Cr–₹85Cr → likely Core; ₹85Cr+ → likely Select. State which program tier you inferred in the brief.
+
+2. **Sector** — Growth sector attractiveness. Is the sector growing?
+   - Green: Sector at 8%+ 3-year CAGR, projected to grow above GDP.
+   - Yellow: Sector growing at GDP-level (5–8%) or mixed signals.
+   - Red: Sector stagnant, declining, or facing structural headwinds.
+   - IMPORTANT: You MUST use the web_search tool to look up current growth data for the sector the venture operates in. Identify the sector from the venture's product/service description and target market, then search for "[sector name] India market size CAGR growth" or similar. Your brief must reference the specific sector identified and the growth data found. Do NOT rely solely on static knowledge — always search.
+
+3. **Capital** — Balance sheet strength. Can the venture fund this growth?
+   - Green: Positive cash flow & PAT for Core/Select (SMBs); 12+ month runway for Prime (startups).
+   - Yellow: Cash-flow positive but PAT-negative for SMBs; 6–12 month runway for startups.
+   - Red: Negative cash flow and PAT; < 6 month runway; or not disclosed.
+   - NOTE: Financial condition data is NOT available in the application form. Use min_investment (if provided), the revenue range, and the "Funding Plan" field (which indicates how the venture plans to fund growth — e.g. "Internal Cashflows" suggests stronger balance sheet vs "Yet to be planned" suggests uncertainty) as proxies. If insufficient data, rate as Yellow with "Financial condition not disclosed in application — manual review recommended."
+
+4. **Ambition** — Revenue addition target. Is the growth target ambitious enough?
+   - Green: Min 8% incremental CAGR, on track to double revenue in 5 years for Core/Select or 3 years for Prime.
+   - Yellow: Moderate growth target (4–8% CAGR).
+   - Red: < 4% CAGR or no clear revenue target stated.
+   - IMPORTANT: Revenue figures are TEXT RANGES. Use the midpoint of each range to estimate CAGR. For example, "5Cr-25Cr" → midpoint ₹15Cr; "50Cr+" → use ₹50Cr as floor. Calculate: CAGR ≈ (midpoint_3y / midpoint_12m)^(1/3) − 1. State the estimated CAGR in the brief. If either revenue figure is missing, rate as Red.
+
+5. **Leadership** — Committed team. Will the leadership invest time?
+   - Green: Owner/founder personally committed AND second-in-line management team in place.
+   - Yellow: One of the two is weak or unclear.
+   - Red: Neither founder commitment nor second-line team availability is evident.
+   - NOTE: Time commitment and second-line team fields are NOT available in the current application form. Look for signals in the corporate presentation and screening manager notes. If no data, rate as Yellow with "Leadership commitment details not captured in application — manual assessment needed during screening call."
+
+6. **Jobs / Employment Generation Potential** — Direct job creation potential over 3 years.
+   - Green: 50+ jobs for Core/Prime; 150+ jobs for Select.
+   - Yellow: 25–49 jobs (Core/Prime); 75–149 jobs (Select).
+   - Red: < 25 jobs or not disclosed (Core/Prime); < 75 jobs or not disclosed (Select).
+   - Use target_jobs (auto-calculated planned hires based on revenue target). The "Funding Plan" field is NOT a hiring count — it describes how the venture plans to fund growth (e.g. "Internal Cashflows", "Bank Loan"). If target_jobs is null/missing, rate as Red with "Job creation target not disclosed."
+
+7. **Venture Clarity** — How clearly has the applicant defined their new growth idea?
+   - The venture has selected one or more growth dimensions from: product, segment, geography. Assess clarity ONLY for the dimensions they selected — ignore dimensions they did not choose.
+   - Green: All **selected** dimensions are specific, concrete, and well-articulated.
+   - Yellow: At least one selected dimension is clear, but other selected dimensions are vague or generic.
+   - Red: Most or all selected dimensions are vague, generic, or lack substantive detail despite being chosen.
+   - Evaluate ONLY based on what the applicant has explicitly stated. Do NOT penalise for dimensions not selected. Do NOT infer details.
 
 **Venture Information:**
 - Company Name: ${ventureData.name}
@@ -170,81 +200,111 @@ You will receive a venture application containing:
 - Designation: ${(ventureData as any).designation || 'N/A'}
 - City: ${(ventureData as any).city || 'N/A'}
 - State: ${(ventureData as any).state || 'N/A'}
-- Current Revenue (12M): ₹${ventureData.revenue_12m?.toLocaleString() || 'N/A'}
-- Prior Year Revenue: ₹${(ventureData as any).revenue_prior_year?.toLocaleString() || 'N/A'}
+- Current Revenue (12M): ${ventureData.revenue_12m || 'N/A'}
+- Target Revenue (3Y): ${ventureData.revenue_potential_3y || 'N/A'}
 - Full-Time Employees: ${ventureData.full_time_employees || 'N/A'}
+- Growth Dimensions Selected: ${JSON.stringify(growthDimensions)}
+- Target Jobs (Planned Hires 3Y): ${ventureData.target_jobs || 'N/A'}
+- Funding Plan: ${ventureData.incremental_hiring || 'N/A'}
+- Min Investment: ${ventureData.min_investment || 'N/A'}
 
 **Current Business (What they do today):**
-- Products/Services They Sell: ${(ventureData as any).what_do_you_sell || 'N/A'}
-- Customer Segments They Sell To: ${(ventureData as any).who_do_you_sell_to || 'N/A'}
-- Regions They Operate In: ${(ventureData as any).which_regions || 'N/A'}
+- Products/Services: ${(ventureData as any).what_do_you_sell || 'N/A'}
+- Customer Segments: ${(ventureData as any).who_do_you_sell_to || 'N/A'}
+- Regions: ${(ventureData as any).which_regions || 'N/A'}
 
 **New Growth Idea (What they want to do):**
-- Growth Type: ${(ventureData as any).growth_type || ventureData.growth_focus || 'N/A'}
+- Growth Focus: ${Array.isArray(ventureData.growth_focus) ? ventureData.growth_focus.join(', ') : (ventureData.growth_focus || 'N/A')}
 - New Product/Service: ${(ventureData as any).focus_product || 'N/A'}
 - New Customer Segment: ${(ventureData as any).focus_segment || 'N/A'}
 - New Geography: ${(ventureData as any).focus_geography || 'N/A'}
-- Target Revenue in 3 Years: ₹${ventureData.revenue_potential_3y?.toLocaleString() || 'N/A'}
-- Incremental Hiring Planned: ${(ventureData as any).incremental_hiring || 'N/A'}
-- Target Jobs: ${(ventureData as any).target_jobs || 'N/A'}
-- Investment Commitment: ${(ventureData as any).min_investment || 'N/A'}
 - Support Description: ${(ventureData as any).support_description || 'N/A'}
 
-**Legacy Fields (may duplicate above):**
-- Growth Focus: ${ventureData.growth_focus || 'N/A'}
+**Additional Context:**
 - Current Market: ${JSON.stringify(ventureData.growth_current || {})}
 - Target Market: ${JSON.stringify(ventureData.growth_target || {})}
 
 **Screening Manager's Notes:**
 ${vsmNotes || 'No additional notes provided.'}
-${ventureData.corporate_presentation_text ? `
+
 **Corporate Presentation Content:**
-${ventureData.corporate_presentation_text.slice(0, 3000)}
-${ventureData.corporate_presentation_text.length > 3000 ? '\n[... truncated ...]' : ''}
-` : ''}
+${ventureData.corporate_presentation_text ? ventureData.corporate_presentation_text.slice(0, 8000) : 'No corporate presentation provided.'}
+${ventureData.corporate_presentation_text && ventureData.corporate_presentation_text.length > 8000 ? '\n[... truncated ...]' : ''}
+
 **Your Task:**
-Provide your assessment in the following JSON format:
+Return your assessment in the following JSON format. Return ONLY the JSON object, no additional text.
 
 {
-  "existing_venture_profile": {
-    "profile_summary": "<3-4 sentence summary of the existing business. Cover: what the company does (core products/services), who it serves, where it operates, its current revenue scale, and team size. This should give the screening manager a complete at-a-glance picture of the business today.>",
-    "current_product_growth_history": "<2-3 sentences describing the current product portfolio and historical growth trajectory. Mention specific products/services by name where available. State whether the business has been growing, flat, or declining based on available revenue data or signals. If the application provides only current revenue with no prior-year comparator, state: 'Insufficient data to assess historical growth — only current-year revenue provided.'>"
-  },
-  "new_venture_clarity": {
-    "new_product_or_service": "<What new product or service is the venture pursuing? If clearly defined, describe it specifically. If vague or not mentioned, state: 'Not clearly defined — [explain what is missing].'>",
-    "new_segment_or_market": "<What new customer segment or market is being targeted? If clearly defined, describe it specifically. If vague or not mentioned, state: 'Not clearly defined — [explain what is missing].'>",
-    "new_geography": "<What new geography is being targeted? If clearly defined, name the specific regions/countries. If not applicable (growth idea is product or segment focused, not geography), state: 'Not applicable — growth idea is focused on new product/segment, not geographic expansion.' If vague, state: 'Not clearly defined — [explain what is missing].'>",
-    "estimated_incremental_revenue": "<State the 3-year incremental revenue figure from the application. Then assess: Is this figure substantiated (backed by assumptions, market sizing, unit economics, or a build-up) or aspirational (a round number with no supporting logic)?>",
-    "definition_clarity_flag": "<One of: Well Defined, Partially Defined, or Poorly Defined>",
-    "clarity_gaps": [
-      "<Specific gap 1 — what is missing or vague in the new venture definition>",
-      "<Specific gap 2>",
-      "<Specific gap 3>"
-    ],
-    "clarity_summary": "<2-3 sentence summary of the new venture idea and its readiness for panel review.>"
-  }
+  "scorecard": [
+    {
+      "dimension": "Size",
+      "assessment": "Current Revenue",
+      "rating": "<Green | Yellow | Red>",
+      "brief": "<exactly 2 sentences>"
+    },
+    {
+      "dimension": "Sector",
+      "assessment": "Growth Sector",
+      "rating": "<Green | Yellow | Red>",
+      "brief": "<exactly 2 sentences>"
+    },
+    {
+      "dimension": "Capital",
+      "assessment": "Balance Sheet Strength",
+      "rating": "<Green | Yellow | Red>",
+      "brief": "<exactly 2 sentences>"
+    },
+    {
+      "dimension": "Ambition",
+      "assessment": "Revenue Addition",
+      "rating": "<Green | Yellow | Red>",
+      "brief": "<exactly 2 sentences>"
+    },
+    {
+      "dimension": "Leadership",
+      "assessment": "Committed Team",
+      "rating": "<Green | Yellow | Red>",
+      "brief": "<exactly 2 sentences>"
+    },
+    {
+      "dimension": "Jobs / Employment Generation Potential",
+      "assessment": "Direct Jobs Creation (3Y)",
+      "rating": "<Green | Yellow | Red>",
+      "brief": "<exactly 2 sentences>"
+    },
+    {
+      "dimension": "Venture Clarity",
+      "assessment": "New Venture Definition",
+      "rating": "<Green | Yellow | Red>",
+      "brief": "<exactly 2 sentences>"
+    }
+  ]
 }
 
-**Critical Instructions for Existing Venture Profile:**
-- Extract information from ALL available sources: application fields, corporate presentation text, and screening manager notes.
-- The profile_summary should give the screening manager a complete picture of the business in 3-4 sentences — what it does, who it serves, where it operates, and its current scale.
-- The current_product_growth_history must name specific products where available and assess growth trajectory factually. If the application provides only current revenue with no prior-year figure, flag historical growth as "Insufficient data" — do NOT fabricate or assume a growth rate.
-
-**Critical Instructions for New Venture Definition Clarity:**
-- Evaluate ONLY based on what the applicant has explicitly stated. Do not infer or assume details they haven't provided.
-- The definition_clarity_flag is determined by how many of the applicable dimensions (new product/service, new segment/market, new geography) are clearly and specifically articulated:
-  - "Well Defined" = All applicable dimensions are specifically described with concrete details (named product, named segment, named geography).
-  - "Partially Defined" = At least one dimension is clear, but others are vague, generic, or missing.
-  - "Poorly Defined" = Most dimensions are vague, use generic language ("expand to new markets"), or are missing entirely.
-- clarity_gaps must contain exactly 3 items. If fewer than 3 gaps exist, note minor gaps or areas that could be further strengthened.
+**Critical Instructions:**
+- Each "brief" must be exactly 2 sentences. Sentence 1: state the key data point or finding. Sentence 2: explain the implication or why it maps to the given rating.
+- Each "rating" must be exactly one of: "Green", "Yellow", or "Red".
+- For "Sector", you MUST use the web_search tool before answering. Search for the sector's growth data and cite it.
+- For "Ambition", estimate CAGR from revenue range midpoints and state it in the brief.
+- If data for a dimension is missing or insufficient, default to Red (or Yellow if partially available) and state what is missing.
 
 Return ONLY the JSON object, no additional text.`;
 }
 
+const FALLBACK_SCORECARD: ScorecardDimension[] = [
+    { dimension: 'Size', assessment: 'Current Revenue', rating: 'Yellow', brief: 'Automated analysis incomplete. Manual review required.' },
+    { dimension: 'Sector', assessment: 'Growth Sector', rating: 'Yellow', brief: 'Automated analysis incomplete. Manual review required.' },
+    { dimension: 'Capital', assessment: 'Balance Sheet Strength', rating: 'Yellow', brief: 'Automated analysis incomplete. Manual review required.' },
+    { dimension: 'Ambition', assessment: 'Revenue Addition', rating: 'Yellow', brief: 'Automated analysis incomplete. Manual review required.' },
+    { dimension: 'Leadership', assessment: 'Committed Team', rating: 'Yellow', brief: 'Automated analysis incomplete. Manual review required.' },
+    { dimension: 'Jobs / Employment Generation Potential', assessment: 'Direct Jobs Creation (3Y)', rating: 'Yellow', brief: 'Automated analysis incomplete. Manual review required.' },
+    { dimension: 'Venture Clarity', assessment: 'New Venture Definition', rating: 'Yellow', brief: 'Automated analysis incomplete. Manual review required.' },
+];
+
 /**
- * Parse Claude's response into structured insights
+ * Parse Claude's scorecard response into structured insights
  */
-function parseClaudeResponse(responseText: string, ventureData: VentureData): AIInsights {
+function parseScorecardResponse(responseText: string): AIInsights {
     try {
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
@@ -253,50 +313,28 @@ function parseClaudeResponse(responseText: string, ventureData: VentureData): AI
 
         const parsed = JSON.parse(jsonMatch[0]);
 
+        if (!Array.isArray(parsed.scorecard) || parsed.scorecard.length < 7) {
+            throw new Error(`Expected 7 scorecard items, got ${parsed.scorecard?.length || 0}`);
+        }
+
+        // Validate and normalize each dimension
+        const scorecard: ScorecardDimension[] = parsed.scorecard.slice(0, 7).map((item: any, i: number) => ({
+            dimension: item.dimension || FALLBACK_SCORECARD[i].dimension,
+            assessment: item.assessment || FALLBACK_SCORECARD[i].assessment,
+            rating: ['Green', 'Yellow', 'Red'].includes(item.rating) ? item.rating : 'Yellow',
+            brief: (item.brief || 'Manual review required.').replace(/<cite[^>]*>|<\/cite>/g, ''),
+        }));
+
         return {
-            existing_venture_profile: {
-                profile_summary: parsed.existing_venture_profile?.profile_summary || 'Profile summary not available.',
-                current_product_growth_history: parsed.existing_venture_profile?.current_product_growth_history || 'Growth history not available.',
-            },
-            new_venture_clarity: {
-                new_product_or_service: parsed.new_venture_clarity?.new_product_or_service || 'Unable to assess.',
-                new_segment_or_market: parsed.new_venture_clarity?.new_segment_or_market || 'Unable to assess.',
-                new_geography: parsed.new_venture_clarity?.new_geography || 'Unable to assess.',
-                estimated_incremental_revenue: parsed.new_venture_clarity?.estimated_incremental_revenue || 'Not provided.',
-                definition_clarity_flag: parsed.new_venture_clarity?.definition_clarity_flag || 'Partially Defined',
-                clarity_gaps: Array.isArray(parsed.new_venture_clarity?.clarity_gaps) && parsed.new_venture_clarity.clarity_gaps.length === 3
-                    ? parsed.new_venture_clarity.clarity_gaps
-                    : [
-                        'Automated analysis could not evaluate new product/service definition.',
-                        'Automated analysis could not evaluate target segment/market definition.',
-                        'Automated analysis could not evaluate geographic expansion definition.',
-                    ],
-                clarity_summary: parsed.new_venture_clarity?.clarity_summary || 'Clarity assessment not available.',
-            },
+            scorecard,
             generated_at: new Date().toISOString(),
         };
     } catch (error) {
-        console.error('Error parsing Claude response:', error);
-        console.log('Raw response:', responseText);
+        console.error('Error parsing scorecard response:', error);
+        console.log('Raw response:', responseText.slice(0, 500));
 
         return {
-            existing_venture_profile: {
-                profile_summary: 'Automated analysis of existing venture incomplete. Screening manager should review application and corporate presentation manually.',
-                current_product_growth_history: 'Insufficient data — automated extraction incomplete. Manual review required to assess current products and growth history.',
-            },
-            new_venture_clarity: {
-                new_product_or_service: 'Unable to assess — manual review required.',
-                new_segment_or_market: 'Unable to assess — manual review required.',
-                new_geography: 'Unable to assess — manual review required.',
-                estimated_incremental_revenue: `₹${ventureData.revenue_potential_3y?.toLocaleString() || 'N/A'} stated in application — substantiation not assessed.`,
-                definition_clarity_flag: 'Partially Defined',
-                clarity_gaps: [
-                    'Automated analysis could not evaluate new product/service definition.',
-                    'Automated analysis could not evaluate target segment/market definition.',
-                    'Automated analysis could not evaluate geographic expansion definition.',
-                ],
-                clarity_summary: 'AI analysis incomplete. Screening manager should manually assess whether the new venture idea is clearly defined before proceeding to panel.',
-            },
+            scorecard: [...FALLBACK_SCORECARD],
             generated_at: new Date().toISOString(),
         };
     }
@@ -338,9 +376,19 @@ export async function generateVentureRoadmap(
 }
 
 function buildRoadmapPrompt(ventureData: any, ctx: { vsmNotes?: string; aiAnalysis?: any; interactionNotes?: string }): string {
-    const aiSummary = ctx.aiAnalysis
-        ? `\n**AI Screening Analysis:**\n- Profile: ${ctx.aiAnalysis.existing_venture_profile?.profile_summary || 'N/A'}\n- Growth History: ${ctx.aiAnalysis.existing_venture_profile?.current_product_growth_history || 'N/A'}\n- Clarity Flag: ${ctx.aiAnalysis.new_venture_clarity?.definition_clarity_flag || 'N/A'}\n- Clarity Summary: ${ctx.aiAnalysis.new_venture_clarity?.clarity_summary || 'N/A'}\n- Clarity Gaps: ${(ctx.aiAnalysis.new_venture_clarity?.clarity_gaps || []).join('; ')}`
-        : '';
+    let aiSummary = '';
+    if (ctx.aiAnalysis) {
+        if (ctx.aiAnalysis.scorecard) {
+            // V2 scorecard format
+            const scorecardLines = (ctx.aiAnalysis.scorecard as any[])
+                .map((d: any) => `- ${d.dimension} (${d.rating}): ${d.brief}`)
+                .join('\n');
+            aiSummary = `\n**AI Screening Scorecard:**\n${scorecardLines}`;
+        } else if (ctx.aiAnalysis.existing_venture_profile) {
+            // V1 legacy format
+            aiSummary = `\n**AI Screening Analysis:**\n- Profile: ${ctx.aiAnalysis.existing_venture_profile?.profile_summary || 'N/A'}\n- Growth History: ${ctx.aiAnalysis.existing_venture_profile?.current_product_growth_history || 'N/A'}\n- Clarity Flag: ${ctx.aiAnalysis.new_venture_clarity?.definition_clarity_flag || 'N/A'}\n- Clarity Summary: ${ctx.aiAnalysis.new_venture_clarity?.clarity_summary || 'N/A'}\n- Clarity Gaps: ${(ctx.aiAnalysis.new_venture_clarity?.clarity_gaps || []).join('; ')}`;
+        }
+    }
 
     return `You are a strategic program advisor for the Accelerate Assisted Growth Platform. Your role is to generate a tailored, actionable roadmap for ventures that have been approved by the selection committee. This roadmap will guide the venture through the program to achieve their stated growth idea.
 
@@ -582,29 +630,41 @@ function getFallbackArea(stream: string): FunctionalAreaRoadmap {
 export async function generatePanelInsights(
     ventureData: VentureData & { panel_notes?: string; screening_recommendation?: string; prior_ai_analysis?: any },
     vsmNotes: string = '',
-    panelNotes: string = ''
+    panelNotes: string = '',
+    interactionTranscripts: string = ''
 ): Promise<PanelInsights> {
     if (!process.env.ANTHROPIC_API_KEY) {
         throw new Error('ANTHROPIC_API_KEY is not configured in environment variables');
     }
 
-    const prompt = buildPanelInsightsPrompt(ventureData, vsmNotes, panelNotes);
+    // Extract screening scorecard from prior AI analysis
+    const screeningScorecard = ventureData.prior_ai_analysis?.scorecard || null;
+
+    const prompt = buildPanelInsightsPrompt(ventureData, vsmNotes, panelNotes, screeningScorecard, interactionTranscripts);
 
     try {
         const message = await anthropic.messages.create({
             model: 'claude-sonnet-4-5-20250929',
-            max_tokens: 3000,
+            max_tokens: 2500,
             temperature: 0.3,
+            tools: [
+                {
+                    type: 'web_search_20260209',
+                    name: 'web_search',
+                    max_uses: 3,
+                } as any
+            ],
             messages: [{ role: 'user', content: prompt }]
         });
 
-        const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
-        console.log('Panel insights - stop_reason:', message.stop_reason);
-        console.log('Panel insights - response length:', responseText.length);
-        if (message.stop_reason === 'max_tokens') {
-            console.warn('Panel insights response was truncated due to max_tokens limit');
-        }
-        return parsePanelResponse(responseText, ventureData);
+        // Extract text from potentially multi-block response (web_search produces tool_use + text blocks)
+        const responseText = message.content
+            .filter((block: any) => block.type === 'text')
+            .map((block: any) => block.text)
+            .join('\n');
+
+        console.log(`[Panel] Claude response length: ${responseText.length}, stop_reason: ${message.stop_reason}`);
+        return parsePanelScorecardResponse(responseText, screeningScorecard);
     } catch (error: any) {
         console.error('Error calling Claude API for panel insights:', error);
         if (error.status === 401) {
@@ -619,20 +679,37 @@ export async function generatePanelInsights(
 function buildPanelInsightsPrompt(
     ventureData: VentureData & { screening_recommendation?: string; prior_ai_analysis?: any },
     vsmNotes: string,
-    panelNotes: string
+    panelNotes: string,
+    screeningScorecard: ScorecardDimension[] | null,
+    interactionTranscripts: string = ''
 ): string {
-    return `You are a venture evaluation analyst preparing a panel interview briefing. Analyze the venture on three dimensions: Gaps (capability/execution gaps), Revenue (credibility of financial projections), and Growth Opportunity (market size and execution feasibility).
+    const scorecardJson = screeningScorecard
+        ? JSON.stringify(screeningScorecard, null, 2)
+        : 'No screening scorecard available — generate panel ratings based on available data.';
+
+    return `You are an expert panel analyst for the Wadhwani Accelerate Assisted Growth Platform. You have been given:
+1. The application-based SCALE scorecard (7 dimensions, each rated Green/Yellow/Red with a brief) from the screening stage.
+2. Interaction transcripts (call transcripts, meeting notes, emails) from the panel's conversations with the venture's founder/team.
+3. Additional panel notes from the panel discussion.
+
+Your task is to produce a **Panel Recommendation** rating for each of the 7 scorecard dimensions, based on what was discussed in the interactions and panel notes. The panel rating may agree with or differ from the application rating — it reflects new information, clarifications, or concerns that emerged during the discussions. Pay close attention to the interaction transcripts as they contain the primary evidence from panel conversations.
+
+For each dimension, provide:
+- A **panel_rating**: Green, Yellow, or Red
+- A **panel_brief** (exactly 2 sentences): Sentence 1 states what was revealed or clarified during the panel discussion for this dimension. Sentence 2 explains whether this changes the assessment and why.
+
+If neither the interaction transcripts nor the panel notes cover a particular dimension, carry forward the application rating and state "Not discussed in panel interactions — application rating carried forward." in the brief.
+
+**Application-Based Screening Scorecard:**
+${scorecardJson}
 
 **Venture Information:**
 - Company Name: ${ventureData.name}
 - Founder: ${ventureData.founder_name || 'N/A'}
-- Current Revenue (12M): ₹${ventureData.revenue_12m?.toLocaleString() || 'N/A'}
-- Target Revenue (3Y): ₹${ventureData.revenue_potential_3y?.toLocaleString() || 'N/A'}
+- Current Revenue (12M): ${ventureData.revenue_12m || 'N/A'}
+- Target Revenue (3Y): ${ventureData.revenue_potential_3y || 'N/A'}
 - Full-Time Employees: ${ventureData.full_time_employees || 'N/A'}
-- Growth Focus: ${ventureData.growth_focus || 'N/A'}
-- Current Market: ${JSON.stringify(ventureData.growth_current || {})}
-- Target Market: ${JSON.stringify(ventureData.growth_target || {})}
-- Screening Tier: ${ventureData.screening_recommendation || 'N/A'}
+- Screening Recommendation: ${ventureData.screening_recommendation || 'N/A'}
 
 **Current Business:**
 - Products/Services: ${(ventureData as any).what_do_you_sell || 'N/A'}
@@ -640,164 +717,134 @@ function buildPanelInsightsPrompt(
 - Regions: ${(ventureData as any).which_regions || 'N/A'}
 
 **New Growth Idea:**
-- Growth Type: ${(ventureData as any).growth_type || ventureData.growth_focus || 'N/A'}
+- Growth Focus: ${Array.isArray(ventureData.growth_focus) ? ventureData.growth_focus.join(', ') : (ventureData.growth_focus || 'N/A')}
 - New Product/Service: ${(ventureData as any).focus_product || 'N/A'}
 - New Customer Segment: ${(ventureData as any).focus_segment || 'N/A'}
 - New Geography: ${(ventureData as any).focus_geography || 'N/A'}
-- Support Description: ${(ventureData as any).support_description || 'N/A'}
 
 **Screening Manager's Notes:**
 ${vsmNotes || 'No screening notes provided.'}
 
-**Panel Member's Notes:**
-${panelNotes || 'No panel notes provided.'}
+**Interaction Transcripts (calls, meetings, emails, notes):**
+${interactionTranscripts || 'No interaction transcripts available.'}
+
+**Additional Panel Notes:**
+${panelNotes || 'No additional panel notes provided.'}
 ${ventureData.corporate_presentation_text ? `
 **Corporate Presentation Content:**
-${ventureData.corporate_presentation_text.slice(0, 3000)}
-${ventureData.corporate_presentation_text.length > 3000 ? '\n[... truncated ...]' : ''}
+${ventureData.corporate_presentation_text.slice(0, 8000)}
+${ventureData.corporate_presentation_text.length > 8000 ? '\n[... truncated ...]' : ''}
 ` : ''}
-**Prior Screening Insights (if available):**
-${JSON.stringify(ventureData.prior_ai_analysis || 'No prior AI insights available.').slice(0, 2000)}
-
-Based on all available data, generate a concise panel briefing. Keep each field brief (1-2 sentences max). Return ONLY valid JSON, no markdown.
 
 **Your Task:**
-Provide a comprehensive panel interview briefing in the following JSON format:
+Return your assessment in the following JSON format. Return ONLY the JSON object, no additional text.
 
 {
-  "panel_recommendation": "<One of: Accept, Accept with Conditions, Defer, or Reject>",
-  "executive_summary": "<3-4 sentence summary covering the venture's core proposition, key strength, and primary concern>",
-  "market_context": "<2-3 sentences on the sector landscape, competitive dynamics, and market timing>",
-  "gap_deep_dive": {
-    "critical_gaps": [
-      "<Critical gap 1 — a gap that could prevent success if unaddressed>",
-      "<Critical gap 2>",
-      "<Critical gap 3>"
-    ],
-    "addressable_gaps": [
-      "<Addressable gap 1 — a gap that Accelerate's support can realistically close>",
-      "<Addressable gap 2>",
-      "<Addressable gap 3>"
-    ],
-    "gap_summary": "<1-2 sentences on overall gap severity and whether Accelerate can bridge them>"
-  },
-  "revenue_deep_dive": {
-    "current_health": "<1-2 sentences on current revenue quality — recurring vs. one-time, customer concentration, margin profile>",
-    "projection_credibility": "<1-2 sentences evaluating the 3-year target — what growth rate is implied, is it achievable given the model?>",
-    "key_revenue_risks": [
-      "<Revenue risk 1>",
-      "<Revenue risk 2>",
-      "<Revenue risk 3>"
-    ],
-    "revenue_summary": "<1-2 sentences on overall revenue outlook>"
-  },
-  "growth_opportunity_deep_dive": {
-    "market_size_signal": "<1-2 sentences on whether the target market is large enough to justify the growth idea>",
-    "competitive_positioning": "<1-2 sentences on how the venture differentiates or could be displaced>",
-    "execution_feasibility": "<1-2 sentences on whether the team, resources, and timeline are realistic for the proposed growth>",
-    "growth_summary": "<1-2 sentences on overall growth opportunity quality>"
-  },
-  "strengths": ["<Strength 1>", "<Strength 2>", "<Strength 3>"],
-  "risks": ["<Risk 1>", "<Risk 2>", "<Risk 3>"],
-  "interview_questions": [
-    {"question": "<Q1>", "intent": "<Intent>"},
-    {"question": "<Q2>", "intent": "<Intent>"},
-    {"question": "<Q3>", "intent": "<Intent>"}
+  "panel_scorecard": [
+    {
+      "dimension": "Size",
+      "application_rating": "<carried from screening>",
+      "panel_rating": "<Green | Yellow | Red>",
+      "panel_brief": "<2 sentence explanation based on panel discussion>"
+    },
+    {
+      "dimension": "Sector",
+      "application_rating": "<carried from screening>",
+      "panel_rating": "<Green | Yellow | Red>",
+      "panel_brief": "<2 sentence explanation based on panel discussion>"
+    },
+    {
+      "dimension": "Capital",
+      "application_rating": "<carried from screening>",
+      "panel_rating": "<Green | Yellow | Red>",
+      "panel_brief": "<2 sentence explanation based on panel discussion>"
+    },
+    {
+      "dimension": "Ambition",
+      "application_rating": "<carried from screening>",
+      "panel_rating": "<Green | Yellow | Red>",
+      "panel_brief": "<2 sentence explanation based on panel discussion>"
+    },
+    {
+      "dimension": "Leadership",
+      "application_rating": "<carried from screening>",
+      "panel_rating": "<Green | Yellow | Red>",
+      "panel_brief": "<2 sentence explanation based on panel discussion>"
+    },
+    {
+      "dimension": "Jobs / Employment Generation Potential",
+      "application_rating": "<carried from screening>",
+      "panel_rating": "<Green | Yellow | Red>",
+      "panel_brief": "<2 sentence explanation based on panel discussion>"
+    },
+    {
+      "dimension": "Venture Clarity",
+      "application_rating": "<carried from screening>",
+      "panel_rating": "<Green | Yellow | Red>",
+      "panel_brief": "<2 sentence explanation based on panel discussion>"
+    }
   ]
 }
+
+**Critical Instructions:**
+- Each "panel_brief" must be exactly 2 sentences, dynamic and specific to what was discussed. Never use generic language.
+- If the panel notes revealed new information that changes the rating (up or down), explain what changed. Reference specific statements or clarifications from the notes.
+- If the panel notes confirmed the application-based assessment, state what was confirmed.
+- If the dimension was not discussed, carry forward the application rating and state this clearly.
+- The panel_rating is the AI's recommendation — the panelist will be able to override it on the frontend.
+- Strip any citation tags from your response.
 
 Return ONLY the JSON object, no additional text.`;
 }
 
-function parsePanelResponse(responseText: string, ventureData: VentureData): PanelInsights {
+const PANEL_FALLBACK_SCORECARD: PanelScorecardDimension[] = [
+    { dimension: 'Size', application_rating: 'Yellow', panel_rating: 'Yellow', panel_brief: 'Automated analysis incomplete. Manual review required.' },
+    { dimension: 'Sector', application_rating: 'Yellow', panel_rating: 'Yellow', panel_brief: 'Automated analysis incomplete. Manual review required.' },
+    { dimension: 'Capital', application_rating: 'Yellow', panel_rating: 'Yellow', panel_brief: 'Automated analysis incomplete. Manual review required.' },
+    { dimension: 'Ambition', application_rating: 'Yellow', panel_rating: 'Yellow', panel_brief: 'Automated analysis incomplete. Manual review required.' },
+    { dimension: 'Leadership', application_rating: 'Yellow', panel_rating: 'Yellow', panel_brief: 'Automated analysis incomplete. Manual review required.' },
+    { dimension: 'Jobs / Employment Generation Potential', application_rating: 'Yellow', panel_rating: 'Yellow', panel_brief: 'Automated analysis incomplete. Manual review required.' },
+    { dimension: 'Venture Clarity', application_rating: 'Yellow', panel_rating: 'Yellow', panel_brief: 'Automated analysis incomplete. Manual review required.' },
+];
+
+function parsePanelScorecardResponse(responseText: string, screeningScorecard: ScorecardDimension[] | null): PanelInsights {
     try {
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error('No JSON found in response');
 
         const parsed = JSON.parse(jsonMatch[0]);
 
+        if (!Array.isArray(parsed.panel_scorecard) || parsed.panel_scorecard.length < 7) {
+            throw new Error(`Expected 7 panel scorecard items, got ${parsed.panel_scorecard?.length || 0}`);
+        }
+
+        const panel_scorecard: PanelScorecardDimension[] = parsed.panel_scorecard.slice(0, 7).map((item: any, i: number) => {
+            // Get application rating from screening scorecard if available
+            const screeningItem = screeningScorecard?.[i];
+            return {
+                dimension: item.dimension || PANEL_FALLBACK_SCORECARD[i].dimension,
+                application_rating: screeningItem?.rating || item.application_rating || 'Yellow',
+                panel_rating: ['Green', 'Yellow', 'Red'].includes(item.panel_rating) ? item.panel_rating : 'Yellow',
+                panel_brief: (item.panel_brief || 'Manual review required.').replace(/<cite[^>]*>|<\/cite>/g, ''),
+            };
+        });
+
         return {
-            panel_recommendation: parsed.panel_recommendation || 'Accept with Conditions',
-            executive_summary: parsed.executive_summary || 'Analysis completed. Manual panel review recommended.',
-            market_context: parsed.market_context || 'Market context requires panel discussion.',
-            gap_deep_dive: {
-                critical_gaps: Array.isArray(parsed.gap_deep_dive?.critical_gaps) && parsed.gap_deep_dive.critical_gaps.length >= 1
-                    ? parsed.gap_deep_dive.critical_gaps.slice(0, 3)
-                    : ['Strategic gap assessment requires manual review.', 'Team capability evaluation pending panel discussion.', 'Execution readiness to be validated in interview.'],
-                addressable_gaps: Array.isArray(parsed.gap_deep_dive?.addressable_gaps) && parsed.gap_deep_dive.addressable_gaps.length >= 1
-                    ? parsed.gap_deep_dive.addressable_gaps.slice(0, 3)
-                    : ['Go-to-market strategy can be refined with Accelerate support.', 'Capital planning can be strengthened through mentorship.', 'Operational scaling playbook available through program resources.'],
-                gap_summary: parsed.gap_deep_dive?.gap_summary || 'Gap analysis requires panel discussion.',
-            },
-            revenue_deep_dive: {
-                current_health: parsed.revenue_deep_dive?.current_health || 'Revenue health requires panel evaluation.',
-                projection_credibility: parsed.revenue_deep_dive?.projection_credibility || '3-year target needs validation.',
-                key_revenue_risks: Array.isArray(parsed.revenue_deep_dive?.key_revenue_risks) && parsed.revenue_deep_dive.key_revenue_risks.length >= 1
-                    ? parsed.revenue_deep_dive.key_revenue_risks.slice(0, 3)
-                    : ['Revenue concentration risk to be assessed.', 'Growth rate sustainability to be validated.', 'Margin profile requires clarification.'],
-                revenue_summary: parsed.revenue_deep_dive?.revenue_summary || 'Revenue analysis requires panel deep-dive.',
-            },
-            growth_opportunity_deep_dive: {
-                market_size_signal: parsed.growth_opportunity_deep_dive?.market_size_signal || 'Market opportunity requires panel assessment.',
-                competitive_positioning: parsed.growth_opportunity_deep_dive?.competitive_positioning || 'Competitive landscape to be discussed.',
-                execution_feasibility: parsed.growth_opportunity_deep_dive?.execution_feasibility || 'Execution readiness requires validation.',
-                growth_summary: parsed.growth_opportunity_deep_dive?.growth_summary || 'Growth opportunity evaluation pending.',
-            },
-            strengths: Array.isArray(parsed.strengths) && parsed.strengths.length >= 1
-                ? parsed.strengths.slice(0, 5)
-                : ['Strong revenue base.', `Clear focus on ${ventureData.growth_focus || 'growth'}.`, 'Experienced team structure.', 'Proven market fit in current segment.', 'Scalable business model.'],
-            risks: Array.isArray(parsed.risks) && parsed.risks.length >= 1
-                ? parsed.risks.slice(0, 5)
-                : ['Competitive landscape concerns.', 'Capital efficiency risk.', 'Go-to-market strategy needs refinement.', 'Limited runway for expansion.', 'Dependency on key personnel.'],
-            interview_questions: Array.isArray(parsed.interview_questions) && parsed.interview_questions.length >= 1
-                ? parsed.interview_questions.map((q: any) => ({
-                    question: q.question || 'Question not generated.',
-                    intent: q.intent || 'Intent not specified.',
-                }))
-                : [
-                    { question: 'How do you plan to acquire the first 10 customers in the new segment?', intent: 'Validate go-to-market readiness.' },
-                    { question: 'What is the breakdown of the 3-year revenue potential?', intent: 'Assess revenue projection granularity.' },
-                    { question: 'Can you elaborate on the specific compliance hurdles?', intent: 'Understand regulatory awareness.' },
-                    { question: 'What is the burn rate impact of the new hiring plan?', intent: 'Evaluate capital planning maturity.' },
-                    { question: 'How does the current product adapt to the new market?', intent: 'Assess product-market fit for expansion.' },
-                ],
+            panel_scorecard,
             generated_at: new Date().toISOString(),
         };
     } catch (error) {
-        console.error('Error parsing panel insights response:', error);
-        console.log('Raw response:', responseText);
+        console.error('Error parsing panel scorecard response:', error);
+        console.log('Raw response:', responseText.slice(0, 500));
 
-        // Return fallback
+        // Populate fallback with actual screening ratings if available
+        const fallback = PANEL_FALLBACK_SCORECARD.map((item, i) => ({
+            ...item,
+            application_rating: screeningScorecard?.[i]?.rating || 'Yellow',
+        }));
+
         return {
-            panel_recommendation: 'Accept with Conditions',
-            executive_summary: `Evaluated "${ventureData.name}" - Deep-dive AI analysis completed but requires manual panel review for final decision.`,
-            market_context: 'Automated analysis. Market context requires panel discussion.',
-            gap_deep_dive: {
-                critical_gaps: ['Strategic gap assessment requires manual review.', 'Team capability evaluation pending panel discussion.', 'Execution readiness to be validated in interview.'],
-                addressable_gaps: ['Go-to-market strategy can be refined with Accelerate support.', 'Capital planning can be strengthened through mentorship.', 'Operational scaling playbook available through program resources.'],
-                gap_summary: 'Automated gap analysis incomplete. Panel should assess gaps during interview.',
-            },
-            revenue_deep_dive: {
-                current_health: 'Current revenue trajectory requires panel evaluation against industry benchmarks.',
-                projection_credibility: '3-year revenue target needs validation of underlying growth assumptions.',
-                key_revenue_risks: ['Revenue concentration risk to be assessed.', 'Growth rate sustainability to be validated.', 'Margin profile requires clarification.'],
-                revenue_summary: 'Revenue analysis requires manual deep-dive by panel.',
-            },
-            growth_opportunity_deep_dive: {
-                market_size_signal: 'Market opportunity size requires panel assessment.',
-                competitive_positioning: 'Competitive landscape and defensibility to be discussed in interview.',
-                execution_feasibility: 'Team and resource readiness for growth plan requires validation.',
-                growth_summary: 'Growth opportunity evaluation pending panel discussion.',
-            },
-            strengths: ['Strong revenue base.', `Clear focus on ${ventureData.growth_focus || 'growth'}.`, 'Experienced team structure.', 'Proven market fit in current segment.', 'Scalable business model.'],
-            risks: ['Competitive landscape concerns.', 'Capital efficiency risk.', 'Go-to-market strategy needs refinement.', 'Limited runway for expansion.', 'Dependency on key personnel.'],
-            interview_questions: [
-                { question: 'How do you plan to acquire the first 10 customers in the new segment?', intent: 'Validate go-to-market readiness.' },
-                { question: 'What is the breakdown of the 3-year revenue potential?', intent: 'Assess revenue projection granularity.' },
-                { question: 'Can you elaborate on the specific compliance hurdles?', intent: 'Understand regulatory awareness.' },
-                { question: 'What is the burn rate impact of the new hiring plan?', intent: 'Evaluate capital planning maturity.' },
-                { question: 'How does the current product adapt to the new market?', intent: 'Assess product-market fit for expansion.' },
-            ],
+            panel_scorecard: fallback,
             generated_at: new Date().toISOString(),
         };
     }

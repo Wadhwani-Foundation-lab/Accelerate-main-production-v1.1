@@ -494,6 +494,7 @@ router.post(
                 focus_geography: appData?.focus_geography,
                 growth_type: appData?.growth_type,
                 growth_focus: appData?.growth_focus,
+                growth_dimensions_selected: appData?.growth_focus, // array of selected growth dimensions
                 support_description: appData?.support_description,
                 revenue_12m: appData?.revenue_12m,
                 revenue_potential_3y: appData?.revenue_potential_3y,
@@ -502,6 +503,7 @@ router.post(
                 target_jobs: appData?.target_jobs,
                 incremental_hiring: appData?.incremental_hiring,
                 min_investment: appData?.min_investment,
+                program_type: venture.program_name || null,
                 business_type: appData?.business_type,
                 designation: appData?.designation,
                 city: appData?.city,
@@ -521,13 +523,29 @@ router.post(
             if (insightType === 'panel') {
                 // ===== V2: Panel Interview Insights =====
                 const panelNotes = req.body.panel_notes || '';
+
+                // Fetch interaction transcripts for this venture
+                const { data: interactions } = await supabase
+                    .from('venture_interactions')
+                    .select('interaction_type, title, transcript, interaction_date')
+                    .eq('venture_id', req.params.id)
+                    .is('deleted_at', null)
+                    .order('interaction_date', { ascending: true });
+
+                const interactionTranscripts = (interactions || []).map((i: any) => {
+                    const date = i.interaction_date ? new Date(i.interaction_date).toLocaleDateString() : 'Unknown date';
+                    const type = (i.interaction_type || 'note').charAt(0).toUpperCase() + (i.interaction_type || 'note').slice(1);
+                    const title = i.title ? ` - ${i.title}` : '';
+                    return `[${type}${title} on ${date}]\n${i.transcript}`;
+                }).join('\n\n---\n\n');
+
                 const panelVentureData = {
                     ...ventureWithDoc,
                     screening_recommendation: existingAssessment?.program_recommendation || venture.program_recommendation || '',
                     prior_ai_analysis: existingAssessment?.ai_analysis || null,
                 };
 
-                const panelInsights = await aiService.generatePanelInsights(panelVentureData, vsmNotes, panelNotes);
+                const panelInsights = await aiService.generatePanelInsights(panelVentureData, vsmNotes, panelNotes, interactionTranscripts);
 
                 // Save panel insights
                 if (existingAssessment) {
@@ -614,6 +632,78 @@ router.post(
                 message: error.message || 'Failed to generate AI insights',
                 error: process.env.NODE_ENV === 'development' ? error.stack : undefined
             });
+        }
+    }
+);
+
+/**
+ * PUT /api/ventures/:id/gate-questions
+ * Save panel gate questions (6 Yes/No + optional remarks)
+ */
+router.put(
+    '/:id/gate-questions',
+    authenticateUser,
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { supabase, role } = await getContext(req);
+
+            if (!['venture_mgr', 'committee_member', 'admin', 'ops_manager'].includes(role)) {
+                return res.status(403).json({ success: false, message: 'Only panel members can submit gate questions' });
+            }
+
+            const { gate_questions } = req.body;
+            if (!gate_questions || !Array.isArray(gate_questions) || gate_questions.length !== 6) {
+                return res.status(400).json({ success: false, message: 'Exactly 6 gate questions are required' });
+            }
+
+            const now = new Date().toISOString();
+            const gateData = {
+                gate_questions,
+                submitted_by: req.user.id,
+                submitted_at: now,
+            };
+
+            // Find existing current assessment
+            const { data: existingAssessment } = await supabase
+                .from('venture_assessments')
+                .select('id')
+                .eq('venture_id', req.params.id)
+                .eq('is_current', true)
+                .maybeSingle();
+
+            if (existingAssessment) {
+                const { error } = await supabase
+                    .from('venture_assessments')
+                    .update({ gate_questions: gateData, updated_at: now })
+                    .eq('id', existingAssessment.id);
+
+                if (error) {
+                    console.error('Error saving gate questions:', error);
+                    return res.status(500).json({ success: false, message: 'Failed to save gate questions' });
+                }
+            } else {
+                const { error } = await supabase
+                    .from('venture_assessments')
+                    .insert({
+                        venture_id: req.params.id,
+                        assessed_by: req.user.id,
+                        assessor_role: role,
+                        assessment_type: 'panel',
+                        assessment_date: now,
+                        gate_questions: gateData,
+                        is_current: true,
+                        assessment_version: 1,
+                    });
+
+                if (error) {
+                    console.error('Error creating assessment with gate questions:', error);
+                    return res.status(500).json({ success: false, message: 'Failed to save gate questions' });
+                }
+            }
+
+            successResponse(res, { message: 'Gate questions saved successfully', gate_questions: gateData });
+        } catch (error) {
+            next(error);
         }
     }
 );

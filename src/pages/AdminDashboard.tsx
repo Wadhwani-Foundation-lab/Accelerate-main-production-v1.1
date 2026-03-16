@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 import {
     Loader2, Search, FileText, Clock, Users, Building2, Download,
-    ChevronUp, ChevronDown, UserPlus, X,
+    ChevronUp, ChevronDown, UserPlus, X, Briefcase, TrendingUp, AlertTriangle, HelpCircle,
 } from 'lucide-react';
+import { STATUS_CONFIG } from '../components/StatusSelect';
+import { useToast } from '../components/ui/Toast';
 
 // ─── Types ───────────────────────────────────────────────────────────
 interface Venture {
@@ -64,6 +67,14 @@ function shortProgramName(rec?: string): string {
     return rec;
 }
 
+function displayProgram(rec?: string): string {
+    if (!rec) return '';
+    if (rec.toLowerCase().includes('prime')) return 'Accelerate Prime';
+    if (rec.toLowerCase().includes('core') || rec.toLowerCase().includes('select')) return 'Accelerate Core/Select';
+    if (rec.toLowerCase().includes('selfserve')) return 'Self-Serve';
+    return rec;
+}
+
 function shortStatusLabel(label: string): string {
     if (label === 'Pending with Screening Manager') return 'Screening';
     if (label.startsWith('Pending with Panel')) return 'Panel Review';
@@ -104,6 +115,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applications' }) => {
+    const { toast } = useToast();
     const [ventures, setVentures] = useState<Venture[]>([]);
     const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
     const [profiles, setProfiles] = useState<Record<string, { full_name: string; role: string }>>({});
@@ -126,6 +138,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
     // Timeline drawer
     const [timelineVenture, setTimelineVenture] = useState<Venture | null>(null);
 
+    // Venture profile drawer
+    const [profileVenture, setProfileVenture] = useState<any | null>(null);
+    const [profileLoading, setProfileLoading] = useState(false);
+
     // Add user modal
     const [showAddUser, setShowAddUser] = useState(false);
     const [newUserName, setNewUserName] = useState('');
@@ -133,6 +149,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
     const [newUserRole, setNewUserRole] = useState('success_mgr');
     const [addingUser, setAddingUser] = useState(false);
     const [addUserError, setAddUserError] = useState('');
+
+    const openVentureProfile = async (venture: Venture) => {
+        setProfileLoading(true);
+        setProfileVenture({ name: venture.name || 'Unknown Venture', founder_name: venture.founder_name || '', needs: [] });
+        try {
+            const { venture: full, streams } = await api.getVenture(venture.id);
+            const mappedNeeds = (streams || []).map((s: any) => ({
+                id: s.id,
+                stream: s.stream_name || '',
+                status: s.status || 'N/A'
+            }));
+            setProfileVenture({ ...(full || {}), needs: mappedNeeds });
+        } catch (err) {
+            console.error('Error fetching venture profile:', err);
+        } finally {
+            setProfileLoading(false);
+        }
+    };
 
     // ─── Fetch Data ──────────────────────────────────────────────────
     const fetchData = async () => {
@@ -600,7 +634,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                         const assignedName = profiles[v.assigned_panelist_id || '']?.full_name || profiles[v.assigned_vsm_id || '']?.full_name || '-';
                                         return (
                                             <tr key={v.id} className="hover:bg-gray-50/50 transition-colors">
-                                                <td className="px-4 py-2.5 font-medium text-gray-900 text-sm">{v.name}</td>
+                                                <td className="px-4 py-2.5 font-medium text-sm">
+                                                    <button onClick={() => openVentureProfile(v)} className="text-indigo-600 hover:text-indigo-800 hover:underline transition-colors text-left">{v.name}</button>
+                                                </td>
                                                 <td className="px-4 py-2.5 text-gray-500 text-sm">{new Date(v.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                                                 <td className="px-4 py-2.5">{getStatusBadge(shortStatusLabel(getDisplayStatus(v)))}</td>
                                                 <td className="px-4 py-2.5">
@@ -827,6 +863,299 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                     )}
                 </div>
             )}
+            {/* ─── VENTURE PROFILE DRAWER ─── */}
+            {profileVenture && (
+                <>
+                    <div
+                        className="fixed inset-0 z-40 bg-black/30 transition-opacity"
+                        onClick={() => setProfileVenture(null)}
+                    />
+                    <div className="fixed inset-y-0 right-0 z-50 w-full max-w-2xl bg-white shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200">
+                        {/* Drawer Header */}
+                        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900">{profileVenture.name || 'Unknown Venture'}</h2>
+                                {profileVenture.program_recommendation && (
+                                    <span className="inline-flex items-center px-3 py-1 mt-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
+                                        {displayProgram(profileVenture.program_recommendation)}
+                                    </span>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => setProfileVenture(null)}
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {profileLoading ? (
+                            <div className="flex items-center justify-center h-64">
+                                <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+                            </div>
+                        ) : (
+                            <div className="p-6 space-y-6">
+                                {/* Screening Manager Assessment Banner */}
+                                {profileVenture.program_recommendation && (
+                                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-semibold text-indigo-900">Screening Manager Assessment</p>
+                                            <p className="text-xs text-indigo-700 mt-1">
+                                                This venture was assessed and recommended for {displayProgram(profileVenture.program_recommendation)}.
+                                                {profileVenture.vsm_reviewed_at && ` Reviewed on ${new Date(profileVenture.vsm_reviewed_at).toLocaleDateString()}.`}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Key Metrics */}
+                                <div className="grid grid-cols-4 gap-3">
+                                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Current Revenue</span>
+                                        <div className="text-lg font-bold text-gray-900">{profileVenture.revenue_12m || 'N/A'}</div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Revenue (3Y)</span>
+                                        <div className="text-lg font-bold text-gray-900">{profileVenture.revenue_potential_3y || 'N/A'}</div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Employees</span>
+                                        <div className="text-lg font-bold text-gray-900 flex items-center gap-1">
+                                            <Users className="w-4 h-4 text-gray-400" />
+                                            {profileVenture.full_time_employees || 'N/A'}
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Jobs</span>
+                                        <div className="text-lg font-bold text-gray-900 flex items-center gap-1">
+                                            <Users className="w-4 h-4 text-gray-400" />
+                                            {profileVenture.target_jobs || 'N/A'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Founder / Company Info */}
+                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div>
+                                            <span className="text-sm text-gray-600 block mb-1">Name: <span className="font-semibold text-gray-900">{profileVenture.founder_name || 'N/A'}</span></span>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm text-gray-600 block mb-1">Mobile: <span className="font-semibold text-gray-900">{profileVenture.founder_phone || 'N/A'}</span></span>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm text-gray-600 block mb-1">Email: <span className="font-semibold text-gray-900">{profileVenture.founder_email || 'N/A'}</span></span>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm text-gray-600 block mb-1">Registered company name</span>
+                                            <div className="font-medium text-gray-900">{profileVenture.name || 'N/A'}</div>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm text-gray-600 block mb-1">Designation</span>
+                                            <div className="font-medium text-gray-900">{profileVenture.founder_designation || 'N/A'}</div>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm text-gray-600 block mb-1">Company type</span>
+                                            <div className="font-medium text-gray-900">{profileVenture.company_type || 'N/A'}</div>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm text-gray-600 block mb-1">City</span>
+                                            <div className="font-medium text-gray-900">{profileVenture.city || 'N/A'}</div>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm text-gray-600 block mb-1">State</span>
+                                            <div className="font-medium text-gray-900">{profileVenture.state || 'N/A'}</div>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm text-gray-600 block mb-1">How did I hear about us</span>
+                                            <div className="font-medium text-gray-900">{profileVenture.referred_by || 'N/A'}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Current Business vs New Venture */}
+                                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                                    <div className="grid grid-cols-2 divide-x divide-gray-100">
+                                        <div className="p-5 pb-3">
+                                            <div className="flex items-center gap-2 text-gray-900 font-bold border-b border-gray-100 pb-3">
+                                                <Briefcase className="w-4 h-4 text-gray-400" />
+                                                Current Business
+                                            </div>
+                                        </div>
+                                        <div className="p-5 pb-3 bg-white">
+                                            <div className="flex items-center gap-2 text-blue-900 font-bold border-b border-blue-100 pb-3">
+                                                <TrendingUp className="w-4 h-4 text-blue-600" />
+                                                New Venture
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 divide-x divide-gray-100">
+                                        <div className="px-5 py-3">
+                                            <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Product / Service</span>
+                                            <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[40px] flex items-center">{profileVenture.what_do_you_sell || 'N/A'}</p>
+                                        </div>
+                                        <div className="px-5 py-3 bg-white">
+                                            <span className="text-xs font-bold text-blue-400 uppercase block mb-1.5">New Product</span>
+                                            <p className="text-sm text-gray-800 bg-white p-3 rounded-lg border border-blue-50 min-h-[40px] flex items-center shadow-sm shadow-blue-100/50">{profileVenture.focus_product || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 divide-x divide-gray-100">
+                                        <div className="px-5 py-3">
+                                            <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Customer Segment</span>
+                                            <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[40px] flex items-center">{profileVenture.who_do_you_sell_to || 'N/A'}</p>
+                                        </div>
+                                        <div className="px-5 py-3 bg-white">
+                                            <span className="text-xs font-bold text-blue-400 uppercase block mb-1.5">New Segment</span>
+                                            <p className="text-sm text-gray-800 bg-white p-3 rounded-lg border border-blue-50 min-h-[40px] flex items-center shadow-sm shadow-blue-100/50">{profileVenture.focus_segment || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 divide-x divide-gray-100">
+                                        <div className="px-5 py-3 pb-5">
+                                            <span className="text-xs font-bold text-gray-400 uppercase block mb-1.5">Region</span>
+                                            <p className="text-sm text-gray-800 bg-gray-50/50 p-3 rounded-lg border border-gray-100 min-h-[40px] flex items-center">{profileVenture.which_regions || 'N/A'}</p>
+                                        </div>
+                                        <div className="px-5 py-3 pb-5 bg-white">
+                                            <span className="text-xs font-bold text-blue-400 uppercase block mb-1.5">New Region</span>
+                                            <p className="text-sm text-gray-800 bg-white p-3 rounded-lg border border-blue-50 min-h-[40px] flex items-center shadow-sm shadow-blue-100/50">{profileVenture.focus_geography || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Growth Idea Support Status */}
+                                <div>
+                                    <h3 className="text-base font-bold text-gray-900 mb-3">Growth Idea Support Status</h3>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {['Product', 'Go-To-Market (GTM)', 'Capital Planning'].map(stream => {
+                                            const rawStatus = (profileVenture.needs || []).find((n: any) =>
+                                                n.stream === stream ||
+                                                (stream === 'Go-To-Market (GTM)' && n.stream === 'GTM') ||
+                                                (stream === 'Capital Planning' && n.stream === 'Funding')
+                                            )?.status || 'N/A';
+                                            const legacyMapping: Record<string, string> = {
+                                                'Not started': 'Need some guidance', 'Working on it': 'Need some guidance',
+                                                'On track': "Don't need help", 'Need some advice': 'Need some guidance',
+                                                'Need guidance': 'Need some guidance', 'Completed': "Don't need help",
+                                                'Done': "Don't need help", 'No help needed': "Don't need help"
+                                            };
+                                            const mappedStatus = legacyMapping[rawStatus] || rawStatus;
+                                            const normalizedStatus = Object.keys(STATUS_CONFIG).find(
+                                                key => key.toLowerCase() === mappedStatus?.toLowerCase()
+                                            ) || mappedStatus;
+                                            const config = STATUS_CONFIG[normalizedStatus] || { icon: HelpCircle, color: 'text-gray-400', bg: 'bg-gray-50', border: 'border-gray-200' };
+                                            const Icon = config.icon;
+                                            return (
+                                                <div key={stream}>
+                                                    <span className="text-xs font-semibold text-gray-900 block mb-1.5">{stream}</span>
+                                                    <div className={`p-2.5 rounded-lg text-xs font-medium flex items-center gap-2 border ${config.bg} ${config.border} ${config.color}`}>
+                                                        <Icon className="w-3.5 h-3.5" />
+                                                        {normalizedStatus}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-3 mt-3">
+                                        {['Supply Chain', 'Operations', 'Team'].map(stream => {
+                                            const rawStatus = (profileVenture.needs || []).find((n: any) =>
+                                                n.stream === stream ||
+                                                (stream === 'Supply Chain' && n.stream === 'SupplyChain')
+                                            )?.status || 'N/A';
+                                            const legacyMapping: Record<string, string> = {
+                                                'Not started': 'Need some guidance', 'Working on it': 'Need some guidance',
+                                                'On track': "Don't need help", 'Need some advice': 'Need some guidance',
+                                                'Need guidance': 'Need some guidance', 'Completed': "Don't need help",
+                                                'Done': "Don't need help", 'No help needed': "Don't need help"
+                                            };
+                                            const mappedStatus = legacyMapping[rawStatus] || rawStatus;
+                                            const normalizedStatus = Object.keys(STATUS_CONFIG).find(
+                                                key => key.toLowerCase() === mappedStatus?.toLowerCase()
+                                            ) || mappedStatus;
+                                            const config = STATUS_CONFIG[normalizedStatus] || { icon: HelpCircle, color: 'text-gray-400', bg: 'bg-gray-50', border: 'border-gray-200' };
+                                            const Icon = config.icon;
+                                            return (
+                                                <div key={stream}>
+                                                    <span className="text-xs font-semibold text-gray-900 block mb-1.5">{stream}</span>
+                                                    <div className={`p-2.5 rounded-lg text-xs font-medium flex items-center gap-2 border ${config.bg} ${config.border} ${config.color}`}>
+                                                        <Icon className="w-3.5 h-3.5" />
+                                                        {normalizedStatus}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Company Document */}
+                                <div>
+                                    <h3 className="text-base font-bold text-gray-900 mb-3">Company Document</h3>
+                                    <div className="bg-white border border-gray-200 rounded-xl p-4">
+                                        {profileVenture.corporate_presentation_url ? (
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex-1 flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                    <FileText className="w-5 h-5 text-blue-600" />
+                                                    <span className="text-sm font-medium text-gray-900">
+                                                        {profileVenture.corporate_presentation_url.split('/').pop()?.replace(/^\d+_/, '') || 'Corporate Presentation'}
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    onClick={async () => {
+                                                        try {
+                                                            const url = await api.getVentureDocumentUrl(profileVenture.corporate_presentation_url);
+                                                            window.open(url, '_blank');
+                                                        } catch (err) {
+                                                            console.error('Failed to get document URL:', err);
+                                                            toast('Failed to download document. Please try again.', 'error');
+                                                        }
+                                                    }}
+                                                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm font-semibold"
+                                                >
+                                                    Download
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 text-gray-500">
+                                                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-700">No document uploaded</p>
+                                                    <p className="text-xs text-gray-500 mt-0.5">The venture did not upload a corporate presentation</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Program Recommendation */}
+                                {profileVenture.program_recommendation && (
+                                    <div className="bg-white rounded-xl border border-gray-200 p-5">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Briefcase className="w-5 h-5 text-gray-400" />
+                                            <span className="text-base font-bold text-gray-700">Program Recommendation</span>
+                                        </div>
+                                        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-medium text-indigo-700">Recommended Program:</span>
+                                                <span className="text-lg font-bold text-indigo-900">{displayProgram(profileVenture.program_recommendation)}</span>
+                                            </div>
+                                            {profileVenture.internal_comments && (
+                                                <div className="mt-3 pt-3 border-t border-indigo-200">
+                                                    <span className="text-xs font-bold text-indigo-600 uppercase block mb-2">Internal Comments</span>
+                                                    <p className="text-sm text-indigo-800 whitespace-pre-wrap">{profileVenture.internal_comments}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
+
             {/* ─── TIMELINE DRAWER ─── */}
             {timelineVenture && (
                 <div className="fixed inset-0 z-50 flex justify-end">

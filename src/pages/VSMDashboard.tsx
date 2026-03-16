@@ -125,12 +125,112 @@ const OtherDetailsSection: React.FC<{ selectedVenture: any; vsmNotes: string; se
     );
 };
 
+const RATING_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
+    Green: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' },
+    Yellow: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
+    Red: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
+};
+
+const RatingBadge: React.FC<{ rating: string }> = ({ rating }) => {
+    const style = RATING_STYLES[rating] || RATING_STYLES.Yellow;
+    return (
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${style.bg} ${style.text}`}>
+            <span className={`w-2 h-2 rounded-full ${style.dot}`} />
+            {rating}
+        </span>
+    );
+};
+
+const LegacyInsights: React.FC<{ analysisResult: any }> = ({ analysisResult }) => (
+    <div className="space-y-0 divide-y divide-gray-100">
+        <div className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="w-4 h-4 text-green-500" />
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Existing Venture Profile</span>
+            </div>
+            <div className="space-y-3">
+                <div>
+                    <span className="text-xs font-semibold text-gray-400 uppercase">Profile Summary</span>
+                    <p className="text-sm text-gray-700 mt-1">{analysisResult.existing_venture_profile?.profile_summary || 'Not available'}</p>
+                </div>
+                <div>
+                    <span className="text-xs font-semibold text-gray-400 uppercase">Product & Growth History</span>
+                    <p className="text-sm text-gray-700 mt-1">{analysisResult.existing_venture_profile?.current_product_growth_history || 'Not available'}</p>
+                </div>
+            </div>
+        </div>
+        <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-500" />
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">New Venture Definition Clarity</span>
+                </div>
+                {analysisResult.new_venture_clarity?.definition_clarity_flag && (
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                        analysisResult.new_venture_clarity.definition_clarity_flag === 'Well Defined' ? 'bg-green-100 text-green-700' :
+                        analysisResult.new_venture_clarity.definition_clarity_flag === 'Partially Defined' ? 'bg-amber-100 text-amber-700' :
+                        'bg-red-100 text-red-700'
+                    }`}>
+                        {analysisResult.new_venture_clarity.definition_clarity_flag}
+                    </span>
+                )}
+            </div>
+            <div className="grid grid-cols-3 gap-4 mb-4">
+                <div>
+                    <span className="text-xs font-semibold text-gray-400 uppercase">New Product/Service</span>
+                    <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_product_or_service || 'Not assessed'}</p>
+                </div>
+                <div>
+                    <span className="text-xs font-semibold text-gray-400 uppercase">New Segment/Market</span>
+                    <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_segment_or_market || 'Not assessed'}</p>
+                </div>
+                <div>
+                    <span className="text-xs font-semibold text-gray-400 uppercase">New Geography</span>
+                    <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_geography || 'Not assessed'}</p>
+                </div>
+            </div>
+            <div className="mb-4">
+                <span className="text-xs font-semibold text-gray-400 uppercase">Clarity Summary</span>
+                <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.clarity_summary || 'Not available'}</p>
+            </div>
+        </div>
+    </div>
+);
+
+const ScorecardTable: React.FC<{ scorecard: any[] }> = ({ scorecard }) => (
+    <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+            <thead>
+                <tr className="border-b border-gray-200">
+                    <th className="text-left px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Dimension</th>
+                    <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Assessment</th>
+                    <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Rating</th>
+                    <th className="text-left px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Brief</th>
+                </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+                {scorecard.map((item: any, i: number) => {
+                    const style = RATING_STYLES[item.rating] || RATING_STYLES.Yellow;
+                    return (
+                        <tr key={i} className={`${style.bg} hover:opacity-90 transition-opacity`}>
+                            <td className="px-6 py-4 font-semibold text-gray-800 whitespace-nowrap">{item.dimension}</td>
+                            <td className="px-4 py-4 text-gray-600 whitespace-nowrap">{item.assessment}</td>
+                            <td className="px-4 py-4 text-center"><RatingBadge rating={item.rating} /></td>
+                            <td className="px-6 py-4 text-gray-700">{item.brief}</td>
+                        </tr>
+                    );
+                })}
+            </tbody>
+        </table>
+    </div>
+);
+
 const AIInsightsSection: React.FC<{ selectedVenture: any; vsmNotes: string; analyzing: boolean; analysisResult: any; onRunAnalysis: () => void }> = ({ analyzing, analysisResult, onRunAnalysis }) => (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-indigo-500" />
-                <span className="text-base font-bold text-gray-700">Generate AI insights</span>
+                <span className="text-base font-bold text-gray-700">SCALE Scorecard</span>
                 {analysisResult && !analyzing && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-xs font-medium text-indigo-600">
                         <Sparkles className="w-3 h-3" />
@@ -149,7 +249,7 @@ const AIInsightsSection: React.FC<{ selectedVenture: any; vsmNotes: string; anal
         {!analysisResult && !analyzing && (
             <div className="py-10 flex flex-col items-center gap-2 text-gray-300">
                 <Sparkles className="w-10 h-10" />
-                <p className="text-sm">Click “Generate insights” to analyse this venture</p>
+                <p className="text-sm">Click "Generate insights" to analyse this venture</p>
             </div>
         )}
         {analyzing && (
@@ -159,76 +259,9 @@ const AIInsightsSection: React.FC<{ selectedVenture: any; vsmNotes: string; anal
             </div>
         )}
         {analysisResult && !analyzing && (
-            <div className="space-y-0 divide-y divide-gray-100">
-                {/* Existing Venture Profile */}
-                <div className="p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <TrendingUp className="w-4 h-4 text-green-500" />
-                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Existing Venture Profile</span>
-                    </div>
-                    <div className="space-y-3">
-                        <div>
-                            <span className="text-xs font-semibold text-gray-400 uppercase">Profile Summary</span>
-                            <p className="text-sm text-gray-700 mt-1">{analysisResult.existing_venture_profile?.profile_summary || analysisResult.strengths?.[0] || 'Not available'}</p>
-                        </div>
-                        <div>
-                            <span className="text-xs font-semibold text-gray-400 uppercase">Product & Growth History</span>
-                            <p className="text-sm text-gray-700 mt-1">{analysisResult.existing_venture_profile?.current_product_growth_history || 'Not available'}</p>
-                        </div>
-                    </div>
-                </div>
-                {/* New Venture Definition Clarity */}
-                <div className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4 text-amber-500" />
-                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">New Venture Definition Clarity</span>
-                        </div>
-                        {analysisResult.new_venture_clarity?.definition_clarity_flag && (
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                analysisResult.new_venture_clarity.definition_clarity_flag === 'Well Defined' ? 'bg-green-100 text-green-700' :
-                                analysisResult.new_venture_clarity.definition_clarity_flag === 'Partially Defined' ? 'bg-amber-100 text-amber-700' :
-                                'bg-red-100 text-red-700'
-                            }`}>
-                                {analysisResult.new_venture_clarity.definition_clarity_flag}
-                            </span>
-                        )}
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 mb-4">
-                        <div>
-                            <span className="text-xs font-semibold text-gray-400 uppercase">New Product/Service</span>
-                            <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_product_or_service || 'Not assessed'}</p>
-                        </div>
-                        <div>
-                            <span className="text-xs font-semibold text-gray-400 uppercase">New Segment/Market</span>
-                            <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_segment_or_market || 'Not assessed'}</p>
-                        </div>
-                        <div>
-                            <span className="text-xs font-semibold text-gray-400 uppercase">New Geography</span>
-                            <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.new_geography || 'Not assessed'}</p>
-                        </div>
-                    </div>
-                    <div className="mb-4">
-                        <span className="text-xs font-semibold text-gray-400 uppercase">Estimated Incremental Revenue</span>
-                        <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.estimated_incremental_revenue || 'Not provided'}</p>
-                    </div>
-                    <div className="mb-4">
-                        <span className="text-xs font-semibold text-gray-400 uppercase">Clarity Gaps</span>
-                        <ul className="mt-1 space-y-1">
-                            {(analysisResult.new_venture_clarity?.clarity_gaps || []).map((gap: string, i: number) => (
-                                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                                    {gap}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                    <div>
-                        <span className="text-xs font-semibold text-gray-400 uppercase">Clarity Summary</span>
-                        <p className="text-sm text-gray-700 mt-1">{analysisResult.new_venture_clarity?.clarity_summary || 'Not available'}</p>
-                    </div>
-                </div>
-            </div>
+            analysisResult.scorecard
+                ? <ScorecardTable scorecard={analysisResult.scorecard} />
+                : <LegacyInsights analysisResult={analysisResult} />
         )}
     </div>
 );
