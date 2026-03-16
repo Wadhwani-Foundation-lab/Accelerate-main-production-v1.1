@@ -9,7 +9,7 @@ export interface VentureData {
     id: string;
     name: string;
     founder_name?: string;
-    revenue_12m?: string;           // Text range e.g. "5Cr-25Cr"
+    revenue_12m?: string;           // Numeric value in Cr (e.g. "25") or legacy text range (e.g. "5Cr-25Cr")
     revenue_potential_3y?: string;   // Text range e.g. "50Cr+"
     full_time_employees?: string;    // Text range e.g. "10-25"
     growth_focus?: string | string[];
@@ -23,6 +23,9 @@ export interface VentureData {
     target_jobs?: number;
     min_investment?: number;
     incremental_hiring?: string;
+    time_commitment?: string;
+    second_line_team?: string;
+    financial_condition?: string;
 }
 
 export interface RoadmapAction {
@@ -153,8 +156,8 @@ Do NOT write lengthy narratives. The screening manager wants a quick-glance tabl
    - Green: Core with ₹25Cr–₹85Cr ARR; Select with ₹85Cr–₹425Cr ARR; Prime (Startups) with ₹4Cr+ ARR and visible path to ₹25Cr in 3 years.
    - Yellow: Below threshold for the applicable program but showing growth momentum.
    - Red: Significantly below minimum threshold or pre-revenue.
-   - IMPORTANT: Revenue is provided as a TEXT RANGE (e.g. "5Cr-25Cr", "25Cr-75Cr", "50Cr+"). Interpret the range against the thresholds. If the range overlaps or falls within the threshold, use the midpoint to decide.
-   - The program type is NOT explicitly set — you must INFER it from the revenue range: revenue < ₹25Cr → likely Prime; ₹25Cr–₹85Cr → likely Core; ₹85Cr+ → likely Select. State which program tier you inferred in the brief.
+   - IMPORTANT: Revenue may be a numeric value in Cr (e.g. "25" means ₹25Cr) or a legacy text range (e.g. "5Cr-25Cr"). If numeric, compare directly against thresholds. If a text range, use the midpoint.
+   - The program type is NOT explicitly set — you must INFER it from the revenue: revenue < ₹25Cr → likely Prime; ₹25Cr–₹85Cr → likely Core; ₹85Cr+ → likely Select. State which program tier you inferred in the brief.
 
 2. **Sector** — Growth sector attractiveness. Is the sector growing?
    - Green: Sector at 8%+ 3-year CAGR, projected to grow above GDP.
@@ -166,25 +169,25 @@ Do NOT write lengthy narratives. The screening manager wants a quick-glance tabl
    - Green: Positive cash flow & PAT for Core/Select (SMBs); 12+ month runway for Prime (startups).
    - Yellow: Cash-flow positive but PAT-negative for SMBs; 6–12 month runway for startups.
    - Red: Negative cash flow and PAT; < 6 month runway; or not disclosed.
-   - NOTE: Financial condition data is NOT available in the application form. Use min_investment (if provided), the revenue range, and the "Funding Plan" field (which indicates how the venture plans to fund growth — e.g. "Internal Cashflows" suggests stronger balance sheet vs "Yet to be planned" suggests uncertainty) as proxies. If insufficient data, rate as Yellow with "Financial condition not disclosed in application — manual review recommended."
+   - Use the "Financial Condition" field (e.g. "PAT profitable and cash positive", "Not yet profitable but have 12+ months runway", "6-12 months runway available", "Less than 6 months runway") as the primary signal. Also consider min_investment and the "Funding Plan" field as additional context. If financial condition is not disclosed, rate as Yellow with "Financial condition not disclosed — manual review recommended."
 
 4. **Ambition** — Revenue addition target. Is the growth target ambitious enough?
    - Green: Min 8% incremental CAGR, on track to double revenue in 5 years for Core/Select or 3 years for Prime.
    - Yellow: Moderate growth target (4–8% CAGR).
    - Red: < 4% CAGR or no clear revenue target stated.
-   - IMPORTANT: Revenue figures are TEXT RANGES. Use the midpoint of each range to estimate CAGR. For example, "5Cr-25Cr" → midpoint ₹15Cr; "50Cr+" → use ₹50Cr as floor. Calculate: CAGR ≈ (midpoint_3y / midpoint_12m)^(1/3) − 1. State the estimated CAGR in the brief. If either revenue figure is missing, rate as Red.
+   - IMPORTANT: Revenue figures may be numeric (in Cr) or legacy text ranges. If numeric, use the actual value. If a text range, use the midpoint (e.g. "5Cr-25Cr" → ₹15Cr, "50Cr+" → ₹50Cr). Calculate: CAGR ≈ (revenue_3y / revenue_12m)^(1/3) − 1. State the estimated CAGR in the brief. If either revenue figure is missing, rate as Red.
 
 5. **Leadership** — Committed team. Will the leadership invest time?
-   - Green: Owner/founder personally committed AND second-in-line management team in place.
-   - Yellow: One of the two is weak or unclear.
-   - Red: Neither founder commitment nor second-line team availability is evident.
-   - NOTE: Time commitment and second-line team fields are NOT available in the current application form. Look for signals in the corporate presentation and screening manager notes. If no data, rate as Yellow with "Leadership commitment details not captured in application — manual assessment needed during screening call."
+   - Green: Owner/founder personally committed (Fully or Actively involved) AND second-in-line management team in place (Yes — Experienced team).
+   - Yellow: One of the two is weak or unclear (e.g. Partially involved, or team is still being built).
+   - Red: Neither founder commitment nor second-line team availability is evident (Not involved, or No dedicated team).
+   - Use the "Owner Involvement" and "Leadership Team" fields below. If both are missing, look for signals in the corporate presentation and screening manager notes, and rate as Yellow with "Leadership commitment details not disclosed."
 
 6. **Jobs / Employment Generation Potential** — Direct job creation potential over 3 years.
    - Green: 50+ jobs for Core/Prime; 150+ jobs for Select.
    - Yellow: 25–49 jobs (Core/Prime); 75–149 jobs (Select).
    - Red: < 25 jobs or not disclosed (Core/Prime); < 75 jobs or not disclosed (Select).
-   - Use target_jobs (auto-calculated planned hires based on revenue target). The "Funding Plan" field is NOT a hiring count — it describes how the venture plans to fund growth (e.g. "Internal Cashflows", "Bank Loan"). If target_jobs is null/missing, rate as Red with "Job creation target not disclosed."
+   - Use target_jobs (planned hires entered by the applicant). The "Funding Plan" field is NOT a hiring count — it describes how the venture plans to fund growth (e.g. "Internal Cashflows", "Bank Loan"). If target_jobs is null/missing, rate as Red with "Job creation target not disclosed."
 
 7. **Venture Clarity** — How clearly has the applicant defined their new growth idea?
    - The venture has selected one or more growth dimensions from: product, segment, geography. Assess clarity ONLY for the dimensions they selected — ignore dimensions they did not choose.
@@ -204,7 +207,10 @@ Do NOT write lengthy narratives. The screening manager wants a quick-glance tabl
 - Target Revenue (3Y): ${ventureData.revenue_potential_3y || 'N/A'}
 - Full-Time Employees: ${ventureData.full_time_employees || 'N/A'}
 - Growth Dimensions Selected: ${JSON.stringify(growthDimensions)}
-- Target Jobs (Planned Hires 3Y): ${ventureData.target_jobs || 'N/A'}
+- Target Jobs (Planned Hires): ${ventureData.target_jobs || 'N/A'}
+- Financial Condition: ${ventureData.financial_condition || 'N/A'}
+- Owner Involvement: ${ventureData.time_commitment || 'N/A'}
+- Leadership Team: ${ventureData.second_line_team || 'N/A'}
 - Funding Plan: ${ventureData.incremental_hiring || 'N/A'}
 - Min Investment: ${ventureData.min_investment || 'N/A'}
 
@@ -709,6 +715,10 @@ ${scorecardJson}
 - Current Revenue (12M): ${ventureData.revenue_12m || 'N/A'}
 - Target Revenue (3Y): ${ventureData.revenue_potential_3y || 'N/A'}
 - Full-Time Employees: ${ventureData.full_time_employees || 'N/A'}
+- Financial Condition: ${ventureData.financial_condition || 'N/A'}
+- Owner Involvement: ${ventureData.time_commitment || 'N/A'}
+- Leadership Team: ${ventureData.second_line_team || 'N/A'}
+- Target Jobs (Planned Hires): ${ventureData.target_jobs || 'N/A'}
 - Screening Recommendation: ${ventureData.screening_recommendation || 'N/A'}
 
 **Current Business:**

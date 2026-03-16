@@ -917,7 +917,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                 <div className="grid grid-cols-4 gap-3">
                                     <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
                                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Current Revenue</span>
-                                        <div className="text-lg font-bold text-gray-900">{profileVenture.revenue_12m || 'N/A'}</div>
+                                        <div className="text-lg font-bold text-gray-900">{profileVenture.revenue_12m ? (isNaN(Number(profileVenture.revenue_12m)) ? profileVenture.revenue_12m : `₹${profileVenture.revenue_12m} Cr`) : 'N/A'}</div>
                                     </div>
                                     <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
                                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Revenue (3Y)</span>
@@ -935,6 +935,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                         <div className="text-lg font-bold text-gray-900 flex items-center gap-1">
                                             <Users className="w-4 h-4 text-gray-400" />
                                             {profileVenture.target_jobs || 'N/A'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Financial Condition</span>
+                                        <div className="text-sm font-semibold text-gray-900">
+                                            {profileVenture.financial_condition || 'N/A'}
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Owner Involvement</span>
+                                        <div className="text-sm font-semibold text-gray-900">
+                                            {profileVenture.time_commitment || 'N/A'}
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Leadership Team</span>
+                                        <div className="text-sm font-semibold text-gray-900">
+                                            {profileVenture.second_line_team || 'N/A'}
                                         </div>
                                     </div>
                                 </div>
@@ -1203,6 +1223,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                         icon: 'green',
                                     });
 
+                                    // Assigned to screening manager
+                                    const vsmName = profiles[timelineVenture.assigned_vsm_id || '']?.full_name;
+                                    if (vsmName) {
+                                        const assignDate = history.length > 0 ? history[0].created_at : timelineVenture.created_at;
+                                        events.push({ title: 'Assigned to screening manager', subtitle: `Application assigned for screening review`, person: vsmName, date: assignDate, icon: 'blue' });
+                                    }
+
                                     // Status changes from history
                                     for (const h of history) {
                                         const newVal = h.new_value;
@@ -1215,6 +1242,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                         } else if (newVal === 'Panel Review') {
                                             const prog = shortProgramName(timelineVenture.program_recommendation);
                                             events.push({ title: 'Screening manager review complete', subtitle: prog ? `Recommended for ${prog}` : 'Sent to panel', person: changedByName, date: h.created_at, icon: 'green' });
+                                            // Assigned to panelist
+                                            const panelistName = profiles[timelineVenture.assigned_panelist_id || '']?.full_name;
+                                            if (panelistName) {
+                                                events.push({ title: 'Assigned to panel', subtitle: 'Application assigned for panel review', person: panelistName, date: h.created_at, icon: 'blue' });
+                                            }
                                         } else if (newVal === 'Approved') {
                                             const prog = shortProgramName(timelineVenture.program_recommendation);
                                             const panelLabel = prog === 'Prime' ? 'Panel (Prime)' : 'Panel (Core/Select)';

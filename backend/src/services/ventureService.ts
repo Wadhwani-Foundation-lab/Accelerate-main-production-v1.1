@@ -10,6 +10,7 @@ import {
 import { createServiceRoleClient } from '../config/supabase';
 
 // Revenue tiers for screening manager assignment
+// Legacy text ranges (backward compat for old data)
 const BELOW_25CR_REVENUES = ['Pre Revenue', '1Cr-5Cr', '5Cr-25Cr'];
 const ABOVE_25CR_REVENUES = ['25Cr-75Cr', '>75Cr'];
 
@@ -47,9 +48,13 @@ export async function autoAssignScreeningManager(
             return { assignedTo: null, error: 'No revenue data' };
         }
 
-        // 2. Determine tier
+        // 2. Determine tier — supports both numeric values (new) and text ranges (legacy)
         let tier: 'below_25cr' | 'above_25cr';
-        if (BELOW_25CR_REVENUES.includes(revenue)) {
+        const numericRevenue = parseFloat(revenue);
+        if (!isNaN(numericRevenue)) {
+            // New numeric format (in Cr)
+            tier = numericRevenue < 25 ? 'below_25cr' : 'above_25cr';
+        } else if (BELOW_25CR_REVENUES.includes(revenue)) {
             tier = 'below_25cr';
         } else if (ABOVE_25CR_REVENUES.includes(revenue)) {
             tier = 'above_25cr';
@@ -220,6 +225,10 @@ export async function getVentureById(
             revenuePotential: application.revenue_potential_3y,
             investment: application.min_investment,
             incrementalHiring: application.incremental_hiring,
+            financialCondition: application.financial_condition,
+            targetJobs: application.target_jobs,
+            timeCommitment: application.time_commitment,
+            secondLineTeam: application.second_line_team,
         } : null,
         blockers: application?.blockers || null,
         support_request: application?.support_request || null,
@@ -310,7 +319,11 @@ export async function createVenture(
 
         // Team metrics (store as original string value)
         full_time_employees: growthCurrent.employees ? growthCurrent.employees.toString() : null,
+        financial_condition: commitment.financialCondition || null,
         incremental_hiring: commitment.incrementalHiring ? parseInt(commitment.incrementalHiring.toString()) : null,
+        target_jobs: commitment.targetJobs ? parseInt(commitment.targetJobs.toString()) : null,
+        time_commitment: commitment.timeCommitment || null,
+        second_line_team: commitment.secondLineTeam || null,
 
         // Growth focus (convert to array)
         growth_focus: data.growth_focus ? (Array.isArray(data.growth_focus) ? data.growth_focus : data.growth_focus.split(',').filter(Boolean)) : [],
@@ -464,6 +477,18 @@ export async function updateVenture(
     }
     if (commitment.incrementalHiring !== undefined) {
         applicationUpdates.incremental_hiring = parseInt(commitment.incrementalHiring.toString());
+    }
+    if (commitment.financialCondition !== undefined) {
+        applicationUpdates.financial_condition = commitment.financialCondition;
+    }
+    if (commitment.targetJobs !== undefined) {
+        applicationUpdates.target_jobs = parseInt(commitment.targetJobs.toString());
+    }
+    if (commitment.timeCommitment !== undefined) {
+        applicationUpdates.time_commitment = commitment.timeCommitment;
+    }
+    if (commitment.secondLineTeam !== undefined) {
+        applicationUpdates.second_line_team = commitment.secondLineTeam;
     }
 
     // Direct field mappings

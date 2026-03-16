@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, Loader2, Mic, Info, CheckCircle2 } from 'lucide-react';
 import { api } from '../lib/api';
@@ -74,10 +74,13 @@ export const NewApplication: React.FC = () => {
         companyType: '',
         referredBy: '',
         numberOfEmployees: '',
+        financialCondition: '',
 
         // Step 3: Support
         workstreamStatuses: WORKSTREAMS.map(w => ({ stream: w, status: 'Don\'t need help' })),
         supportDescription: '',
+        timeCommitment: '',
+        secondLineTeam: '',
         corporatePresentation: null as File | null,
     });
 
@@ -148,28 +151,6 @@ export const NewApplication: React.FC = () => {
         setFormData(prev => ({ ...prev, growthFocus: updated }));
     };
 
-    // Auto-update target jobs: Target Jobs = Median(revenue range) × 2.5
-    // Median = (Min + Max) / 2
-    useEffect(() => {
-        let jobs = '';
-        switch (formData.revenuePotential12m) {
-            case '5Cr - 15 Cr':
-                jobs = '25';   // median=10, 10×2.5=25
-                break;
-            case '15Cr - 50Cr':
-                jobs = '81';   // median=32.5, 32.5×2.5=81.25
-                break;
-            case '50Cr+':
-                jobs = '188';  // median=75 (50-100), 75×2.5=187.5
-                break;
-            default:
-                jobs = '';
-        }
-        if (formData.targetJobs !== jobs) {
-            setFormData(prev => ({ ...prev, targetJobs: jobs }));
-        }
-    }, [formData.revenuePotential12m]);
-
     const handleSubmit = async () => {
         if (!user) return;
         setIsSubmitting(true);
@@ -205,6 +186,9 @@ export const NewApplication: React.FC = () => {
                     lastYearRevenue: formData.lastYearRevenue,
                     revenuePotential: formData.revenuePotential12m, // Question asks "next 3 years"
                     targetJobs: formData.targetJobs,
+                    financialCondition: formData.financialCondition,
+                    timeCommitment: formData.timeCommitment,
+                    secondLineTeam: formData.secondLineTeam,
                 },
                 blockers: '',
                 support_request: formData.supportDescription,
@@ -592,23 +576,38 @@ export const NewApplication: React.FC = () => {
                             </select>
                         </div>
 
-                        {/* 14. What was your company's revenue in the last 12 months */}
+                        {/* Financial Condition */}
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                                What was your company's revenue in the last 12 months
+                                What is your company's current financial condition?
                             </label>
                             <select
                                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer"
+                                value={formData.financialCondition}
+                                onChange={e => updateField('financialCondition', e.target.value)}
+                            >
+                                <option value="" disabled>Select financial condition...</option>
+                                <option value="PAT profitable and cash positive">PAT profitable and cash positive</option>
+                                <option value="Not yet profitable but have 12+ months runway">Not yet profitable but have 12+ months runway</option>
+                                <option value="6-12 months runway available">6–12 months runway available</option>
+                                <option value="Less than 6 months runway">Less than 6 months runway</option>
+                            </select>
+                        </div>
+
+                        {/* 14. What was your company's revenue in the last 12 months */}
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                What was your company's revenue in the last 12 months (in Cr)
+                            </label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+                                placeholder="Enter revenue in Cr (e.g. 10)"
                                 value={formData.lastYearRevenue}
                                 onChange={e => updateField('lastYearRevenue', e.target.value)}
-                            >
-                                <option value="" disabled>Select revenue range...</option>
-                                <option value="Pre Revenue">Pre Revenue</option>
-                                <option value="1Cr-5Cr">1Cr - 5Cr</option>
-                                <option value="5Cr-25Cr">5Cr - 25Cr</option>
-                                <option value="25Cr-75Cr">25Cr - 75Cr</option>
-                                <option value=">75Cr">&gt;75Cr</option>
-                            </select>
+                            />
                         </div>
                     </div>
                 )}
@@ -692,6 +691,21 @@ export const NewApplication: React.FC = () => {
                                     />
                                 </div>
                             )}
+                        </div>
+
+                        {/* Planned Hires */}
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                How many people do you plan to hire for this growth idea?
+                            </label>
+                            <input
+                                type="number"
+                                min="0"
+                                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+                                placeholder="Enter number of planned hires"
+                                value={formData.targetJobs}
+                                onChange={e => updateField('targetJobs', e.target.value)}
+                            />
                         </div>
 
                         {/* Incremental Revenue */}
@@ -787,6 +801,41 @@ export const NewApplication: React.FC = () => {
                                 value={formData.supportDescription}
                                 onChange={e => updateField('supportDescription', e.target.value)}
                             />
+                        </div>
+
+                        {/* Owner Involvement */}
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                As the business owner/promoter, how involved will you be in this new venture?
+                            </label>
+                            <select
+                                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer"
+                                value={formData.timeCommitment}
+                                onChange={e => updateField('timeCommitment', e.target.value)}
+                            >
+                                <option value="" disabled>Select your level of involvement...</option>
+                                <option value="Fully involved — Day-to-day involvement">Fully involved — Day-to-day involvement</option>
+                                <option value="Actively involved — Not on a daily basis">Actively involved — Not on a daily basis</option>
+                                <option value="Partially involved — Limited time alongside other responsibilities">Partially involved — Limited time alongside other responsibilities</option>
+                                <option value="Not involved — Will delegate entirely to my team">Not involved — Will delegate entirely to my team</option>
+                            </select>
+                        </div>
+
+                        {/* Leadership Team */}
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                Do you have a leadership/management team to run the day-to-day operations of this venture?
+                            </label>
+                            <select
+                                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer"
+                                value={formData.secondLineTeam}
+                                onChange={e => updateField('secondLineTeam', e.target.value)}
+                            >
+                                <option value="" disabled>Select...</option>
+                                <option value="Yes — Experienced team already in place">Yes — Experienced team already in place</option>
+                                <option value="Partially — Some team members identified, still building the team">Partially — Some team members identified, still building the team</option>
+                                <option value="No — Dedicated team not yet identified">No — Dedicated team not yet identified</option>
+                            </select>
                         </div>
 
                         {/* Corporate Presentation Upload */}

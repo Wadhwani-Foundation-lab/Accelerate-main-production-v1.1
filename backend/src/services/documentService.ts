@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import * as pdfParseModule from 'pdf-parse';
-const pdfParse = (pdfParseModule as any).default || pdfParseModule;
+import pdfParsePkg from 'pdf-parse';
 import mammoth from 'mammoth';
 
 const supabaseUrl = process.env.SUPABASE_URL!;
@@ -32,7 +31,7 @@ export async function extractDocumentText(storagePath: string): Promise<string |
 
     try {
         if (extension === 'pdf') {
-            const result = await pdfParse(buffer);
+            const result = await pdfParsePkg(buffer);
             return result.text;
         }
 

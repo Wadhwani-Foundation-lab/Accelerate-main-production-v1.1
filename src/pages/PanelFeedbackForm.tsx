@@ -193,10 +193,9 @@ export const PanelFeedbackForm: React.FC = () => {
             setVentureName(venture.name || '');
             setSmeName(venture.founder_name || '');
 
-            // Check if user already submitted feedback for this venture
+            // Check if feedback already submitted for this venture (by anyone)
             const { feedback } = await api.getPanelFeedback(ventureId!);
-            const userId = user?.id;
-            const existing = feedback?.find((f: any) => f.submitted_by === userId);
+            const existing = feedback?.[0]; // most recent feedback
             if (existing) {
                 populateFromExisting(existing);
                 setReadOnly(true);

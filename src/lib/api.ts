@@ -104,6 +104,9 @@ class ApiClient {
                 revenue_potential_3y: app.revenue_potential_3y,
                 full_time_employees: app.full_time_employees,
                 target_jobs: app.target_jobs,
+                financial_condition: app.financial_condition,
+                time_commitment: app.time_commitment,
+                second_line_team: app.second_line_team,
                 program_recommendation: assessment.program_recommendation,
                 ai_analysis: assessment.ai_analysis,
             };
@@ -166,6 +169,9 @@ class ApiClient {
             revenue_potential_12m: application.revenue_potential_12m,
             full_time_employees: application.full_time_employees,
             target_jobs: application.target_jobs,
+            financial_condition: application.financial_condition,
+            time_commitment: application.time_commitment,
+            second_line_team: application.second_line_team,
             min_investment: application.min_investment,
             incremental_hiring: application.incremental_hiring,
             growth_focus: application.growth_focus,
@@ -587,6 +593,17 @@ class ApiClient {
     async createPanelFeedback(ventureId: string, data: any) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Not authenticated');
+
+        // Prevent duplicate submissions — check if any feedback already exists for this venture
+        const { data: existing } = await supabase
+            .from('panel_feedback')
+            .select('id')
+            .eq('venture_id', ventureId)
+            .limit(1);
+
+        if (existing && existing.length > 0) {
+            throw new Error('Panel feedback has already been submitted for this venture.');
+        }
 
         const { data: feedback, error } = await supabase
             .from('panel_feedback')

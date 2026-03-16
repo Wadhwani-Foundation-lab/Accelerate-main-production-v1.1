@@ -43,6 +43,9 @@ interface Venture {
     commitment?: any; // Added commitment object
     needs: { id?: string; stream: string; status: string }[]; // mapped from streams
     target_jobs?: number;
+    financial_condition?: string;
+    time_commitment?: string;
+    second_line_team?: string;
     revenue_potential_12m?: string;
     status: string;
     program_recommendation?: string;
@@ -746,10 +749,10 @@ export const VSMDashboard: React.FC = () => {
                                 className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide border border-gray-200 rounded-lg px-3 py-1.5 bg-white hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer appearance-none pr-7 bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_8px_center] bg-no-repeat"
                             >
                                 <option value="all">Revenue</option>
-                                <option value="1Cr-5Cr">1Cr - 5Cr</option>
-                                <option value="5Cr-25Cr">5Cr - 25Cr</option>
-                                <option value="25Cr-75Cr">25Cr - 75Cr</option>
-                                <option value=">75Cr">&gt;75Cr</option>
+                                <option value="0-5">Below 5 Cr</option>
+                                <option value="5-25">5 - 25 Cr</option>
+                                <option value="25-75">25 - 75 Cr</option>
+                                <option value="75+">Above 75 Cr</option>
                             </select>
                         </div>
                     </div>
@@ -769,8 +772,15 @@ export const VSMDashboard: React.FC = () => {
                                 {ventures
                                     .filter(v => {
                                         if (revenueFilter === 'all') return true;
-                                        const revenue = String(v.revenue_12m || v.commitment?.lastYearRevenue || '');
-                                        return revenue === revenueFilter;
+                                        const revenue = v.revenue_12m || v.commitment?.lastYearRevenue || '';
+                                        const num = parseFloat(String(revenue));
+                                        if (!isNaN(num)) {
+                                            const [lo, hi] = revenueFilter === '75+' ? [75, Infinity] : revenueFilter.split('-').map(Number);
+                                            return num >= lo && num < (hi === Infinity ? Infinity : hi === 75 ? 76 : hi);
+                                        }
+                                        // Legacy text ranges
+                                        const legacyMap: Record<string, string[]> = { '0-5': ['1Cr-5Cr'], '5-25': ['5Cr-25Cr'], '25-75': ['25Cr-75Cr'], '75+': ['>75Cr'] };
+                                        return (legacyMap[revenueFilter] || []).includes(String(revenue));
                                     }).length === 0 && revenueFilter !== 'all' && (
                                     <div className="text-center py-16 text-gray-400">
                                         <p className="text-lg font-medium">No ventures match this filter</p>
@@ -780,8 +790,15 @@ export const VSMDashboard: React.FC = () => {
                                 {ventures
                                     .filter(v => {
                                         if (revenueFilter === 'all') return true;
-                                        const revenue = String(v.revenue_12m || v.commitment?.lastYearRevenue || '');
-                                        return revenue === revenueFilter;
+                                        const revenue = v.revenue_12m || v.commitment?.lastYearRevenue || '';
+                                        const num = parseFloat(String(revenue));
+                                        if (!isNaN(num)) {
+                                            const [lo, hi] = revenueFilter === '75+' ? [75, Infinity] : revenueFilter.split('-').map(Number);
+                                            return num >= lo && num < (hi === Infinity ? Infinity : hi === 75 ? 76 : hi);
+                                        }
+                                        // Legacy text ranges
+                                        const legacyMap: Record<string, string[]> = { '0-5': ['1Cr-5Cr'], '5-25': ['5Cr-25Cr'], '25-75': ['25Cr-75Cr'], '75+': ['>75Cr'] };
+                                        return (legacyMap[revenueFilter] || []).includes(String(revenue));
                                     })
                                     .map(v => (
                                     <div
@@ -825,7 +842,7 @@ export const VSMDashboard: React.FC = () => {
                                         <div className="col-span-2 flex items-center justify-end gap-3 border-l border-gray-100 pl-4">
                                             <div className="text-right">
                                                 <div className="text-[15px] font-semibold text-gray-800 whitespace-nowrap">
-                                                    {v.revenue_12m ? `₹${v.revenue_12m} Cr` : '--'}
+                                                    {v.revenue_12m ? (isNaN(Number(v.revenue_12m)) ? v.revenue_12m : `₹${v.revenue_12m} Cr`) : '--'}
                                                 </div>
                                             </div>
                                             <div className="w-9 h-9 rounded-full flex items-center justify-center text-gray-300 group-hover:bg-blue-600 group-hover:text-white transition-all duration-200 flex-shrink-0">
@@ -867,7 +884,7 @@ export const VSMDashboard: React.FC = () => {
                             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Current Revenue</span>
                                 <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
-                                    {selectedVenture.revenue_12m || 'N/A'}
+                                    {selectedVenture.revenue_12m ? (isNaN(Number(selectedVenture.revenue_12m)) ? selectedVenture.revenue_12m : `₹${selectedVenture.revenue_12m} Cr`) : 'N/A'}
                                 </div>
                             </div>
                             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
@@ -887,13 +904,27 @@ export const VSMDashboard: React.FC = () => {
                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Jobs</span>
                                 <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
                                     <Users className="w-4 h-4 text-gray-400" />
-                                    {selectedVenture.target_jobs || (() => {
-                                        const rev = String(selectedVenture.revenue_potential_3y || '');
-                                        if (rev.startsWith('15Cr') || rev.startsWith('15 Cr')) return '81';
-                                        if (rev.startsWith('50Cr') || rev.startsWith('50 Cr') || rev === '50Cr+') return '188';
-                                        if (rev.startsWith('5Cr') || rev.startsWith('5 Cr')) return '25';
-                                        return '0';
-                                    })()}
+                                    {selectedVenture.target_jobs || 'N/A'}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Financial Condition</span>
+                                <div className="text-sm font-semibold text-gray-900">
+                                    {selectedVenture.financial_condition || 'N/A'}
+                                </div>
+                            </div>
+                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Owner Involvement</span>
+                                <div className="text-sm font-semibold text-gray-900">
+                                    {selectedVenture.time_commitment || 'N/A'}
+                                </div>
+                            </div>
+                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Leadership Team</span>
+                                <div className="text-sm font-semibold text-gray-900">
+                                    {selectedVenture.second_line_team || 'N/A'}
                                 </div>
                             </div>
                         </div>

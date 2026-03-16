@@ -528,7 +528,7 @@ export const OpsManagerDashboard: React.FC = () => {
                                 <div className="grid grid-cols-4 gap-3">
                                     <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
                                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Current Revenue</span>
-                                        <div className="text-lg font-bold text-gray-900">{profileVenture.revenue_12m || 'N/A'}</div>
+                                        <div className="text-lg font-bold text-gray-900">{profileVenture.revenue_12m ? (isNaN(Number(profileVenture.revenue_12m)) ? profileVenture.revenue_12m : `₹${profileVenture.revenue_12m} Cr`) : 'N/A'}</div>
                                     </div>
                                     <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
                                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Revenue (3Y)</span>
@@ -545,13 +545,27 @@ export const OpsManagerDashboard: React.FC = () => {
                                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Jobs</span>
                                         <div className="text-lg font-bold text-gray-900 flex items-center gap-1">
                                             <Users className="w-4 h-4 text-gray-400" />
-                                            {profileVenture.target_jobs || (() => {
-                                                const rev = String(profileVenture.revenue_potential_3y || '');
-                                                if (rev.startsWith('15Cr') || rev.startsWith('15 Cr')) return '81';
-                                                if (rev.startsWith('50Cr') || rev.startsWith('50 Cr') || rev === '50Cr+') return '188';
-                                                if (rev.startsWith('5Cr') || rev.startsWith('5 Cr')) return '25';
-                                                return 'N/A';
-                                            })()}
+                                            {profileVenture.target_jobs || 'N/A'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Financial Condition</span>
+                                        <div className="text-sm font-semibold text-gray-900">
+                                            {profileVenture.financial_condition || 'N/A'}
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Owner Involvement</span>
+                                        <div className="text-sm font-semibold text-gray-900">
+                                            {profileVenture.time_commitment || 'N/A'}
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Leadership Team</span>
+                                        <div className="text-sm font-semibold text-gray-900">
+                                            {profileVenture.second_line_team || 'N/A'}
                                         </div>
                                     </div>
                                 </div>
