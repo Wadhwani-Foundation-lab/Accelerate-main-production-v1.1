@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import pdfParsePkg from 'pdf-parse';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const pdfParsePkg = require('pdf-parse');
 import mammoth from 'mammoth';
 
 const supabaseUrl = process.env.SUPABASE_URL!;
