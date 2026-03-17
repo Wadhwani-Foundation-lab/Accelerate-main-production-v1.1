@@ -44,14 +44,19 @@ async function getContext(req: Request) {
     const token = req.headers.authorization?.split(' ')[1] || '';
     const supabase = createAuthenticatedClient(token);
 
-    // Get user profile/role safely
-    const { data: profile } = await supabase
+    // Get user profile/role safely — try profiles table first, fall back to user_metadata
+    const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', req.user.id)
         .single();
 
-    return { supabase, role: profile?.role || 'entrepreneur' };
+    const role = profile?.role || req.user.user_metadata?.role || 'entrepreneur';
+    if (profileError) {
+        console.warn(`[getContext] profiles lookup failed for ${req.user.id}: ${profileError.message}, using role: ${role}`);
+    }
+
+    return { supabase, role };
 }
 
 // ============ VENTURE ROUTES ============
@@ -726,7 +731,7 @@ router.put(
         try {
             const { supabase, role } = await getContext(req);
 
-            if (!['venture_mgr', 'committee_member', 'admin', 'ops_manager'].includes(role)) {
+            if (!['venture_mgr', 'success_mgr', 'committee_member', 'admin', 'ops_manager'].includes(role)) {
                 return res.status(403).json({ success: false, message: 'Only panel members can edit panel assessments' });
             }
 
