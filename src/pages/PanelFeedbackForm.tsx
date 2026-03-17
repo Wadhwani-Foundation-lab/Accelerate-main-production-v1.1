@@ -15,20 +15,6 @@ const STREAM_STATUS_OPTIONS: { value: StreamStatus; label: string }[] = [
     { value: 'completed', label: 'Completed' },
 ];
 
-const INTERNATIONAL_MARKET_ENTRY_OPTIONS = [
-    'HS Code-based Importer Leads (SPANCO)',
-    'Institutional Tender Sales (US/EU, GEM)',
-    'Agent/Rep Appointment',
-    'Overseas/Virtual Expo Participation',
-    'Office/Warehouse Setup',
-    'Joint Venture Route',
-    'E-Commerce Export',
-    'Merchant Exporter Channel',
-    'B2B Visit Abroad',
-    'Franchise/Brand Licensing',
-    'Not Yet Figured',
-];
-
 const GROWTH_VENTURE_TYPES = [
     'Expand to New Markets - Domestic',
     'Expand to New Markets - Exports',
@@ -266,14 +252,6 @@ export const PanelFeedbackForm: React.FC = () => {
         setAnnualRevenueFy2627(f.annual_revenue_fy26_27 || '');
         setRevenueTarget3yAssumptions(f.revenue_target_3y_assumptions || '');
         setSmeName(f.sme_name || '');
-    };
-
-    const handleMarketEntryToggle = (route: string) => {
-        setMarketEntryRoutes(prev =>
-            prev.includes(route)
-                ? prev.filter(r => r !== route)
-                : [...prev, route]
-        );
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
