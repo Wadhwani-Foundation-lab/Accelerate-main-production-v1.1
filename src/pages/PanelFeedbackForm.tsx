@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, Send, CheckCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -83,11 +83,10 @@ const PRIME_RATING_OPTIONS: { field: string; label: string; descriptions: string
 export const PanelFeedbackForm: React.FC = () => {
     const { ventureId } = useParams<{ ventureId: string }>();
     const navigate = useNavigate();
-    const location = useLocation();
     const { user } = useAuth();
     const { toast } = useToast();
 
-    const isPrime = location.pathname.startsWith('/vmanager/');
+    const [isPrime, setIsPrime] = useState(false);
 
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -182,6 +181,10 @@ export const PanelFeedbackForm: React.FC = () => {
             const { venture } = await api.getVenture(ventureId!);
             setVentureName(venture.name || '');
             setSmeName(venture.founder_name || '');
+
+            // Determine form variant from venture's program recommendation
+            const rec = (venture.program_recommendation || '').toLowerCase();
+            setIsPrime(rec.includes('prime'));
 
             // Check if feedback already submitted for this venture (by anyone)
             const { feedback } = await api.getPanelFeedback(ventureId!);
