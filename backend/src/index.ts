@@ -1,3 +1,4 @@
+import { Sentry } from './config/sentry';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -60,6 +61,9 @@ app.get('/', (req: Request, res: Response) => {
 
 // 404 handler
 app.use(notFoundHandler);
+
+// Sentry error handler (must be before custom error handler)
+Sentry.setupExpressErrorHandler(app);
 
 // Error handler (must be last)
 app.use(errorHandler);
