@@ -123,6 +123,10 @@ export const PanelFeedbackForm: React.FC = () => {
     const [insightsLeadership, setInsightsLeadership] = useState('');
 
     // Section B
+    const [growthIdeaTypes, setGrowthIdeaTypes] = useState<string[]>([]);
+    const [describeNewProduct, setDescribeNewProduct] = useState('');
+    const [describeNewCustomer, setDescribeNewCustomer] = useState('');
+    const [describeNewGeography, setDescribeNewGeography] = useState('');
     const [proposedExpansionIdea, setProposedExpansionIdea] = useState('');
     const [selectedExpansionType, setSelectedExpansionType] = useState<ExpansionType | ''>('');
     const [marketEntryRoutes, setMarketEntryRoutes] = useState<string[]>([]);
@@ -218,6 +222,10 @@ export const PanelFeedbackForm: React.FC = () => {
         setInsightsFinancialHealth(f.insights_financial_health || '');
         setInsightsLeadership(f.insights_leadership || '');
         // Section B
+        setGrowthIdeaTypes(f.growth_idea_types || []);
+        setDescribeNewProduct(f.describe_new_product || '');
+        setDescribeNewCustomer(f.describe_new_customer || '');
+        setDescribeNewGeography(f.describe_new_geography || '');
         setProposedExpansionIdea(f.proposed_expansion_idea || '');
         setSelectedExpansionType(f.selected_expansion_type || '');
         setMarketEntryRoutes(f.market_entry_routes || []);
@@ -316,6 +324,10 @@ export const PanelFeedbackForm: React.FC = () => {
                     insights_financial_health: insightsFinancialHealth || null,
                     insights_leadership: insightsLeadership || null,
                     // Section B
+                    growth_idea_types: growthIdeaTypes.length > 0 ? growthIdeaTypes : null,
+                    describe_new_product: describeNewProduct || null,
+                    describe_new_customer: describeNewCustomer || null,
+                    describe_new_geography: describeNewGeography || null,
                     proposed_expansion_idea: proposedExpansionIdea || null,
                     selected_expansion_type: selectedExpansionType || null,
                     market_entry_routes: marketEntryRoutes.length > 0 ? marketEntryRoutes : null,
@@ -589,7 +601,7 @@ export const PanelFeedbackForm: React.FC = () => {
         </div>
     );
 
-    const coreQuestion = (num: number, label: string, sublabel?: string) => (
+    const coreQuestion = (num: number | string, label: string, sublabel?: string) => (
         <div className="flex items-start gap-3 mb-3">
             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-700 text-xs font-bold flex-shrink-0 mt-0.5">
                 {num}
@@ -601,7 +613,7 @@ export const PanelFeedbackForm: React.FC = () => {
         </div>
     );
 
-    const coreQuestionOptional = (num: number, label: string) => (
+    const coreQuestionOptional = (num: number | string, label: string) => (
         <div className="flex items-start gap-3 mb-3">
             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-600 text-xs font-bold flex-shrink-0 mt-0.5">
                 {num}
@@ -646,57 +658,49 @@ export const PanelFeedbackForm: React.FC = () => {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 {sectionHeader('A', 'Business Overview and Overall Business Health')}
                 <div className="p-6 space-y-6">
-                    {/* A1: Business Overview */}
-                    <div>
-                        {coreQuestion(1, 'Business Overview')}
-                        <div className="ml-9">
-                            <textarea rows={3} value={businessOverview} onChange={e => setBusinessOverview(e.target.value)} className={textareaClass} placeholder="Provide a brief overview of the business..." required />
-                        </div>
-                    </div>
-
-                    {/* A2-A3: Revenue fields */}
+                    {/* A1-A2: Revenue fields */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            {coreQuestion(2, 'Annual Revenue (FY25-26: Q1-Q3 Actuals) in INR Cr')}
+                            {coreQuestion(1, 'Annual Revenue (FY25-26: Q1-Q3 Actuals) in INR Cr')}
                             <div className="ml-9">
                                 <input type="number" step="0.01" value={annualRevenueActuals} onChange={e => setAnnualRevenueActuals(e.target.value)} className={inputClass} placeholder="e.g., 15" required />
                             </div>
                         </div>
                         <div>
-                            {coreQuestion(3, 'Projected Annual Revenue (FY26) in INR Cr')}
+                            {coreQuestion(2, 'Projected Annual Revenue (FY26) in INR Cr')}
                             <div className="ml-9">
                                 <input type="number" step="0.01" value={projectedAnnualRevenue} onChange={e => setProjectedAnnualRevenue(e.target.value)} className={inputClass} placeholder="e.g., 25" required />
                             </div>
                         </div>
                     </div>
 
-                    {/* A4: Financial Health Rating */}
+                    {/* A3: Financial Health Rating */}
                     <div>
-                        {coreQuestion(4, 'Rate - Financial Health')}
+                        {coreQuestion(3, 'Rate - Financial Health')}
                         <div className="ml-9">
                             <StarRating value={ratingFinancialHealth} onChange={setRatingFinancialHealth} label="" />
                         </div>
                     </div>
 
-                    {/* A5: Financial Health Insights */}
+                    {/* A4: Financial Health Insights */}
                     <div>
-                        {coreQuestion(5, 'Your Insights on Financial Health', 'Are they struggling for Working Capital / Debt / Ability to raise capital')}
+                        {coreQuestion(4, 'Your Insights on Financial Health', 'Are they struggling for Working Capital / Debt / Ability to raise capital')}
                         <div className="ml-9">
                             <textarea rows={3} value={insightsFinancialHealth} onChange={e => setInsightsFinancialHealth(e.target.value)} className={textareaClass} placeholder="Share your insights on the venture's financial health..." required />
                         </div>
                     </div>
 
-                    {/* A6: Leadership Rating */}
+                    {/* A5: Leadership Rating */}
                     <div>
-                        {coreQuestion(6, 'Rate - Leadership Capability & Coachability')}
+                        {coreQuestion(5, 'Rate - Leadership Capability & Coachability')}
                         <div className="ml-9">
                             <StarRating value={ratingLeadership} onChange={setRatingLeadership} label="" />
                         </div>
                     </div>
 
-                    {/* A7: Leadership Insights */}
+                    {/* A6: Leadership Insights */}
                     <div>
-                        {coreQuestion(7, 'Insights on Leadership Capability & Coachability')}
+                        {coreQuestion(6, 'Insights on Leadership Capability & Coachability')}
                         <div className="ml-9">
                             <textarea rows={3} value={insightsLeadership} onChange={e => setInsightsLeadership(e.target.value)} className={textareaClass} placeholder="Share your insights on the leadership's capability and coachability..." required />
                         </div>
@@ -708,147 +712,114 @@ export const PanelFeedbackForm: React.FC = () => {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 {sectionHeader('B', 'Venture Definition and Evaluation')}
                 <div className="p-6 space-y-6">
-                    {/* B1: Proposed Expansion Idea */}
+                    {/* B1: Details of the growth idea */}
                     <div>
-                        {coreQuestion(1, 'Proposed Expansion Idea as Described by the Business')}
-                        <div className="ml-9">
-                            <textarea rows={3} value={proposedExpansionIdea} onChange={e => setProposedExpansionIdea(e.target.value)} className={textareaClass} placeholder="Describe the expansion idea as proposed by the business..." required />
-                        </div>
-                    </div>
-
-                    {/* B2: Selected Primary Expansion Idea */}
-                    <div>
-                        {coreQuestion(2, 'Selected Primary Expansion Idea')}
-                        <div className="ml-9 flex gap-3">
-                            {[
-                                { value: 'international', label: 'International Expansion (Exports)' },
-                                { value: 'domestic', label: 'Domestic Expansion' },
-                            ].map(opt => (
-                                <label
-                                    key={opt.value}
-                                    className={`flex items-center gap-3 px-4 py-3 rounded-lg border cursor-pointer transition-all flex-1 ${selectedExpansionType === opt.value
-                                        ? 'border-red-500 bg-red-50 ring-1 ring-red-500'
-                                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                        }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="selectedExpansionType"
-                                        value={opt.value}
-                                        checked={selectedExpansionType === opt.value}
-                                        onChange={e => {
-                                            setSelectedExpansionType(e.target.value as ExpansionType);
-                                            setMarketEntryRoutes([]);
-                                        }}
-                                        className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
-                                        required
-                                    />
-                                    <span className="text-sm font-medium text-gray-700">{opt.label}</span>
+                        <div className="flex items-start gap-3 mb-3">
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-700 text-xs font-bold flex-shrink-0 mt-0.5">
+                                1
+                            </span>
+                            <div>
+                                <label className="text-base font-semibold text-gray-900 leading-snug">
+                                    Details of the growth idea <span className="text-red-500">*</span>
                                 </label>
-                            ))}
+                                <p className="text-sm text-gray-500 mt-1">Is the growth idea focused on a new product/service, a new customer segment, or expansion into a new geography? (Select one or more)</p>
+                            </div>
+                        </div>
+                        <div className="ml-9 flex flex-wrap gap-3">
+                            {[
+                                { value: 'new_product', label: 'New Product or Service' },
+                                { value: 'new_customer', label: 'New type of customer' },
+                                { value: 'new_geography', label: 'New place, city or country' },
+                            ].map(opt => {
+                                const isSelected = growthIdeaTypes.includes(opt.value);
+                                return (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={() => {
+                                            setGrowthIdeaTypes(prev =>
+                                                prev.includes(opt.value)
+                                                    ? prev.filter(v => v !== opt.value)
+                                                    : [...prev, opt.value]
+                                            );
+                                        }}
+                                        className={`px-5 py-2.5 rounded-full border text-sm font-medium transition-all ${isSelected
+                                            ? 'border-red-500 bg-red-50 text-red-700 ring-1 ring-red-500'
+                                            : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                                            }`}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
-                    {/* B3: International Market Entry Routes */}
-                    {selectedExpansionType === 'international' && (
+                    {/* B1a: Describe new Product or Service (conditional) */}
+                    {growthIdeaTypes.includes('new_product') && (
                         <div>
-                            {coreQuestion(3, 'Which international market entry routes is the business currently exploring or planning to pursue?', 'Select all that apply')}
-                            <div className="ml-9 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {INTERNATIONAL_MARKET_ENTRY_OPTIONS.map(route => (
-                                    <label
-                                        key={route}
-                                        className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border cursor-pointer transition-all ${marketEntryRoutes.includes(route)
-                                            ? 'border-red-500 bg-red-50 ring-1 ring-red-500'
-                                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                            }`}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={marketEntryRoutes.includes(route)}
-                                            onChange={() => handleMarketEntryToggle(route)}
-                                            className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                                        />
-                                        <span className="text-sm text-gray-700">{route}</span>
-                                    </label>
-                                ))}
+                            {coreQuestion('1a', 'Describe the new Product or Service')}
+                            <div className="ml-9">
+                                <textarea rows={3} value={describeNewProduct} onChange={e => setDescribeNewProduct(e.target.value)} className={textareaClass} placeholder="Describe the new product or service..." required />
                             </div>
                         </div>
                     )}
 
-                    {/* B3: Domestic Strategy */}
-                    {selectedExpansionType === 'domestic' && (
+                    {/* B1b: Describe new Target Customer (conditional) */}
+                    {growthIdeaTypes.includes('new_customer') && (
                         <div>
-                            {coreQuestion(3, 'Which best describes the domestic expansion strategy for the next 12 months?', 'Select all that apply')}
-                            <div className="ml-9 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {[
-                                    'New Market - Existing Product',
-                                    'New Product - Existing Market',
-                                    'New Market - New Product',
-                                    'Existing Market - Existing Product (upgrade/penetration)',
-                                ].map(option => (
-                                    <label
-                                        key={option}
-                                        className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border cursor-pointer transition-all ${marketEntryRoutes.includes(option)
-                                            ? 'border-red-500 bg-red-50 ring-1 ring-red-500'
-                                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                            }`}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={marketEntryRoutes.includes(option)}
-                                            onChange={() => handleMarketEntryToggle(option)}
-                                            className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                                        />
-                                        <span className="text-sm text-gray-700">{option}</span>
-                                    </label>
-                                ))}
+                            {coreQuestion('1b', 'Describe the new Target Customer (who and how you sell)')}
+                            <div className="ml-9">
+                                <textarea rows={3} value={describeNewCustomer} onChange={e => setDescribeNewCustomer(e.target.value)} className={textareaClass} placeholder="Describe the new target customer..." required />
                             </div>
                         </div>
                     )}
 
-                    {/* B4: Description of Selected Expansion Idea */}
-                    <div>
-                        {coreQuestion(4, 'Description of the Selected Expansion Idea')}
-                        <div className="ml-9">
-                            <textarea rows={3} value={expansionIdeaDescription} onChange={e => setExpansionIdeaDescription(e.target.value)} className={textareaClass} placeholder="Describe the selected expansion idea in detail..." required />
+                    {/* B1c: Describe new place for expansion (conditional) */}
+                    {growthIdeaTypes.includes('new_geography') && (
+                        <div>
+                            {coreQuestion('1c', 'Describe the new place for expansion (city, state, or country)')}
+                            <div className="ml-9">
+                                <textarea rows={3} value={describeNewGeography} onChange={e => setDescribeNewGeography(e.target.value)} className={textareaClass} placeholder="Describe the new place for expansion..." required />
+                            </div>
                         </div>
-                    </div>
+                    )}
 
-                    {/* B5: Current Progress */}
+                    {/* B2: Current Progress */}
                     <div>
-                        {coreQuestion(5, 'Current Progress on Expansion Idea')}
+                        {coreQuestion(2, 'Current Progress on Expansion Idea')}
                         <div className="ml-9">
                             <textarea rows={3} value={currentProgress} onChange={e => setCurrentProgress(e.target.value)} className={textareaClass} placeholder="What progress has been made so far on this expansion idea?" required />
                         </div>
                     </div>
 
-                    {/* B6: Incremental Revenue */}
+                    {/* B3: Incremental Revenue */}
                     <div>
-                        {coreQuestion(6, 'Independent Assessment of Incremental Revenue (3-Year) in INR Cr', 'From the Implementation of Expansion Idea')}
+                        {coreQuestion(3, 'Independent Assessment of Incremental Revenue (3-Year) in INR Cr', 'From the Implementation of Expansion Idea')}
                         <div className="ml-9">
                             <input type="number" step="0.01" value={incrementalRevenue3y} onChange={e => setIncrementalRevenue3y(e.target.value)} className={inputClass} placeholder="e.g., 10" required />
                         </div>
                     </div>
 
-                    {/* B7: Incremental Jobs */}
+                    {/* B4: Incremental Jobs */}
                     <div>
-                        {coreQuestion(7, 'Incremental Jobs in Next 3 Years (Direct + Indirect)', 'From the Implementation of Expansion Idea — Your Estimation along with Rationale')}
+                        {coreQuestion(4, 'Incremental Jobs in Next 3 Years (Direct + Indirect)', 'From the Implementation of Expansion Idea — Your Estimation along with Rationale')}
                         <div className="ml-9">
                             <textarea rows={3} value={incrementalJobs3y} onChange={e => setIncrementalJobs3y(e.target.value)} className={textareaClass} placeholder="Provide your estimation along with rationale..." required />
                         </div>
                     </div>
 
-                    {/* B8: Clarity Rating */}
+                    {/* B5: Clarity Rating */}
                     <div>
-                        {coreQuestion(8, 'Clarity of Expansion Idea')}
+                        {coreQuestion(5, 'Clarity of Expansion Idea')}
                         <div className="ml-9">
                             <StarRating value={ratingClarityExpansion} onChange={setRatingClarityExpansion} label="" />
                         </div>
                     </div>
 
-                    {/* B9: Clarity Comments */}
+                    {/* B6: Clarity Comments */}
                     <div>
-                        {coreQuestion(9, 'Comments on Clarity of Expansion Idea')}
+                        {coreQuestion(6, 'Comments on Clarity of Expansion Idea')}
                         <div className="ml-9">
                             <textarea rows={3} value={commentsClarityExpansion} onChange={e => setCommentsClarityExpansion(e.target.value)} className={textareaClass} placeholder="Share your comments on the clarity of the expansion idea..." required />
                         </div>
@@ -868,7 +839,7 @@ export const PanelFeedbackForm: React.FC = () => {
                     {streamBlock(6, 'Finance — Financial Readiness, Cashflow and Capital Adequacy for Expansion', streamFinance, setStreamFinance as (v: StreamStatus) => void, streamFinanceComments, setStreamFinanceComments, 'Comments on Finance...')}
 
                     <div className="border-t border-gray-200 pt-4">
-                        {coreQuestion(7, 'What type of support required as stated by the business and your proposal')}
+                        {coreQuestion(7, 'Any other support required (not listed above), based on business needs and your proposal')}
                         <div className="ml-9">
                             <textarea rows={3} value={supportTypeProposal} onChange={e => setSupportTypeProposal(e.target.value)} className={textareaClass} placeholder="Describe the support required and your proposal..." required />
                         </div>
