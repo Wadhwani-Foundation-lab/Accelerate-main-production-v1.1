@@ -257,27 +257,15 @@ export const VentureWorkbench = () => {
                                                 <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Deliverable Playbooks</h4>
                                                 <p className="text-[10px] text-gray-500 leading-relaxed">Step-by-step guides for every project milestone.</p>
                                             </div>
-                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col min-h-[140px]">
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col">
                                                 <Clock className="w-5 h-5 text-blue-500 mb-3" />
                                                 <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Expert Hours (Sprint)</h4>
-                                                <p className="text-[10px] text-gray-500 leading-relaxed mb-4">First 60 days of intensive support.</p>
-                                                <div className="mt-auto">
-                                                    <div className="text-[8px] font-bold text-blue-600 uppercase mb-1">Specified Hours</div>
-                                                    <div className="bg-gray-50 rounded px-2 py-1 text-xs font-bold flex justify-between">
-                                                        40 <span className="text-gray-400">HRS</span>
-                                                    </div>
-                                                </div>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed">First 60 days of intensive support.</p>
                                             </div>
-                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col min-h-[140px]">
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col">
                                                 <Clock className="w-5 h-5 text-blue-500 mb-3" />
                                                 <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Expert Hours (Journey)</h4>
-                                                <p className="text-[10px] text-gray-500 leading-relaxed mb-4">Ongoing strategic advisory.</p>
-                                                <div className="mt-auto">
-                                                    <div className="text-[8px] font-bold text-blue-600 uppercase mb-1">Specified Hours</div>
-                                                    <div className="bg-gray-50 rounded px-2 py-1 text-xs font-bold flex justify-between">
-                                                        120 <span className="text-gray-400">HRS</span>
-                                                    </div>
-                                                </div>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed">Ongoing strategic advisory.</p>
                                             </div>
                                             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col">
                                                 <ArrowUpRight className="w-5 h-5 text-blue-500 mb-3" />
@@ -523,27 +511,15 @@ export const VentureWorkbench = () => {
                                                 <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Deliverable Playbooks</h4>
                                                 <p className="text-[10px] text-gray-500 leading-relaxed">Step-by-step guides for every project milestone.</p>
                                             </div>
-                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col min-h-[140px]">
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col">
                                                 <Clock className="w-5 h-5 text-blue-500 mb-3" />
                                                 <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Expert Hours (Sprint)</h4>
-                                                <p className="text-[10px] text-gray-500 leading-relaxed mb-4">First 60 days of intensive support.</p>
-                                                <div className="mt-auto">
-                                                    <div className="text-[8px] font-bold text-blue-600 uppercase mb-1">Specified Hours</div>
-                                                    <div className="bg-gray-50 rounded px-2 py-1 text-xs font-bold flex justify-between">
-                                                        40 <span className="text-gray-400">HRS</span>
-                                                    </div>
-                                                </div>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed">First 60 days of intensive support.</p>
                                             </div>
-                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col min-h-[140px]">
+                                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col">
                                                 <Clock className="w-5 h-5 text-blue-500 mb-3" />
                                                 <h4 className="text-[10px] font-bold text-gray-900 uppercase mb-1.5">Expert Hours (Journey)</h4>
-                                                <p className="text-[10px] text-gray-500 leading-relaxed mb-4">Ongoing strategic advisory.</p>
-                                                <div className="mt-auto">
-                                                    <div className="text-[8px] font-bold text-blue-600 uppercase mb-1">Specified Hours</div>
-                                                    <div className="bg-gray-50 rounded px-2 py-1 text-xs font-bold flex justify-between">
-                                                        120 <span className="text-gray-400">HRS</span>
-                                                    </div>
-                                                </div>
+                                                <p className="text-[10px] text-gray-500 leading-relaxed">Ongoing strategic advisory.</p>
                                             </div>
                                             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col">
                                                 <ArrowUpRight className="w-5 h-5 text-blue-500 mb-3" />

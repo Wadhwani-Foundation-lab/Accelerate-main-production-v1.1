@@ -97,6 +97,8 @@ export const VentureManagerDashboard: React.FC = () => {
     const [panelNotes, setPanelNotes] = useState('');
     const [interactionCount, setInteractionCount] = useState(0);
     const [gateQuestions, setGateQuestions] = useState<any | null>(null);
+    const [editedScorecard, setEditedScorecard] = useState<any[] | null>(null);
+    const [savingPanelAssessment, setSavingPanelAssessment] = useState(false);
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
     useEffect(() => {
@@ -148,6 +150,7 @@ export const VentureManagerDashboard: React.FC = () => {
         setRoadmapGenerated(false); // Reset roadmap when selecting new venture
         setRoadmapData(null);
         setPanelAnalysisResult(null);
+        setEditedScorecard(null);
         setPanelNotes('');
         setInteractionCount(0);
         setGateQuestions(null);
@@ -170,6 +173,7 @@ export const VentureManagerDashboard: React.FC = () => {
 
             setSelectedVenture(fullVenture);
             setPanelAnalysisResult(freshVenture.panel_ai_analysis || null);
+            setEditedScorecard(freshVenture.panel_ai_analysis?.panel_scorecard ? [...freshVenture.panel_ai_analysis.panel_scorecard] : null);
             setGateQuestions(freshVenture.gate_questions || null);
 
             // Fetch existing roadmap
@@ -196,6 +200,7 @@ export const VentureManagerDashboard: React.FC = () => {
             const insights = result.insights || result;
 
             setPanelAnalysisResult(insights);
+            setEditedScorecard(insights.panel_scorecard ? [...insights.panel_scorecard] : null);
             setVentures(prev => prev.map(v =>
                 v.id === selectedVenture.id ? { ...v, panel_ai_analysis: insights } : v
             ));
@@ -204,6 +209,39 @@ export const VentureManagerDashboard: React.FC = () => {
             toast(error.message || 'Failed to generate panel insights.', 'error');
         } finally {
             setPanelAnalyzing(false);
+        }
+    };
+
+    const handlePanelRatingChange = (index: number, newRating: string) => {
+        if (!editedScorecard) return;
+        const updated = [...editedScorecard];
+        updated[index] = { ...updated[index], panel_rating: newRating };
+        setEditedScorecard(updated);
+    };
+
+    const handlePanelRemarksChange = (index: number, remarks: string) => {
+        if (!editedScorecard) return;
+        const updated = [...editedScorecard];
+        updated[index] = { ...updated[index], panel_remarks: remarks };
+        setEditedScorecard(updated);
+    };
+
+    const savePanelAssessment = async () => {
+        if (!selectedVenture || !editedScorecard) return;
+        setSavingPanelAssessment(true);
+        try {
+            await api.savePanelAssessment(selectedVenture.id, editedScorecard);
+            const updatedAnalysis = { ...panelAnalysisResult, panel_scorecard: editedScorecard };
+            setPanelAnalysisResult(updatedAnalysis);
+            setVentures(prev => prev.map(v =>
+                v.id === selectedVenture.id ? { ...v, panel_ai_analysis: updatedAnalysis } : v
+            ));
+            toast('Panel assessment saved successfully.', 'success');
+        } catch (error: any) {
+            console.error('Error saving panel assessment:', error);
+            toast(error.message || 'Failed to save panel assessment.', 'error');
+        } finally {
+            setSavingPanelAssessment(false);
         }
     };
 
@@ -735,46 +773,72 @@ export const VentureManagerDashboard: React.FC = () => {
                             )}
 
                             {panelAnalysisResult && !panelAnalyzing && (
-                                panelAnalysisResult.panel_scorecard ? (
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-sm">
-                                            <thead>
-                                                <tr className="border-b border-gray-200">
-                                                    <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Dimension</th>
-                                                    <th className="text-center px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">App Rating</th>
-                                                    <th className="text-center px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Panel Rating</th>
-                                                    <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Panel Brief</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-100">
-                                                {panelAnalysisResult.panel_scorecard.map((item: any, i: number) => {
-                                                    const panelStyle = item.panel_rating === 'Green' ? { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' } :
-                                                        item.panel_rating === 'Red' ? { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' } :
-                                                        { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' };
-                                                    const appStyle = item.application_rating === 'Green' ? { text: 'text-green-700', dot: 'bg-green-500' } :
-                                                        item.application_rating === 'Red' ? { text: 'text-red-700', dot: 'bg-red-500' } :
-                                                        { text: 'text-amber-700', dot: 'bg-amber-500' };
-                                                    return (
-                                                        <tr key={i} className={`${panelStyle.bg} hover:opacity-90 transition-opacity`}>
-                                                            <td className="px-4 py-4 font-semibold text-gray-800 whitespace-nowrap">{item.dimension}</td>
-                                                            <td className="px-3 py-4 text-center">
-                                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-white/80 ${appStyle.text}`}>
-                                                                    <span className={`w-2 h-2 rounded-full ${appStyle.dot}`} />
-                                                                    {item.application_rating}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-3 py-4 text-center">
-                                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${panelStyle.bg} ${panelStyle.text} border border-current/20`}>
-                                                                    <span className={`w-2 h-2 rounded-full ${panelStyle.dot}`} />
-                                                                    {item.panel_rating}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-4 py-4 text-gray-700">{item.panel_brief}</td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
+                                panelAnalysisResult.panel_scorecard && editedScorecard ? (
+                                    <div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="border-b border-gray-200">
+                                                        <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Dimension</th>
+                                                        <th className="text-center px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">App Rating</th>
+                                                        <th className="text-center px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Panel Rating</th>
+                                                        <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Panel Brief</th>
+                                                        <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Remarks</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {editedScorecard.map((item: any, i: number) => {
+                                                        const panelStyle = item.panel_rating === 'Green' ? { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' } :
+                                                            item.panel_rating === 'Red' ? { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' } :
+                                                            { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' };
+                                                        const appStyle = item.application_rating === 'Green' ? { text: 'text-green-700', dot: 'bg-green-500' } :
+                                                            item.application_rating === 'Red' ? { text: 'text-red-700', dot: 'bg-red-500' } :
+                                                            { text: 'text-amber-700', dot: 'bg-amber-500' };
+                                                        return (
+                                                            <tr key={i} className={`${panelStyle.bg} hover:opacity-90 transition-opacity`}>
+                                                                <td className="px-4 py-4 font-semibold text-gray-800 whitespace-nowrap">{item.dimension}</td>
+                                                                <td className="px-3 py-4 text-center">
+                                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-white/80 ${appStyle.text}`}>
+                                                                        <span className={`w-2 h-2 rounded-full ${appStyle.dot}`} />
+                                                                        {item.application_rating}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-3 py-4 text-center">
+                                                                    <select
+                                                                        value={item.panel_rating}
+                                                                        onChange={(e) => handlePanelRatingChange(i, e.target.value)}
+                                                                        className={`px-2 py-1 rounded-md text-xs font-bold border ${panelStyle.text} bg-white cursor-pointer`}
+                                                                    >
+                                                                        <option value="Green">Green</option>
+                                                                        <option value="Yellow">Yellow</option>
+                                                                        <option value="Red">Red</option>
+                                                                    </select>
+                                                                </td>
+                                                                <td className="px-4 py-4 text-gray-700">{item.panel_brief}</td>
+                                                                <td className="px-4 py-4">
+                                                                    <textarea
+                                                                        value={item.panel_remarks || ''}
+                                                                        onChange={(e) => handlePanelRemarksChange(i, e.target.value)}
+                                                                        placeholder="Add remarks..."
+                                                                        className="w-full min-w-[150px] text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-teal-400 resize-y"
+                                                                        rows={2}
+                                                                    />
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div className="flex justify-end px-4 py-3 border-t border-gray-100">
+                                            <Button
+                                                onClick={savePanelAssessment}
+                                                disabled={savingPanelAssessment}
+                                                className="bg-teal-600 hover:bg-teal-700 text-white text-sm px-4 py-2 rounded-lg"
+                                            >
+                                                {savingPanelAssessment ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>) : 'Save Panel Assessment'}
+                                            </Button>
+                                        </div>
                                     </div>
                                 ) : (
                                     /* Legacy panel insights - backward compat */

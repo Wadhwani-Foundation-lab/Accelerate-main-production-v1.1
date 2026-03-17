@@ -553,6 +553,30 @@ class ApiClient {
         return data;
     }
 
+    async savePanelAssessment(ventureId: string, panelScorecard: any[]) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+        const response = await fetch(`${API_URL}/api/ventures/${ventureId}/panel-assessment`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ panel_scorecard: panelScorecard })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to save panel assessment');
+        }
+
+        const data = await response.json();
+        return data;
+    }
+
     async saveGateQuestions(ventureId: string, gateQuestions: any[]) {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error('Not authenticated');

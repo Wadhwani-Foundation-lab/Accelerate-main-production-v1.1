@@ -716,6 +716,84 @@ router.put(
 );
 
 /**
+ * PUT /api/ventures/:id/panel-assessment
+ * Save panelist's edited panel scorecard (rating overrides + remarks)
+ */
+router.put(
+    '/:id/panel-assessment',
+    authenticateUser,
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { supabase, role } = await getContext(req);
+
+            if (!['venture_mgr', 'committee_member', 'admin', 'ops_manager'].includes(role)) {
+                return res.status(403).json({ success: false, message: 'Only panel members can edit panel assessments' });
+            }
+
+            const { panel_scorecard } = req.body;
+            if (!panel_scorecard || !Array.isArray(panel_scorecard) || panel_scorecard.length !== 7) {
+                return res.status(400).json({ success: false, message: 'panel_scorecard must be an array of exactly 7 dimensions' });
+            }
+
+            // Validate each dimension
+            for (const item of panel_scorecard) {
+                if (!['Green', 'Yellow', 'Red'].includes(item.panel_rating)) {
+                    return res.status(400).json({ success: false, message: `Invalid panel_rating "${item.panel_rating}" — must be Green, Yellow, or Red` });
+                }
+            }
+
+            const now = new Date().toISOString();
+            const panelData = {
+                panel_scorecard,
+                generated_at: now,
+            };
+
+            // Find existing current assessment
+            const { data: existingAssessment } = await supabase
+                .from('venture_assessments')
+                .select('id')
+                .eq('venture_id', req.params.id)
+                .eq('is_current', true)
+                .maybeSingle();
+
+            if (existingAssessment) {
+                const { error } = await supabase
+                    .from('venture_assessments')
+                    .update({ panel_ai_analysis: panelData, updated_at: now })
+                    .eq('id', existingAssessment.id);
+
+                if (error) {
+                    console.error('Error saving panel assessment:', error);
+                    return res.status(500).json({ success: false, message: 'Failed to save panel assessment' });
+                }
+            } else {
+                const { error } = await supabase
+                    .from('venture_assessments')
+                    .insert({
+                        venture_id: req.params.id,
+                        assessed_by: req.user.id,
+                        assessor_role: role,
+                        assessment_type: 'panel',
+                        assessment_date: now,
+                        panel_ai_analysis: panelData,
+                        is_current: true,
+                        assessment_version: 1,
+                    });
+
+                if (error) {
+                    console.error('Error creating assessment with panel scorecard:', error);
+                    return res.status(500).json({ success: false, message: 'Failed to save panel assessment' });
+                }
+            }
+
+            successResponse(res, { message: 'Panel assessment saved successfully', panel_ai_analysis: panelData });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+/**
  * POST /api/ventures/:id/send-panel-email
  * Send panel invitation email to the entrepreneur
  */

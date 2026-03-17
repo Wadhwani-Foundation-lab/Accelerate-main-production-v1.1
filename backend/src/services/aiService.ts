@@ -59,6 +59,7 @@ export interface PanelScorecardDimension {
     application_rating: string;
     panel_rating: 'Green' | 'Yellow' | 'Red';
     panel_brief: string;
+    panel_remarks?: string;
 }
 
 export interface PanelInsights {
@@ -171,11 +172,13 @@ Do NOT write lengthy narratives. The screening manager wants a quick-glance tabl
    - Red: Negative cash flow and PAT; < 6 month runway; or not disclosed.
    - Use the "Financial Condition" field (e.g. "PAT profitable and cash positive", "Not yet profitable but have 12+ months runway", "6-12 months runway available", "Less than 6 months runway") as the primary signal. Also consider min_investment and the "Funding Plan" field as additional context. If financial condition is not disclosed, rate as Yellow with "Financial condition not disclosed — manual review recommended."
 
-4. **Ambition** — Revenue addition target. Is the growth target ambitious enough?
+4. **Ambition** — Target Incremental Revenue (3Y). Is the growth target ambitious enough?
    - Green: Min 8% incremental CAGR, on track to double revenue in 5 years for Core/Select or 3 years for Prime.
    - Yellow: Moderate growth target (4–8% CAGR).
    - Red: < 4% CAGR or no clear revenue target stated.
-   - IMPORTANT: Revenue figures may be numeric (in Cr) or legacy text ranges. If numeric, use the actual value. If a text range, use the midpoint (e.g. "5Cr-25Cr" → ₹15Cr, "50Cr+" → ₹50Cr). Calculate: CAGR ≈ (revenue_3y / revenue_12m)^(1/3) − 1. State the estimated CAGR in the brief. If either revenue figure is missing, rate as Red.
+   - IMPORTANT: The "Target Incremental Revenue (3Y)" field represents INCREMENTAL revenue on top of the current base — it is NOT total projected revenue. For example, if current revenue is ₹25Cr and incremental target is ₹50Cr, total projected 3Y revenue is ₹75Cr.
+   - Calculate: Incremental % = (revenue_potential_3y / revenue_12m) × 100. CAGR = ((revenue_12m + revenue_potential_3y) / revenue_12m)^(1/3) − 1. State both the incremental % and estimated CAGR in the brief.
+   - Revenue figures may be numeric (in Cr) or legacy text ranges. If numeric, use the actual value. If a text range, use the midpoint (e.g. "5Cr-25Cr" → ₹15Cr, "50Cr+" → ₹50Cr). If either revenue figure is missing, rate as Red.
 
 5. **Leadership** — Committed team. Will the leadership invest time?
    - Green: Owner/founder personally committed (Fully or Actively involved) AND second-in-line management team in place (Yes — Experienced team).
@@ -204,7 +207,7 @@ Do NOT write lengthy narratives. The screening manager wants a quick-glance tabl
 - City: ${(ventureData as any).city || 'N/A'}
 - State: ${(ventureData as any).state || 'N/A'}
 - Current Revenue (12M): ${ventureData.revenue_12m || 'N/A'}
-- Target Revenue (3Y): ${ventureData.revenue_potential_3y || 'N/A'}
+- Target Incremental Revenue (3Y): ${ventureData.revenue_potential_3y || 'N/A'}
 - Full-Time Employees: ${ventureData.full_time_employees || 'N/A'}
 - Growth Dimensions Selected: ${JSON.stringify(growthDimensions)}
 - Target Jobs (Planned Hires): ${ventureData.target_jobs || 'N/A'}
@@ -291,7 +294,7 @@ Return your assessment in the following JSON format. Return ONLY the JSON object
 - Each "brief" must be exactly 2 sentences. Sentence 1: state the key data point or finding. Sentence 2: explain the implication or why it maps to the given rating.
 - Each "rating" must be exactly one of: "Green", "Yellow", or "Red".
 - For "Sector", you MUST use the web_search tool before answering. Search for the sector's growth data and cite it.
-- For "Ambition", estimate CAGR from revenue range midpoints and state it in the brief.
+- For "Ambition", calculate incremental % and CAGR using the formulas above (revenue_potential_3y is incremental, not total). State both in the brief.
 - If data for a dimension is missing or insufficient, default to Red (or Yellow if partially available) and state what is missing.
 
 Return ONLY the JSON object, no additional text.`;
@@ -713,7 +716,7 @@ ${scorecardJson}
 - Company Name: ${ventureData.name}
 - Founder: ${ventureData.founder_name || 'N/A'}
 - Current Revenue (12M): ${ventureData.revenue_12m || 'N/A'}
-- Target Revenue (3Y): ${ventureData.revenue_potential_3y || 'N/A'}
+- Target Incremental Revenue (3Y): ${ventureData.revenue_potential_3y || 'N/A'}
 - Full-Time Employees: ${ventureData.full_time_employees || 'N/A'}
 - Financial Condition: ${ventureData.financial_condition || 'N/A'}
 - Owner Involvement: ${ventureData.time_commitment || 'N/A'}
@@ -802,6 +805,7 @@ Return your assessment in the following JSON format. Return ONLY the JSON object
 - If the panel notes confirmed the application-based assessment, state what was confirmed.
 - If the dimension was not discussed, carry forward the application rating and state this clearly.
 - The panel_rating is the AI's recommendation — the panelist will be able to override it on the frontend.
+- NEVER use individual names in panel_brief. Replace with role-based references (e.g. "the founder", "the CEO", "the panelist", "the screening manager"). This ensures anonymity in the scorecard output.
 - Strip any citation tags from your response.
 
 Return ONLY the JSON object, no additional text.`;
@@ -836,6 +840,7 @@ function parsePanelScorecardResponse(responseText: string, screeningScorecard: S
                 application_rating: screeningItem?.rating || item.application_rating || 'Yellow',
                 panel_rating: ['Green', 'Yellow', 'Red'].includes(item.panel_rating) ? item.panel_rating : 'Yellow',
                 panel_brief: (item.panel_brief || 'Manual review required.').replace(/<cite[^>]*>|<\/cite>/g, ''),
+                panel_remarks: item.panel_remarks || '',
             };
         });
 
