@@ -711,18 +711,17 @@ export const NewApplication: React.FC = () => {
                         {/* Incremental Revenue */}
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                                How much incremental revenue are you expecting from this growth idea in the next 3 years
+                                Expected incremental revenue from this growth idea over the next 3 years (Enter amount in ₹ Crore)
                             </label>
-                            <select
-                                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer"
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="e.g., 25"
+                                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
                                 value={formData.revenuePotential12m}
                                 onChange={e => updateField('revenuePotential12m', e.target.value)}
-                            >
-                                <option value="" disabled>Choose</option>
-                                <option value="5Cr - 15 Cr">5Cr - 15 Cr</option>
-                                <option value="15Cr - 50Cr">15Cr - 50Cr</option>
-                                <option value="50Cr+">50Cr+</option>
-                            </select>
+                            />
                         </div>
 
                         {/* Funding Plan */}

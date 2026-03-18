@@ -531,8 +531,8 @@ export const OpsManagerDashboard: React.FC = () => {
                                         <div className="text-lg font-bold text-gray-900">{profileVenture.revenue_12m ? (isNaN(Number(profileVenture.revenue_12m)) ? profileVenture.revenue_12m : `₹${profileVenture.revenue_12m} Cr`) : 'N/A'}</div>
                                     </div>
                                     <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Revenue (3Y)</span>
-                                        <div className="text-lg font-bold text-gray-900">{profileVenture.revenue_potential_3y || 'N/A'}</div>
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Incremental Revenue (3Y)</span>
+                                        <div className="text-lg font-bold text-gray-900">{profileVenture.revenue_potential_3y ? (isNaN(Number(profileVenture.revenue_potential_3y)) ? profileVenture.revenue_potential_3y : `₹${profileVenture.revenue_potential_3y} Cr`) : 'N/A'}</div>
                                     </div>
                                     <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
                                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Employees</span>

@@ -428,9 +428,9 @@ export const VentureManagerDashboard: React.FC = () => {
                                 </div>
                             </div>
                             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Revenue (3Y)</span>
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Incremental Revenue (3Y)</span>
                                 <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
-                                    {selectedVenture.revenue_potential_3y || 'N/A'}
+                                    {selectedVenture.revenue_potential_3y ? (isNaN(Number(selectedVenture.revenue_potential_3y)) ? selectedVenture.revenue_potential_3y : `₹${selectedVenture.revenue_potential_3y} Cr`) : 'N/A'}
                                 </div>
                             </div>
                             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">

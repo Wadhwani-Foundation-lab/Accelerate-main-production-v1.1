@@ -193,8 +193,8 @@ export const VentureDetails: React.FC = () => {
                         </div>
 
                         <ReadOnlyField
-                            label="How much incremental revenue are you expecting from this growth idea in the next 3 years"
-                            value={commitment.revenuePotential || venture.revenue_potential_3y?.toString()}
+                            label="Expected incremental revenue from this growth idea over the next 3 years (₹ Crore)"
+                            value={(() => { const val = commitment.revenuePotential || venture.revenue_potential_3y?.toString(); return val ? (isNaN(Number(val)) ? val : `₹${val} Cr`) : undefined; })()}
                         />
                         <ReadOnlyField
                             label="How do you plan to fund this growth idea"

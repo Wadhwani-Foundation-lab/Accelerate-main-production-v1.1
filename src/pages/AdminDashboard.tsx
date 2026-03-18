@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { api } from '../lib/api';
 import {
     Loader2, Search, FileText, Clock, Users, Building2, Download,
-    ChevronUp, ChevronDown, UserPlus, X, Briefcase, TrendingUp, AlertTriangle, HelpCircle,
+    ChevronUp, ChevronDown, UserPlus, X, Briefcase, TrendingUp, AlertTriangle, HelpCircle, Sparkles, Target,
 } from 'lucide-react';
 import { STATUS_CONFIG } from '../components/StatusSelect';
 import { useToast } from '../components/ui/Toast';
@@ -920,8 +920,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                         <div className="text-lg font-bold text-gray-900">{profileVenture.revenue_12m ? (isNaN(Number(profileVenture.revenue_12m)) ? profileVenture.revenue_12m : `₹${profileVenture.revenue_12m} Cr`) : 'N/A'}</div>
                                     </div>
                                     <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Revenue (3Y)</span>
-                                        <div className="text-lg font-bold text-gray-900">{profileVenture.revenue_potential_3y || 'N/A'}</div>
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Incremental Revenue (3Y)</span>
+                                        <div className="text-lg font-bold text-gray-900">{profileVenture.revenue_potential_3y ? (isNaN(Number(profileVenture.revenue_potential_3y)) ? profileVenture.revenue_potential_3y : `₹${profileVenture.revenue_potential_3y} Cr`) : 'N/A'}</div>
                                     </div>
                                     <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
                                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Employees</span>
@@ -1167,6 +1167,126 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                                     <p className="text-sm text-indigo-800 whitespace-pre-wrap">{profileVenture.internal_comments}</p>
                                                 </div>
                                             )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Screening SCALE Scorecard (Read-only) */}
+                                {profileVenture.ai_analysis?.scorecard && (
+                                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                                            <Sparkles className="w-5 h-5 text-amber-500" />
+                                            <span className="text-base font-bold text-gray-700">Screening SCALE Scorecard</span>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="border-b border-gray-200">
+                                                        <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Dimension</th>
+                                                        <th className="text-center px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Rating</th>
+                                                        <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Brief</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {profileVenture.ai_analysis.scorecard.map((item: any, i: number) => {
+                                                        const style = item.rating === 'Green' ? { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' } :
+                                                            item.rating === 'Red' ? { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' } :
+                                                            { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' };
+                                                        return (
+                                                            <tr key={i} className={`${style.bg}`}>
+                                                                <td className="px-4 py-3 font-semibold text-gray-800 whitespace-nowrap">{item.dimension}</td>
+                                                                <td className="px-3 py-3 text-center">
+                                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${style.text}`}>
+                                                                        <span className={`w-2 h-2 rounded-full ${style.dot}`} />
+                                                                        {item.rating}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-gray-700 text-xs">{item.brief}</td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Panel SCALE Scorecard (Read-only) */}
+                                {profileVenture.panel_ai_analysis?.panel_scorecard && (
+                                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                                            <Target className="w-5 h-5 text-teal-500" />
+                                            <span className="text-base font-bold text-gray-700">Panel SCALE Scorecard</span>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="border-b border-gray-200">
+                                                        <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Dimension</th>
+                                                        <th className="text-center px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">App Rating</th>
+                                                        <th className="text-center px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Panel Rating</th>
+                                                        <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Panel Brief</th>
+                                                        {profileVenture.panel_ai_analysis.panel_scorecard.some((item: any) => item.panel_remarks) && (
+                                                            <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Remarks</th>
+                                                        )}
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {profileVenture.panel_ai_analysis.panel_scorecard.map((item: any, i: number) => {
+                                                        const panelStyle = item.panel_rating === 'Green' ? { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' } :
+                                                            item.panel_rating === 'Red' ? { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' } :
+                                                            { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' };
+                                                        const appStyle = item.application_rating === 'Green' ? { text: 'text-green-700', dot: 'bg-green-500' } :
+                                                            item.application_rating === 'Red' ? { text: 'text-red-700', dot: 'bg-red-500' } :
+                                                            { text: 'text-amber-700', dot: 'bg-amber-500' };
+                                                        return (
+                                                            <tr key={i} className={`${panelStyle.bg}`}>
+                                                                <td className="px-4 py-3 font-semibold text-gray-800 whitespace-nowrap">{item.dimension}</td>
+                                                                <td className="px-3 py-3 text-center">
+                                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-white/80 ${appStyle.text}`}>
+                                                                        <span className={`w-2 h-2 rounded-full ${appStyle.dot}`} />
+                                                                        {item.application_rating}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-3 py-3 text-center">
+                                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${panelStyle.text} border border-current/20`}>
+                                                                        <span className={`w-2 h-2 rounded-full ${panelStyle.dot}`} />
+                                                                        {item.panel_rating}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-gray-700 text-xs">{item.panel_brief}</td>
+                                                                {profileVenture.panel_ai_analysis.panel_scorecard.some((it: any) => it.panel_remarks) && (
+                                                                    <td className="px-4 py-3 text-gray-600 text-xs">{item.panel_remarks || '—'}</td>
+                                                                )}
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Gate Questions (Read-only) */}
+                                {profileVenture.gate_questions?.gate_questions && (
+                                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                                            <AlertTriangle className="w-5 h-5 text-orange-500" />
+                                            <span className="text-base font-bold text-gray-700">Panel Gate Questions</span>
+                                        </div>
+                                        <div className="divide-y divide-gray-100">
+                                            {profileVenture.gate_questions.gate_questions.map((gq: any, i: number) => (
+                                                <div key={i} className="px-5 py-3 flex items-start gap-3">
+                                                    <span className="text-xs font-bold text-gray-400 mt-0.5">{i + 1}.</span>
+                                                    <div className="flex-1">
+                                                        <p className="text-sm text-gray-800">{gq.question}</p>
+                                                        {gq.remarks && <p className="text-xs text-gray-500 mt-1">{gq.remarks}</p>}
+                                                    </div>
+                                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${gq.answer === 'Yes' ? 'bg-green-100 text-green-700' : gq.answer === 'No' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                        {gq.answer || '—'}
+                                                    </span>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 )}
