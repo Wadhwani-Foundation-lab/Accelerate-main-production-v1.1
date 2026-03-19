@@ -28,17 +28,6 @@ export const VentureWorkbench = () => {
 
             setVenture(venture);
 
-            // Fetch roadmap data from venture_roadmaps
-            try {
-                const roadmapResult = await api.getRoadmap(id);
-                const rmData = roadmapResult?.roadmap?.roadmap_data;
-                if (rmData) {
-                    setRoadmapData(rmData);
-                }
-            } catch (err) {
-                console.log('No roadmap available yet');
-            }
-
         } catch (error) {
             console.error('Error fetching venture data:', error);
         } finally {

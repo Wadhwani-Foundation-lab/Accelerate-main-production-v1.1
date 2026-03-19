@@ -152,8 +152,6 @@ export const SelectionCommitteeDashboard: React.FC = () => {
     const handleVentureSelect = async (venture: Venture) => {
         // Optimistically set selected to show UI immediately
         setSelectedVenture(venture);
-        setRoadmapGenerated(false); // Reset roadmap when selecting new venture
-        setRoadmapData(null);
         setPanelAnalysisResult(null);
         setEditedScorecard(null);
         setInteractionCount(0);
@@ -181,16 +179,6 @@ export const SelectionCommitteeDashboard: React.FC = () => {
             setGateQuestions(freshVenture.gate_questions || null);
             setPanelNotes('');
 
-            // Fetch existing roadmap
-            try {
-                const { roadmap } = await api.getRoadmap(venture.id);
-                if (roadmap?.roadmap_data) {
-                    setRoadmapData(roadmap.roadmap_data);
-                    setRoadmapGenerated(true);
-                }
-            } catch (e) {
-                // No roadmap yet, that's fine
-            }
         } catch (error) {
             console.error('Error fetching venture details:', error);
         }
