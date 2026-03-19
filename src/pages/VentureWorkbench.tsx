@@ -13,8 +13,6 @@ export const VentureWorkbench = () => {
     const [loading, setLoading] = useState(true);
     const [signing, setSigning] = useState(false);
     const [accepted, setAccepted] = useState(false);
-    const [milestones, setMilestones] = useState<any[]>([]);
-    const [roadmapData, setRoadmapData] = useState<any>(null);
     const [showJoinedModal, setShowJoinedModal] = useState(false);
     const [declining, setDeclining] = useState(false);
 
@@ -26,10 +24,9 @@ export const VentureWorkbench = () => {
         try {
             if (!id) return;
             // Fetch All Venture Data in one call
-            const { venture, milestones } = await api.getVenture(id);
+            const { venture } = await api.getVenture(id);
 
             setVenture(venture);
-            setMilestones(milestones || []);
 
             // Fetch roadmap data from venture_roadmaps
             try {
@@ -110,13 +107,6 @@ export const VentureWorkbench = () => {
 
     const isSigned = venture.agreement_status === 'Signed';
     const isDeclined = venture.status === 'Rejected' || venture.agreement_status === 'Declined';
-
-    // Group milestones by category for display
-    const milestonesByCategory = milestones.reduce((acc: any, curr: any) => {
-        if (!acc[curr.category]) acc[curr.category] = [];
-        acc[curr.category].push(curr.description);
-        return acc;
-    }, {});
 
     return (
         <div className="min-h-screen bg-gray-50 p-8">

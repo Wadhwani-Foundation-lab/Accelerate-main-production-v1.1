@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, TrendingUp, Loader2, Briefcase, Users, Target, AlertTriangle, HelpCircle, Map, ChevronRight, Zap, FileText, ChevronUp, Plus } from 'lucide-react';
+import { Sparkles, TrendingUp, Loader2, Briefcase, Users, Target, AlertTriangle, HelpCircle, ChevronRight, FileText, ChevronUp, Plus } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
@@ -89,9 +89,6 @@ export const VentureManagerDashboard: React.FC = () => {
     const [ventures, setVentures] = useState<Venture[]>([]);
     const [selectedVenture, setSelectedVenture] = useState<Venture | null>(null);
     const [loading, setLoading] = useState(true);
-    const [generatingRoadmap, setGeneratingRoadmap] = useState(false);
-    const [roadmapGenerated, setRoadmapGenerated] = useState(false);
-    const [roadmapData, setRoadmapData] = useState<any>(null);
     const [panelAnalyzing, setPanelAnalyzing] = useState(false);
     const [panelAnalysisResult, setPanelAnalysisResult] = useState<any | null>(null);
     const [panelNotes, setPanelNotes] = useState('');
@@ -244,27 +241,6 @@ export const VentureManagerDashboard: React.FC = () => {
             setSavingPanelAssessment(false);
         }
     };
-
-    const generateRoadmap = async () => {
-        if (!selectedVenture) return;
-
-        setGeneratingRoadmap(true);
-
-        try {
-            const result = await api.generateRoadmap(selectedVenture.id);
-            const roadmap = result.roadmap;
-            if (roadmap?.roadmap_data) {
-                setRoadmapData(roadmap.roadmap_data);
-            }
-            setRoadmapGenerated(true);
-        } catch (error: any) {
-            console.error('Error generating roadmap:', error);
-            toast(error.message || 'Failed to generate roadmap.', 'error');
-        } finally {
-            setGeneratingRoadmap(false);
-        }
-    };
-
 
     const [revenueFilter, setRevenueFilter] = useState<string>('all');
 
