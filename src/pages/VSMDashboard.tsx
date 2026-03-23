@@ -843,7 +843,7 @@ export const VSMDashboard: React.FC = () => {
                                         <div className="col-span-2 flex items-center justify-end gap-3 border-l border-gray-100 pl-4">
                                             <div className="text-right">
                                                 <div className="text-[15px] font-semibold text-gray-800 whitespace-nowrap">
-                                                    {v.revenue_12m ? (isNaN(Number(v.revenue_12m)) ? v.revenue_12m : `₹${v.revenue_12m} Cr`) : '--'}
+                                                    {formatRevenue(v.revenue_12m) === 'N/A' ? '--' : formatRevenue(v.revenue_12m)}
                                                 </div>
                                             </div>
                                             <div className="w-9 h-9 rounded-full flex items-center justify-center text-gray-300 group-hover:bg-blue-600 group-hover:text-white transition-all duration-200 flex-shrink-0">
