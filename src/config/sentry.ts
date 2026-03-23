@@ -26,4 +26,13 @@ if (isEnabled) {
     });
 }
 
+// Expose test function on window for verifying Sentry in deployed environments
+// Usage: open browser console and run window.__testSentry()
+if (typeof window !== 'undefined') {
+    (window as any).__testSentry = () => {
+        Sentry.captureException(new Error('Sentry frontend test error — safe to ignore'));
+        console.log(`Sentry test error sent (environment: ${environment}, enabled: ${isEnabled})`);
+    };
+}
+
 export { Sentry };

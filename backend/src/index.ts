@@ -47,6 +47,16 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // API routes
 app.use('/api', routes);
 
+// Sentry test endpoint — triggers a test error to verify Sentry is working
+app.get('/api/sentry-test', (req: Request, res: Response, next: NextFunction) => {
+    try {
+        throw new Error('Sentry backend test error — safe to ignore');
+    } catch (err) {
+        Sentry.captureException(err);
+        res.json({ success: true, message: 'Test error sent to Sentry (backend). Check your Sentry dashboard.' });
+    }
+});
+
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
     res.json({
