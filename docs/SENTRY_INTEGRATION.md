@@ -1,30 +1,46 @@
 # Sentry Integration
 
-Sentry is used for error monitoring and performance tracking across the Accelerate platform. Frontend and backend use **separate Sentry projects** for cleaner triage and alerting.
+Sentry is used for error monitoring and performance tracking across the Accelerate platform. Frontend and backend use **separate Sentry projects** for dev and prod, auto-detected at runtime.
 
-## Projects
+## Projects (4 total)
 
-| Project | Scope | DSN Project ID | Tracks |
-|---------|-------|---------------|--------|
-| `accelerate-dev-fe` | Frontend | `4511076123934720` | JS errors, UI crashes, browser performance |
-| `accelerate-dev-be` | Backend | `4511052614991872` | API errors, server exceptions |
+| Project | Scope | Environment | DSN Project ID |
+|---------|-------|-------------|---------------|
+| `accelerate-dev-fe` | Frontend | Dev | `4511076123934720` |
+| `accelerate-dev-be` | Backend | Dev | `4511052614991872` |
+| `accelerate-prod-fe` | Frontend | Prod | `4511076127342592` |
+| `accelerate-prod-be` | Backend | Prod | `4511076120985600` |
 
 Sentry org: `o4508539300020224`
+
+## Auto-Detection (No Config Needed)
+
+The correct DSN is selected automatically — **no env vars required** per deployment.
+
+**Frontend** (`src/config/sentry.ts`):
+- Detects via `window.location.hostname`
+- `devaccelerate.*` → dev FE DSN
+- `*wadhwani*` or `*netlify*` → prod FE DSN
+- Override: set `VITE_SENTRY_DSN` env var
+
+**Backend** (`backend/src/config/sentry.ts`):
+- Detects via `SUPABASE_URL`
+- Contains `jenyuppryecuirvvlvkb` (prod Supabase project) → prod BE DSN
+- Otherwise → dev BE DSN
+- Override: set `SENTRY_DSN` env var
 
 ## Frontend (`@sentry/react`)
 
 **Config**: `src/config/sentry.ts`
 
-- DSN: `https://ad5d44af3844587d894637afe11c44e4@o4508539300020224.ingest.us.sentry.io/4511076123934720`
-- Override via `VITE_SENTRY_DSN` env variable
-- **Only enabled in production builds** (`import.meta.env.PROD`)
+- **Only enabled in production builds** (`import.meta.env.PROD`) — not active in local dev
 - Browser tracing integration enabled
 - Trace sample rate: 20%
 
 **User context**: Set automatically in `src/context/AuthContext.tsx`
 - On login / session restore: `Sentry.setUser({ id, email, username })`
 - On logout: `Sentry.setUser(null)`
-- This means every error captured includes the affected user's identity
+- Every error includes the affected user's identity
 
 **Error boundary**: `src/components/ErrorBoundary.tsx` catches React rendering errors and reports them to Sentry.
 
@@ -32,27 +48,27 @@ Sentry org: `o4508539300020224`
 
 **Config**: `backend/src/config/sentry.ts`
 
-- DSN: `https://dcc007455b48230eccfbc42371397f2c@o4508539300020224.ingest.us.sentry.io/4511052614991872`
-- Override via `SENTRY_DSN` env variable
 - **Enabled when `NODE_ENV !== 'development'`** (runs on deployed dev/prod servers)
 - `sendDefaultPii: true` — captures IP addresses and request data
 
 **Error handler**: `backend/src/middleware/errorHandler.ts` captures unhandled Express errors.
 
-## Environment Variables
+## Environment Variables (Optional Overrides)
 
 | Variable | Where | Purpose |
 |----------|-------|---------|
-| `VITE_SENTRY_DSN` | Frontend `.env` | Override frontend DSN (optional) |
-| `SENTRY_DSN` | Backend `.env` | Override backend DSN (optional) |
+| `VITE_SENTRY_DSN` | Frontend `.env` | Override auto-detected frontend DSN |
+| `SENTRY_DSN` | Backend `.env` | Override auto-detected backend DSN |
+
+These are only needed if you want to point to a different Sentry project than the auto-detected one.
 
 ## How It Works
 
-1. Sentry SDK initializes on app startup
-2. Errors are automatically captured (unhandled exceptions, rejected promises)
-3. User context is attached after login so errors show who was affected
-4. Data is sent to the appropriate Sentry project (frontend or backend)
-5. View errors, performance, and user impact at https://sentry.io
+1. App starts → auto-detects environment (dev or prod)
+2. Selects the correct Sentry DSN for that environment
+3. Sentry SDK initializes and captures errors automatically
+4. User context is attached after login (frontend)
+5. Errors route to the correct Sentry project dashboard at https://sentry.io
 
 ## Future Improvements
 
@@ -60,4 +76,3 @@ Sentry org: `o4508539300020224`
 - **Source maps upload**: Upload during CI/CD build for readable frontend stack traces
 - **Backend tracing**: Add `tracesSampleRate` and Express tracing integration
 - **Alerts**: Configure Slack/email notifications for new or spiking errors
-- **Separate prod projects**: Create `accelerate-prod-fe` and `accelerate-prod-be` to isolate prod monitoring from dev noise
