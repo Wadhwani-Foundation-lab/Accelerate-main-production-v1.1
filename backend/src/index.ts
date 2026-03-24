@@ -80,21 +80,27 @@ app.use(errorHandler);
 
 // Start server
 const PORT = config.port;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     logger(`Server running on port ${PORT}`, 'info');
     logger(`Environment: ${config.nodeEnv}`, 'info');
     logger(`Frontend URL: ${config.frontendUrl}`, 'info');
 });
 
 // Handle graceful shutdown
-process.on('SIGTERM', () => {
-    logger('SIGTERM signal received: closing HTTP server', 'info');
-    process.exit(0);
-});
+function gracefulShutdown(signal: string) {
+    logger(`${signal} signal received: closing HTTP server`, 'info');
+    server.close(() => {
+        logger('HTTP server closed', 'info');
+        process.exit(0);
+    });
+    // Force exit if server hasn't closed in 10 seconds
+    setTimeout(() => {
+        logger('Forcing shutdown after timeout', 'warn');
+        process.exit(1);
+    }, 10_000).unref();
+}
 
-process.on('SIGINT', () => {
-    logger('SIGINT signal received: closing HTTP server', 'info');
-    process.exit(0);
-});
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 export default app;
