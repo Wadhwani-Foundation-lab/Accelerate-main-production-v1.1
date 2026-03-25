@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Loader2, Users } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface Venture {
@@ -61,8 +61,6 @@ export const AssignVPVMModal: React.FC<AssignVPVMModalProps> = ({
         }
     };
 
-    const isPrime = (venture.program_recommendation || '').toLowerCase().includes('prime');
-    const label = isPrime ? 'VM' : 'VP';
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
