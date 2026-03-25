@@ -4,7 +4,7 @@ import * as ventureService from '../services/ventureService';
 import { autoAssignScreeningManager } from '../services/ventureService';
 import * as aiService from '../services/aiService';
 import { extractDocumentText } from '../services/documentService';
-import { authenticateUser } from '../middleware/auth';
+import { authenticateUser, requireRole } from '../middleware/auth';
 import { validateBody, validateQuery } from '../middleware/validate';
 import { createAuthenticatedClient } from '../config/supabase';
 import {
@@ -295,6 +295,120 @@ router.post(
             createdResponse(res, { venture });
         } catch (error) {
             console.error('Error creating venture:', error);
+            next(error);
+        }
+    }
+);
+
+/**
+ * GET /api/ventures/vpvm-candidates
+ * List VP/VM candidates for assignment (ops_manager, admin only)
+ */
+router.get(
+    '/vpvm-candidates',
+    authenticateUser,
+    requireRole('ops_manager', 'admin'),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const program = (req.query.program as string) || '';
+            const supabase = createServiceRoleClient();
+
+            // Determine which role to query based on program
+            let targetRole = 'committee_member'; // Default for Core/Select
+            if (program.toLowerCase().includes('prime')) {
+                targetRole = 'venture_mgr';
+            }
+
+            // Get panelist names to exclude (they are panel reviewers, not VP/VM candidates)
+            const { data: panelistRows } = await supabase
+                .from('panelists')
+                .select('name, email');
+            const panelistNames = new Set((panelistRows || []).map((p: any) => (p.name || '').toLowerCase()));
+            const panelistEmails = new Set((panelistRows || []).map((p: any) => (p.email || '').toLowerCase()));
+
+            // Get profiles with the target role, then exclude panelists by name or email
+            const { data: allProfiles, error } = await supabase
+                .from('profiles')
+                .select('id, full_name, role, email')
+                .eq('role', targetRole)
+                .order('full_name');
+
+            if (error) throw error;
+
+            const candidates = (allProfiles || []).filter(
+                (p: any) => !panelistNames.has((p.full_name || '').toLowerCase()) &&
+                             !panelistEmails.has((p.email || '').toLowerCase())
+            );
+
+            successResponse(res, { candidates });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+/**
+ * POST /api/ventures/:id/assign-vpvm
+ * Assign a VP/VM to a venture (ops_manager, admin only)
+ */
+router.post(
+    '/:id/assign-vpvm',
+    authenticateUser,
+    requireRole('ops_manager', 'admin'),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { assigned_vm_id } = req.body;
+            if (!assigned_vm_id) {
+                return res.status(400).json({ error: 'assigned_vm_id is required' });
+            }
+
+            const serviceClient = createServiceRoleClient();
+            // Use authenticated client for the update so auth.uid() is set for triggers
+            const token = req.headers.authorization?.split(' ')[1] || '';
+            const authClient = createAuthenticatedClient(token);
+
+            // Verify venture exists and is in correct status
+            const { data: venture, error: fetchError } = await serviceClient
+                .from('ventures')
+                .select('id, status')
+                .eq('id', req.params.id)
+                .single();
+
+            if (fetchError || !venture) {
+                return res.status(404).json({ error: 'Venture not found' });
+            }
+
+            if (venture.status !== 'Assign VP/VM') {
+                return res.status(400).json({ error: `Venture status must be 'Assign VP/VM', currently '${venture.status}'` });
+            }
+
+            // Fetch assignee's name
+            const { data: assignee, error: profileError } = await serviceClient
+                .from('profiles')
+                .select('full_name')
+                .eq('id', assigned_vm_id)
+                .single();
+
+            if (profileError || !assignee) {
+                return res.status(404).json({ error: 'Assignee profile not found' });
+            }
+
+            // Update venture using authenticated client so auth.uid() is available for triggers
+            const { data: updated, error: updateError } = await authClient
+                .from('ventures')
+                .update({
+                    assigned_vm_id,
+                    venture_partner: assignee.full_name,
+                    status: 'With VP/VM',
+                })
+                .eq('id', req.params.id)
+                .select()
+                .single();
+
+            if (updateError) throw updateError;
+
+            successResponse(res, { venture: updated });
+        } catch (error) {
             next(error);
         }
     }

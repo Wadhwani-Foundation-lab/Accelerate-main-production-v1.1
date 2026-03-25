@@ -22,6 +22,7 @@ import {
     ChevronUp,
 } from 'lucide-react';
 import { ScheduleCallModal } from '../components/ScheduleCallModal';
+import { AssignVPVMModal } from '../components/AssignVPVMModal';
 import { STATUS_CONFIG } from '../components/StatusSelect';
 import { useToast } from '../components/ui/Toast';
 
@@ -35,6 +36,8 @@ interface Venture {
     assigned_vsm_id?: string;
     assigned_panelist_id?: string;
     vsm_reviewed_at?: string;
+    venture_partner?: string;
+    city?: string;
 }
 
 interface Panelist {
@@ -81,6 +84,12 @@ function getDisplayStatus(venture: Venture): { label: string; color: string; bg:
     if (status === 'Panel Review') {
         return { label: 'Pending with Panel (Core/Select)', color: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200' };
     }
+    if (status === 'Assign VP/VM') {
+        return { label: 'Assign VP/VM', color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200' };
+    }
+    if (status === 'With VP/VM') {
+        return { label: 'With VP/VM', color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200' };
+    }
     if (status === 'Approved') {
         return { label: 'Accepted by Business', color: 'text-green-700', bg: 'bg-green-50 border-green-200' };
     }
@@ -103,6 +112,7 @@ export const OpsManagerDashboard: React.FC = () => {
     const [programFilter, setProgramFilter] = useState<ProgramFilter>('');
     const [callStatusFilter, setCallStatusFilter] = useState<CallStatusFilter>('');
     const [scheduleModalVenture, setScheduleModalVenture] = useState<Venture | null>(null);
+    const [assignVPVMVenture, setAssignVPVMVenture] = useState<Venture | null>(null);
     const [profileVenture, setProfileVenture] = useState<any | null>(null);
     const [profileLoading, setProfileLoading] = useState(false);
 
@@ -131,7 +141,7 @@ export const OpsManagerDashboard: React.FC = () => {
             const { data: ventureData } = await supabase
                 .from('ventures')
                 .select('*, assessments:venture_assessments(*)')
-                .in('status', ['Panel Review', 'Approved', 'Rejected', 'Under Review', 'Submitted']);
+                .in('status', ['Panel Review', 'Approved', 'Assign VP/VM', 'With VP/VM', 'Rejected', 'Under Review', 'Submitted']);
 
             const flatVentures: Venture[] = (ventureData || []).map((v: any) => {
                 const assessment = (v.assessments || []).find((a: any) => a.is_current) || v.assessments?.[0] || {};
@@ -376,7 +386,9 @@ export const OpsManagerDashboard: React.FC = () => {
                                                     const label = displayStatus.label;
                                                     let short = label;
                                                     let style = 'bg-gray-50 text-gray-600 border-gray-200';
-                                                    if (label.includes('Screening')) { short = 'Screening'; style = 'bg-amber-50 text-amber-700 border-amber-200'; }
+                                                    if (label === 'Assign VP/VM') { short = 'Assign VP/VM'; style = 'bg-purple-50 text-purple-700 border-purple-200'; }
+                                                    else if (label === 'With VP/VM') { short = 'With VP/VM'; style = 'bg-purple-50 text-purple-700 border-purple-200'; }
+                                                    else if (label.includes('Screening')) { short = 'Screening'; style = 'bg-amber-50 text-amber-700 border-amber-200'; }
                                                     else if (label.includes('Panel')) { short = label.includes('Prime') ? 'Panel Review' : 'Panel Review'; style = 'bg-indigo-50 text-indigo-700 border-indigo-200'; }
                                                     else if (label.includes('Accepted')) { short = 'Accepted'; style = 'bg-emerald-50 text-emerald-700 border-emerald-200'; }
                                                     else if (label.includes('Declined')) { short = 'Declined'; style = 'bg-red-50 text-red-700 border-red-200'; }
@@ -385,7 +397,9 @@ export const OpsManagerDashboard: React.FC = () => {
                                                 })()}
                                             </td>
                                             <td className="px-4 py-3">
-                                                {assignedPanelist?.name ? (
+                                                {venture.venture_partner ? (
+                                                    <span className="text-sm text-gray-700 font-medium whitespace-nowrap">{venture.venture_partner}</span>
+                                                ) : assignedPanelist?.name ? (
                                                     <span className="text-sm text-gray-700 font-medium whitespace-nowrap">{assignedPanelist.name}</span>
                                                 ) : (
                                                     <span className="text-xs text-gray-300">—</span>
@@ -426,7 +440,23 @@ export const OpsManagerDashboard: React.FC = () => {
                                                 )}
                                             </td>
                                             <td className="px-4 py-3">
-                                                {cc.total > 0 ? (
+                                                {venture.status === 'Assign VP/VM' ? (
+                                                    <button
+                                                        onClick={() => setAssignVPVMVenture(venture)}
+                                                        className="inline-flex items-center gap-1 text-indigo-600 text-sm font-medium hover:text-indigo-700 transition-colors"
+                                                    >
+                                                        <Users className="w-3.5 h-3.5" />
+                                                        Assign VP/VM
+                                                    </button>
+                                                ) : venture.status === 'With VP/VM' ? (
+                                                    <button
+                                                        onClick={() => setScheduleModalVenture(venture)}
+                                                        className="inline-flex items-center gap-1 text-indigo-600 text-sm font-medium hover:text-indigo-700 transition-colors"
+                                                    >
+                                                        <Calendar className="w-3.5 h-3.5" />
+                                                        Schedule Call
+                                                    </button>
+                                                ) : cc.total > 0 ? (
                                                     <button
                                                         onClick={() => setScheduleModalVenture(venture)}
                                                         className="inline-flex items-center gap-1 text-indigo-600 text-sm font-medium hover:text-indigo-700 transition-colors"
@@ -470,6 +500,18 @@ export const OpsManagerDashboard: React.FC = () => {
                     onClose={() => setScheduleModalVenture(null)}
                     onScheduled={() => {
                         setScheduleModalVenture(null);
+                        fetchData();
+                    }}
+                />
+            )}
+
+            {/* Assign VP/VM Modal */}
+            {assignVPVMVenture && (
+                <AssignVPVMModal
+                    venture={assignVPVMVenture}
+                    onClose={() => setAssignVPVMVenture(null)}
+                    onAssigned={() => {
+                        setAssignVPVMVenture(null);
                         fetchData();
                     }}
                 />

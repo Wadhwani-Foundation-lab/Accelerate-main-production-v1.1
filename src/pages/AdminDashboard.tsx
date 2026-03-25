@@ -19,6 +19,8 @@ interface Venture {
     created_at: string;
     assigned_vsm_id?: string;
     assigned_panelist_id?: string;
+    assigned_vm_id?: string;
+    venture_partner?: string;
     agreement_status?: string;
 }
 
@@ -52,6 +54,8 @@ function getDisplayStatus(v: Venture): string {
     const rec = (v.program_recommendation || '').toLowerCase();
     if (s === 'Panel Review' && rec.includes('prime')) return 'Pending with Panel (Prime)';
     if (s === 'Panel Review') return 'Pending with Panel (Core/Select)';
+    if (s === 'Assign VP/VM') return 'Assign VP/VM';
+    if (s === 'With VP/VM') return 'With VP/VM';
     if (s === 'Contract Sent' || s === 'Agreement Sent') return 'Pending with Business';
     if (s === 'Joined Program' || (s === 'Approved' && v.agreement_status?.toLowerCase() === 'signed')) return 'Accepted by Business';
     if (s === 'Rejected') return 'Declined by Business';
@@ -120,6 +124,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
     const [ventures, setVentures] = useState<Venture[]>([]);
     const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
     const [profiles, setProfiles] = useState<Record<string, { full_name: string; role: string }>>({});
+    const [panelistNames, setPanelistNames] = useState<Set<string>>(new Set());
     const [statusHistory, setStatusHistory] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -195,11 +200,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
             const { data: panelistData } = await supabase
                 .from('panelists')
                 .select('id, name, program');
+            const pNames = new Set<string>();
             (panelistData || []).forEach((p: any) => {
+                pNames.add((p.name || '').toLowerCase());
                 if (!profileMap[p.id]) {
                     profileMap[p.id] = { full_name: p.name, role: p.program === 'Prime' ? 'venture_mgr' : 'committee_member' };
                 }
             });
+            setPanelistNames(pNames);
             setProfiles(profileMap);
 
             // Staff users for Users tab
@@ -250,7 +258,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
     const isSelect = (rec?: string) => !!rec && rec.toLowerCase().includes('select');
     const isSelfserve = (rec?: string) => !!rec && rec.toLowerCase().includes('selfserve');
     const isJoined = (v: Venture) => v.status === 'Joined Program' || (v.status === 'Approved' && v.agreement_status?.toLowerCase() === 'signed');
-    const panelApprovedStatuses = ['Approved', 'Contract Sent', 'Agreement Sent', 'Joined Program'];
+    const panelApprovedStatuses = ['Approved', 'Assign VP/VM', 'With VP/VM', 'Contract Sent', 'Agreement Sent', 'Joined Program'];
 
     // ─── Computed Stats ──────────────────────────────────────────────
     const totalApplications = ventures.length;
@@ -798,15 +806,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                         </td>
                                         <td className="px-4 py-2.5 text-sm text-gray-500">{u.email}</td>
                                         <td className="px-4 py-2.5">
-                                            <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full ${
-                                                u.role === 'success_mgr' ? 'bg-amber-50 text-amber-700' :
-                                                u.role === 'venture_mgr' ? 'bg-purple-50 text-purple-700' :
-                                                u.role === 'committee_member' ? 'bg-indigo-50 text-indigo-700' :
-                                                u.role === 'admin' ? 'bg-gray-100 text-gray-700' :
-                                                'bg-gray-50 text-gray-600'
-                                            }`}>
-                                                {roleLabel(u.role)}
-                                            </span>
+                                            {(() => {
+                                                const isPanelist = panelistNames.has((u.full_name || '').toLowerCase());
+                                                const isVPVM = (u.role === 'venture_mgr' || u.role === 'committee_member') && !isPanelist;
+                                                const label = isVPVM
+                                                    ? (u.role === 'venture_mgr' ? 'VM (Prime)' : 'VP (Core/Select)')
+                                                    : roleLabel(u.role);
+                                                const style = isVPVM
+                                                    ? 'bg-purple-50 text-purple-700'
+                                                    : u.role === 'success_mgr' ? 'bg-amber-50 text-amber-700'
+                                                    : u.role === 'venture_mgr' ? 'bg-purple-50 text-purple-700'
+                                                    : u.role === 'committee_member' ? 'bg-indigo-50 text-indigo-700'
+                                                    : u.role === 'admin' ? 'bg-gray-100 text-gray-700'
+                                                    : 'bg-gray-50 text-gray-600';
+                                                return (
+                                                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full ${style}`}>
+                                                        {label}
+                                                    </span>
+                                                );
+                                            })()}
                                         </td>
                                         <td className="px-4 py-2.5">
                                             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
@@ -845,8 +863,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                         <label className="block text-xs font-medium text-gray-600 mb-1.5">Role</label>
                                         <select value={newUserRole} onChange={e => setNewUserRole(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                                             <option value="success_mgr">Screening Manager</option>
-                                            <option value="venture_mgr">Panel (Prime)</option>
-                                            <option value="committee_member">Panel (Core/Select)</option>
+                                            <option value="venture_mgr">Panel / VM (Prime)</option>
+                                            <option value="committee_member">Panel / VP (Core/Select)</option>
                                             <option value="ops_manager">Ops Manager</option>
                                             <option value="admin">Admin</option>
                                         </select>
@@ -1372,6 +1390,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                             const prog = shortProgramName(timelineVenture.program_recommendation);
                                             const panelLabel = prog === 'Prime' ? 'Panel (Prime)' : 'Panel (Core/Select)';
                                             events.push({ title: `${panelLabel} review complete`, subtitle: 'Program approved', person: changedByName, date: h.created_at, icon: 'green' });
+                                        } else if (newVal === 'Assign VP/VM') {
+                                            const prog = shortProgramName(timelineVenture.program_recommendation);
+                                            const panelLabel = prog === 'Prime' ? 'Panel (Prime)' : 'Panel (Core/Select)';
+                                            events.push({ title: `${panelLabel} review complete`, subtitle: 'Program approved — pending VP/VM assignment', person: changedByName, date: h.created_at, icon: 'green' });
+                                        } else if (newVal === 'With VP/VM') {
+                                            const vmName = profiles[timelineVenture.assigned_vm_id || '']?.full_name || timelineVenture.venture_partner || changedByName;
+                                            const prog = shortProgramName(timelineVenture.program_recommendation);
+                                            const roleLabel = prog === 'Prime' ? 'Venture Manager' : 'Venture Partner';
+                                            events.push({ title: `Assigned to ${roleLabel}`, subtitle: `${vmName} assigned as ${roleLabel}`, person: changedByName, date: h.created_at, icon: 'blue' });
                                         } else if (newVal === 'Contract Sent' || newVal === 'Agreement Sent') {
                                             events.push({ title: 'Agreement sent', subtitle: 'Contract sent to business for review', person: changedByName, date: h.created_at, icon: 'blue' });
                                         } else if (newVal === 'Joined Program') {
