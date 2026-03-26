@@ -9,9 +9,10 @@ interface InteractionsSectionProps {
     ventureId: string;
     onInteractionsLoaded?: (count: number) => void;
     createdByOnly?: string; // Only show interactions created by this user ID
+    readOnly?: boolean; // Hide add/delete buttons, panel hints
 }
 
-export const InteractionsSection: React.FC<InteractionsSectionProps> = ({ ventureId, onInteractionsLoaded, createdByOnly }) => {
+export const InteractionsSection: React.FC<InteractionsSectionProps> = ({ ventureId, onInteractionsLoaded, createdByOnly, readOnly }) => {
     const [interactions, setInteractions] = useState<Interaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -80,13 +81,15 @@ export const InteractionsSection: React.FC<InteractionsSectionProps> = ({ ventur
                             </p>
                         </div>
                     </div>
-                    <button
-                        onClick={() => setShowAddModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors text-sm font-semibold shadow-md"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Add Interaction
-                    </button>
+                    {!readOnly && (
+                        <button
+                            onClick={() => setShowAddModal(true)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors text-sm font-semibold shadow-md"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Interaction
+                        </button>
+                    )}
                 </div>
 
                 {/* Filters */}
@@ -129,18 +132,20 @@ export const InteractionsSection: React.FC<InteractionsSectionProps> = ({ ventur
                             <p className="text-sm text-gray-500 mb-2 max-w-md mx-auto">
                                 Start tracking your conversations with this venture by adding call transcripts, meeting notes, or other interactions.
                             </p>
-                            {!createdByOnly && (
+                            {!createdByOnly && !readOnly && (
                                 <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-6 max-w-md mx-auto">
                                     Add at least one interaction to generate Panel SCALE Scorecard insights.
                                 </p>
                             )}
-                            <button
-                                onClick={() => setShowAddModal(true)}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors text-sm font-semibold"
-                            >
-                                <Plus className="w-4 h-4" />
-                                Add First Interaction
-                            </button>
+                            {!readOnly && (
+                                <button
+                                    onClick={() => setShowAddModal(true)}
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors text-sm font-semibold"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Add First Interaction
+                                </button>
+                            )}
                         </div>
                     ) : (
                         <div className="divide-y divide-gray-100">
@@ -148,7 +153,7 @@ export const InteractionsSection: React.FC<InteractionsSectionProps> = ({ ventur
                                 <InteractionCard
                                     key={interaction.id}
                                     interaction={interaction}
-                                    onDelete={() => handleDeleteInteraction(interaction.id)}
+                                    onDelete={readOnly ? undefined : () => handleDeleteInteraction(interaction.id)}
                                 />
                             ))}
                         </div>

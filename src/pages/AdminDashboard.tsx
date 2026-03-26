@@ -672,7 +672,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                     {filteredVentures.map(v => {
                                         const totalAging = daysSince(v.created_at);
                                         const statusAging = getStatusAging(v.id);
-                                        const assignedName = profiles[v.assigned_panelist_id || '']?.full_name || profiles[v.assigned_vsm_id || '']?.full_name || '-';
+                                        const assignedName = v.venture_partner || profiles[v.assigned_panelist_id || '']?.full_name || profiles[v.assigned_vsm_id || '']?.full_name || '-';
                                         return (
                                             <tr key={v.id} className="hover:bg-gray-50/50 transition-colors">
                                                 <td className="px-4 py-2.5 font-medium text-sm">
@@ -1333,8 +1333,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                                         <p className="text-sm text-gray-800">{gq.question}</p>
                                                         {gq.remarks && <p className="text-xs text-gray-500 mt-1">{gq.remarks}</p>}
                                                     </div>
-                                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${gq.answer === 'Yes' ? 'bg-green-100 text-green-700' : gq.answer === 'No' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                        {gq.answer || '—'}
+                                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${(gq.response || gq.answer) === 'Yes' ? 'bg-green-100 text-green-700' : (gq.response || gq.answer) === 'No' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                        {gq.response || gq.answer || '—'}
                                                     </span>
                                                 </div>
                                             ))}
@@ -1592,7 +1592,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
 
                                 {/* KPIs */}
                                 <div>
-                                    <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-indigo-600" /> Key Performance Indicators</h3>
                                     <div className="grid grid-cols-4 gap-3">
                                         <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
                                             <span className="text-xs text-gray-400 block mb-1">Current Revenue</span>
@@ -1622,7 +1621,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                                 <thead>
                                                     <tr className="border-b border-gray-200 bg-gray-50">
                                                         <th className="text-left px-3 py-2 text-xs font-bold text-gray-500 uppercase">Dimension</th>
-                                                        <th className="text-center px-3 py-2 text-xs font-bold text-gray-500 uppercase">App Rating</th>
                                                         <th className="text-center px-3 py-2 text-xs font-bold text-gray-500 uppercase">Panel Rating</th>
                                                         <th className="text-left px-3 py-2 text-xs font-bold text-gray-500 uppercase">Brief</th>
                                                     </tr>
@@ -1634,7 +1632,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                                         return (
                                                             <tr key={i}>
                                                                 <td className="px-3 py-2 font-semibold text-gray-800 text-xs">{item.dimension}</td>
-                                                                <td className="px-3 py-2 text-center"><span className={`inline-flex items-center gap-1 text-xs font-semibold ${rs(item.app_rating || item.rating || '')}`}><span className={`w-1.5 h-1.5 rounded-full ${ds(item.app_rating || item.rating || '')}`}/>{item.app_rating || item.rating || '-'}</span></td>
                                                                 <td className="px-3 py-2 text-center">{item.panel_rating ? <span className={`inline-flex items-center gap-1 text-xs font-semibold ${rs(item.panel_rating)}`}><span className={`w-1.5 h-1.5 rounded-full ${ds(item.panel_rating)}`}/>{item.panel_rating}</span> : '-'}</td>
                                                                 <td className="px-3 py-2 text-xs text-gray-600">{item.panel_brief || item.brief || '-'}</td>
                                                             </tr>
@@ -1675,7 +1672,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                 <div>
                                     <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><Sparkles className="w-4 h-4 text-indigo-600" /> Interactions <span className="text-xs text-gray-400 font-normal ml-1">Read Only</span></h3>
                                     <div className="bg-white border border-gray-200 rounded-xl p-4">
-                                        <InteractionsSection ventureId={ventureDetailId} />
+                                        <InteractionsSection ventureId={ventureDetailId} readOnly />
                                     </div>
                                 </div>
                             </div>
