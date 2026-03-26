@@ -15,7 +15,7 @@ import {
     ventureQuerySchema
 } from '../types/schemas';
 import { successResponse, createdResponse, noContentResponse } from '../utils/response';
-import { sendPanelInvitationEmail, sendWelcomeEmail, sendSelectionWelcomeEmail } from '../services/emailService';
+import { sendPanelInvitationEmail, sendWelcomeEmail, sendSelectionWelcomeEmail, sendSelfserveEmail } from '../services/emailService';
 import { createServiceRoleClient } from '../config/supabase';
 
 const upload = multer({
@@ -486,6 +486,33 @@ router.put(
                         }
                     } catch (emailError) {
                         console.error('Failed to send panel invitation email:', emailError);
+                    }
+                })();
+            }
+
+            // Fire-and-forget: send LiftOff AI email when venture is recommended for Selfserve
+            if (program === 'Selfserve') {
+                (async () => {
+                    try {
+                        // Get founder email from venture_applications
+                        const serviceClient = createServiceRoleClient();
+                        const { data: app } = await serviceClient
+                            .from('venture_applications')
+                            .select('founder_email')
+                            .eq('venture_id', req.params.id)
+                            .single();
+
+                        const founderEmail = app?.founder_email;
+                        if (founderEmail) {
+                            const founderName = venture.founder_name || 'Founder';
+                            const ventureName = venture.name || 'Your Venture';
+                            await sendSelfserveEmail(founderEmail, founderName, ventureName);
+                            console.log(`Selfserve LiftOff AI email sent to ${founderEmail} for venture ${venture.name}`);
+                        } else {
+                            console.warn(`No founder email found for venture ${req.params.id}, skipping selfserve email`);
+                        }
+                    } catch (emailError) {
+                        console.error('Failed to send selfserve email:', emailError);
                     }
                 })();
             }
@@ -1140,12 +1167,36 @@ router.post(
                 corporate_presentation_text: corporatePresentationText,
             };
 
+            // Fetch panel feedback
+            const serviceClient = createServiceRoleClient();
+            const { data: panelFeedbackRows } = await serviceClient
+                .from('panel_feedback')
+                .select('*')
+                .eq('venture_id', req.params.id)
+                .order('created_at', { ascending: false })
+                .limit(1);
+            const panelFeedback = panelFeedbackRows?.[0] || null;
+
+            // Fetch interaction notes
+            const { data: interactions } = await serviceClient
+                .from('venture_interactions')
+                .select('interaction_type, title, transcript, interaction_date')
+                .eq('venture_id', req.params.id)
+                .order('interaction_date', { ascending: true });
+            const interactionNotes = (interactions || [])
+                .map((i: any) => `[${i.interaction_date || 'N/A'}] ${i.title || i.interaction_type}: ${i.transcript || ''}`)
+                .join('\n\n');
+
             const startTime = Date.now();
 
             // Generate roadmap via Claude
             const roadmapData = await aiService.generateVentureRoadmap(ventureData, {
                 vsmNotes: assessment.notes || '',
                 aiAnalysis: assessment.ai_analysis || null,
+                interactionNotes: interactionNotes || '',
+                panelFeedback: panelFeedback,
+                panelScorecard: assessment.panel_ai_analysis?.panel_scorecard || null,
+                gateQuestions: assessment.gate_questions || null,
             });
 
             const durationSeconds = Math.round((Date.now() - startTime) / 1000);

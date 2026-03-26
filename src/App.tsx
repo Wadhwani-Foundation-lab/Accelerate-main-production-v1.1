@@ -142,6 +142,7 @@ function App() {
             </ProtectedRoute>
           }>
             <Route index element={<AdminDashboard tab="applications" />} />
+            <Route path="ventures" element={<AdminDashboard tab="venture-dashboard" />} />
             <Route path="screening-performance" element={<AdminDashboard tab="performance" />} />
             <Route path="users" element={<AdminDashboard tab="users" />} />
           </Route>

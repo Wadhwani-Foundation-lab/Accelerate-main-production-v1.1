@@ -190,6 +190,7 @@ class ApiClient {
             focus_segment: application.focus_segment,
             focus_geography: application.focus_geography,
             blockers: application.blockers,
+            kpi_status: application.kpi_status,
             // From venture_assessments
             vsm_notes: currentAssessment.notes,
             internal_comments: currentAssessment.internal_comments,
@@ -425,13 +426,18 @@ class ApiClient {
 
     // ============ INTERACTION ENDPOINTS ============
 
-    async getInteractions(ventureId: string) {
-        const { data, error } = await supabase
+    async getInteractions(ventureId: string, createdBy?: string) {
+        let query = supabase
             .from('venture_interactions')
             .select('*')
             .eq('venture_id', ventureId)
-            .is('deleted_at', null)
-            .order('interaction_date', { ascending: false });
+            .is('deleted_at', null);
+
+        if (createdBy) {
+            query = query.eq('created_by', createdBy);
+        }
+
+        const { data, error } = await query.order('interaction_date', { ascending: false });
 
         if (error) throw error;
         return { interactions: data || [] };

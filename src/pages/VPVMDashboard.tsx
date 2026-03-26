@@ -36,9 +36,8 @@ function parseNumeric(val: string | number | null | undefined): number {
 
 function getStatusDot(status: string): string {
     if (status === 'Active') return 'bg-green-500';
-    if (status === 'With VP/VM') return 'bg-amber-500';
     if (status === 'Completed') return 'bg-gray-400';
-    return 'bg-red-500';
+    return 'bg-gray-400'; // Grey (Not Started Yet) by default
 }
 
 function shortProgram(rec?: string): string {

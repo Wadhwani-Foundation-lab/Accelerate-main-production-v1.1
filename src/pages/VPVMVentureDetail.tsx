@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { formatRevenue } from '../utils/formatters';
-import { STATUS_CONFIG } from '../components/StatusSelect';
 import { InteractionsSection } from '../components/Interactions/InteractionsSection';
 import {
     Loader2,
@@ -32,18 +31,6 @@ const STREAM_ICONS: Record<string, any> = {
     'Operations': Settings,
 };
 
-const LEGACY_STATUS_MAP: Record<string, string> = {
-    'No help needed': "Don't need help",
-    'Working on it': 'Need some guidance',
-    'Not started': 'Need some guidance',
-    'On track': "Don't need help",
-    'Need some advice': 'Need some guidance',
-    'Completed': "Don't need help",
-};
-
-function normalizeStreamStatus(status: string): string {
-    return LEGACY_STATUS_MAP[status] || status;
-}
 
 function parseNumeric(val: string | number | null | undefined): number {
     if (val === null || val === undefined || val === '') return 0;
@@ -52,11 +39,71 @@ function parseNumeric(val: string | number | null | undefined): number {
     return isNaN(num) ? 0 : num;
 }
 
+const ROADMAP_STREAM_KEYS = ['product', 'gtm', 'capital_planning', 'team', 'supply_chain', 'operations'] as const;
+const ROADMAP_LABELS: Record<string, string> = {
+    product: 'Product', gtm: 'Go-To-Market (GTM)', capital_planning: 'Capital Planning',
+    team: 'Team', supply_chain: 'Supply Chain', operations: 'Operations'
+};
+const SUPPORT_STATUS_OPTIONS = ['Need Deep Support', 'Need Some Guidance', 'Do Not Need Help'];
+
+const RoadmapGrid: React.FC<{ roadmapData: any; editing: boolean; onUpdate: (key: string, field: string, value: string) => void }> = ({ roadmapData, editing, onUpdate }) => (
+    <div className="grid grid-cols-3 gap-4">
+        {ROADMAP_STREAM_KEYS.map((key) => {
+            const area = roadmapData[key];
+            if (!area) return null;
+            const StreamIcon = STREAM_ICONS[ROADMAP_LABELS[key]] || Package;
+            const status = area.support_status || area.support_priority || 'Need Some Guidance';
+            const statusStyle = status.toLowerCase().includes('deep') ? 'bg-red-50 text-red-600 border-red-200'
+                : status.toLowerCase().includes('not') || status.toLowerCase().includes("don't") ? 'bg-green-50 text-green-600 border-green-200'
+                : 'bg-amber-50 text-amber-600 border-amber-200';
+
+            return (
+                <div key={key} className="bg-white border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <StreamIcon className="w-4 h-4 text-gray-500" />
+                            <h4 className="font-semibold text-gray-900 text-sm">{ROADMAP_LABELS[key]}</h4>
+                        </div>
+                        {editing ? (
+                            <select
+                                value={status}
+                                onChange={e => onUpdate(key, 'support_status', e.target.value)}
+                                className="text-xs px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            >
+                                {SUPPORT_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                            </select>
+                        ) : (
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${statusStyle}`}>
+                                {status}
+                            </span>
+                        )}
+                    </div>
+                    <div>
+                        <p className="text-xs font-medium text-gray-500 mb-1">Goal:</p>
+                        {editing ? (
+                            <textarea
+                                value={area.end_goal || ''}
+                                onChange={e => onUpdate(key, 'end_goal', e.target.value)}
+                                rows={3}
+                                className="w-full text-xs px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                            />
+                        ) : (
+                            <p className="text-xs text-gray-600">{area.end_goal || '-'}</p>
+                        )}
+                    </div>
+                </div>
+            );
+        })}
+    </div>
+);
+
 export const VPVMVentureDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [venture, setVenture] = useState<any>(null);
-    const [streams, setStreams] = useState<any[]>([]);
+    const [currentUserId, setCurrentUserId] = useState<string>('');
+    const [roadmapData, setRoadmapData] = useState<any>(null);
+    const [generatingRoadmap, setGeneratingRoadmap] = useState(false);
     const [loading, setLoading] = useState(true);
 
     // Collapsible sections
@@ -68,16 +115,29 @@ export const VPVMVentureDetail: React.FC = () => {
     // KPI edit mode
     const [kpiEditing, setKpiEditing] = useState(false);
     const [kpiSaving, setKpiSaving] = useState(false);
-    const [kpiForm, setKpiForm] = useState({ revenue_12m: '', revenue_potential_3y: '', full_time_employees: '', incremental_hiring: '', kpi_status: 'Green (On Track)' });
+    const [kpiForm, setKpiForm] = useState({ revenue_12m: '', revenue_potential_3y: '', full_time_employees: '', incremental_hiring: '', kpi_status: 'Grey (Not Started Yet)' });
+
+    // Roadmap edit mode
+    const [roadmapEditing, setRoadmapEditing] = useState(false);
+    const [roadmapSaving, setRoadmapSaving] = useState(false);
+    const [editedRoadmap, setEditedRoadmap] = useState<any>(null);
 
     useEffect(() => {
         if (!id) return;
         const fetchData = async () => {
             setLoading(true);
             try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) setCurrentUserId(user.id);
                 const result = await api.getVenture(id);
                 setVenture(result.venture);
-                setStreams(result.streams || []);
+                // Fetch AI-generated roadmap
+                try {
+                    const roadmap = await api.getRoadmap(id);
+                    if (roadmap?.roadmap?.roadmap_data) {
+                        setRoadmapData(roadmap.roadmap.roadmap_data);
+                    }
+                } catch { /* no roadmap yet */ }
             } catch (err) {
                 console.error('Error fetching venture:', err);
             } finally {
@@ -117,11 +177,11 @@ export const VPVMVentureDetail: React.FC = () => {
         ? new Date(venture.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
         : '-';
 
-    // Overall status dot based on streams
-    const streamStatuses = streams.map(s => normalizeStreamStatus(s.status || ''));
-    const hasDeepSupport = streamStatuses.includes('Need deep support');
-    const hasGuidance = streamStatuses.includes('Need some guidance');
-    const overallDot = hasDeepSupport ? 'bg-red-500' : hasGuidance ? 'bg-amber-500' : 'bg-green-500';
+    const kpiStatus = venture.kpi_status || 'Grey (Not Started Yet)';
+    const overallDot = kpiStatus.includes('Red') ? 'bg-red-500'
+        : kpiStatus.includes('Amber') ? 'bg-amber-500'
+        : kpiStatus.includes('Green') ? 'bg-green-500'
+        : 'bg-gray-400';
 
     const SectionHeader: React.FC<{ icon: any; title: string; open: boolean; onToggle: () => void; action?: React.ReactNode }> = ({
         icon: Icon, title, open, onToggle, action
@@ -214,7 +274,7 @@ export const VPVMVentureDetail: React.FC = () => {
                                     revenue_potential_3y: venture.revenue_potential_3y || '',
                                     full_time_employees: venture.full_time_employees || '',
                                     incremental_hiring: String(venture.incremental_hiring || venture.target_jobs || ''),
-                                    kpi_status: 'Green (On Track)',
+                                    kpi_status: venture.kpi_status || 'Grey (Not Started Yet)',
                                 });
                                 setKpiEditing(true);
                             }}
@@ -279,7 +339,7 @@ export const VPVMVentureDetail: React.FC = () => {
                         <p className="text-3xl font-bold text-gray-900">{monthsInProgram}</p>
                         <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
                             <Calendar className="w-3 h-3" />
-                            Joined: {joinedDate}
+                            Submitted: {joinedDate}
                         </div>
                     </div>
                     <div className="bg-white border border-gray-200 rounded-xl p-4">
@@ -287,6 +347,7 @@ export const VPVMVentureDetail: React.FC = () => {
                         {kpiEditing ? (
                             <select value={kpiForm.kpi_status} onChange={e => setKpiForm(f => ({ ...f, kpi_status: e.target.value }))}
                                 className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                <option value="Grey (Not Started Yet)">Grey (Not Started Yet)</option>
                                 <option value="Green (On Track)">Green (On Track)</option>
                                 <option value="Amber (Needs Attention)">Amber (Needs Attention)</option>
                                 <option value="Red (At Risk)">Red (At Risk)</option>
@@ -415,50 +476,99 @@ export const VPVMVentureDetail: React.FC = () => {
                 </div>
             )}
 
-            {/* Roadmap / Streams */}
+            {/* Roadmap */}
             <SectionHeader
                 icon={Sparkles}
                 title="Roadmap"
                 open={roadmapOpen}
                 onToggle={() => setRoadmapOpen(!roadmapOpen)}
                 action={
-                    <button className="flex items-center gap-1 text-sm text-indigo-600 font-medium hover:text-indigo-700">
-                        <Pencil className="w-3.5 h-3.5" />
-                        Edit Roadmap
-                    </button>
+                    roadmapData ? (
+                        roadmapEditing ? (
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => { setRoadmapEditing(false); setEditedRoadmap(null); }}
+                                    className="px-3 py-1.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                                >Cancel</button>
+                                <button
+                                    onClick={async () => {
+                                        if (!id || !editedRoadmap) return;
+                                        setRoadmapSaving(true);
+                                        try {
+                                            // Update the roadmap in venture_roadmaps
+                                            await supabase.from('venture_roadmaps')
+                                                .update({ roadmap_data: editedRoadmap })
+                                                .eq('venture_id', id)
+                                                .eq('is_current', true);
+                                            setRoadmapData(editedRoadmap);
+                                            setRoadmapEditing(false);
+                                            setEditedRoadmap(null);
+                                        } catch (err) {
+                                            console.error('Error saving roadmap:', err);
+                                        } finally {
+                                            setRoadmapSaving(false);
+                                        }
+                                    }}
+                                    disabled={roadmapSaving}
+                                    className="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                                >{roadmapSaving ? 'Saving...' : 'Save Changes'}</button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => {
+                                    setEditedRoadmap(JSON.parse(JSON.stringify(roadmapData)));
+                                    setRoadmapEditing(true);
+                                }}
+                                className="flex items-center gap-1 text-sm text-indigo-600 font-medium hover:text-indigo-700"
+                            >
+                                <Pencil className="w-3.5 h-3.5" />
+                                Edit Roadmap
+                            </button>
+                        )
+                    ) : null
                 }
             />
             {roadmapOpen && (
-                <div className="grid grid-cols-3 gap-4">
-                    {streams.length > 0 ? streams.map((s: any) => {
-                        const normalized = normalizeStreamStatus(s.status || 'Need some guidance');
-                        const config = STATUS_CONFIG[normalized] || STATUS_CONFIG['Need some guidance'];
-                        const StreamIcon = STREAM_ICONS[s.stream_name] || Package;
-                        return (
-                            <div key={s.id} className="bg-white border border-gray-200 rounded-xl p-4">
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-2">
-                                        <StreamIcon className="w-4 h-4 text-gray-500" />
-                                        <h4 className="font-semibold text-gray-900 text-sm">{s.stream_name}</h4>
-                                    </div>
-                                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${config.bg} ${config.color} ${config.border}`}>
-                                        {normalized}
-                                    </span>
-                                </div>
-                                {s.goal && (
-                                    <div>
-                                        <p className="text-xs font-medium text-gray-500 mb-1">Goal:</p>
-                                        <p className="text-xs text-gray-600">{s.goal}</p>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    }) : (
-                        <div className="col-span-3 text-center py-8">
-                            <p className="text-sm text-gray-400">No streams defined yet.</p>
+                roadmapData ? (
+                    <RoadmapGrid
+                        roadmapData={roadmapEditing && editedRoadmap ? editedRoadmap : roadmapData}
+                        editing={roadmapEditing}
+                        onUpdate={(key, field, value) => {
+                            if (!editedRoadmap) return;
+                            const updated = { ...editedRoadmap };
+                            updated[key] = { ...updated[key], [field]: value };
+                            setEditedRoadmap(updated);
+                        }}
+                    />) : (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center">
+                        <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mx-auto mb-3">
+                            <Sparkles className="w-6 h-6 text-indigo-600" />
                         </div>
-                    )}
-                </div>
+                        <h3 className="font-semibold text-gray-900 mb-1">Generate Roadmap</h3>
+                        <p className="text-sm text-gray-500 mb-4">Generate a tailored roadmap based on panel feedback and venture context.</p>
+                        <button
+                            onClick={async () => {
+                                if (!id || generatingRoadmap) return;
+                                setGeneratingRoadmap(true);
+                                try {
+                                    const result = await api.generateRoadmap(id);
+                                    if (result?.roadmap?.roadmap_data) {
+                                        setRoadmapData(result.roadmap.roadmap_data);
+                                    }
+                                } catch (err) {
+                                    console.error('Error generating roadmap:', err);
+                                } finally {
+                                    setGeneratingRoadmap(false);
+                                }
+                            }}
+                            disabled={generatingRoadmap}
+                            className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors inline-flex items-center gap-2"
+                        >
+                            {generatingRoadmap ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                            {generatingRoadmap ? 'Generating Roadmap...' : 'Generate Roadmap'}
+                        </button>
+                    </div>
+                )
             )}
 
             {/* Interactions */}
@@ -470,34 +580,7 @@ export const VPVMVentureDetail: React.FC = () => {
             />
             {interactionsOpen && id && (
                 <div className="bg-white border border-gray-200 rounded-xl p-5">
-                    <InteractionsSection ventureId={id} />
-                </div>
-            )}
-
-            {/* Generate Streams */}
-            {streams.length === 0 && (
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center">
-                    <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mx-auto mb-3">
-                        <Sparkles className="w-6 h-6 text-indigo-600" />
-                    </div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Generate Streams</h3>
-                    <p className="text-sm text-gray-500 mb-4">Generate detailed functional streams and specific deliverables based on the roadmap.</p>
-                    <button
-                        onClick={async () => {
-                            if (!id) return;
-                            try {
-                                await api.generateRoadmap(id);
-                                const result = await api.getVenture(id);
-                                setStreams(result.streams || []);
-                            } catch (err) {
-                                console.error('Error generating streams:', err);
-                            }
-                        }}
-                        className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors inline-flex items-center gap-2"
-                    >
-                        <Sparkles className="w-4 h-4" />
-                        Generate Streams and Deliverables
-                    </button>
+                    <InteractionsSection ventureId={id} createdByOnly={currentUserId} />
                 </div>
             )}
 
