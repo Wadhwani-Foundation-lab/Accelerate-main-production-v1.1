@@ -1363,7 +1363,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                 const totalCurrentRevenue = programVentures.reduce((s, v) => s + parseNum(v.revenue_12m), 0);
                 const totalIncrementalRevenue = programVentures.reduce((s, v) => s + parseNum(v.revenue_potential_3y), 0);
                 const totalCurrentJobs = programVentures.reduce((s, v) => s + parseNum(v.full_time_employees), 0);
-                const totalIncrementalJobs = programVentures.reduce((s, v) => s + (v.incremental_hiring || v.target_jobs || 0), 0);
+                const totalIncrementalJobs = programVentures.reduce((s, v) => s + parseNum(v.incremental_hiring || v.target_jobs || 0), 0);
 
                 // Derive filter options from data
                 const uniqueStates = Array.from(new Set(programVentures.map(v => v.state).filter(Boolean))).sort();

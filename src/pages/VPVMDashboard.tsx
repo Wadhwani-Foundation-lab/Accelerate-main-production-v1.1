@@ -115,7 +115,7 @@ export const VPVMDashboard: React.FC = () => {
     const totalCurrentRevenue = ventures.reduce((sum, v) => sum + parseNumeric(v.revenue_12m), 0);
     const totalIncrementalRevenue = ventures.reduce((sum, v) => sum + parseNumeric(v.revenue_potential_3y), 0);
     const totalCurrentJobs = ventures.reduce((sum, v) => sum + parseNumeric(v.full_time_employees), 0);
-    const totalIncrementalJobs = ventures.reduce((sum, v) => sum + (v.incremental_hiring || v.target_jobs || 0), 0);
+    const totalIncrementalJobs = ventures.reduce((sum, v) => sum + parseNumeric(v.incremental_hiring || v.target_jobs || 0), 0);
 
     if (loading) {
         return (
