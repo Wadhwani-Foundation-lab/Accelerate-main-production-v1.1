@@ -25,6 +25,7 @@ interface VentureCard {
     full_time_employees?: string;
     target_jobs?: number;
     incremental_hiring?: number;
+    kpi_status?: string;
 }
 
 function parseNumeric(val: string | number | null | undefined): number {
@@ -34,9 +35,11 @@ function parseNumeric(val: string | number | null | undefined): number {
     return isNaN(num) ? 0 : num;
 }
 
-function getStatusDot(status: string): string {
-    if (status === 'Active') return 'bg-green-500';
-    if (status === 'Completed') return 'bg-gray-400';
+function getStatusDot(kpiStatus?: string): string {
+    const s = kpiStatus || '';
+    if (s.includes('Green')) return 'bg-green-500';
+    if (s.includes('Amber')) return 'bg-amber-500';
+    if (s.includes('Red')) return 'bg-red-500';
     return 'bg-gray-400'; // Grey (Not Started Yet) by default
 }
 
@@ -70,7 +73,7 @@ export const VPVMDashboard: React.FC = () => {
                     .is('deleted_at', null);
 
                 const mapped: VentureCard[] = (ventureData || []).map((v: any) => {
-                    const app = v.application?.[0] || {};
+                    const app = Array.isArray(v.application) ? v.application[0] || {} : v.application || {};
                     const assessment = (v.assessments || []).find((a: any) => a.is_current) || v.assessments?.[0] || {};
                     return {
                         id: v.id,
@@ -84,6 +87,7 @@ export const VPVMDashboard: React.FC = () => {
                         full_time_employees: app.full_time_employees,
                         target_jobs: app.target_jobs,
                         incremental_hiring: app.incremental_hiring,
+                        kpi_status: app.kpi_status,
                     };
                 });
 
@@ -102,7 +106,7 @@ export const VPVMDashboard: React.FC = () => {
             const q = searchQuery.toLowerCase();
             if (!v.name.toLowerCase().includes(q) && !(v.founder_name || '').toLowerCase().includes(q)) return false;
         }
-        if (statusFilter && v.status !== statusFilter) return false;
+        if (statusFilter && !(v.kpi_status || 'Grey (Not Started Yet)').includes(statusFilter)) return false;
         return true;
     });
 
@@ -199,9 +203,10 @@ export const VPVMDashboard: React.FC = () => {
                             className="appearance-none pl-4 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                         >
                             <option value="">All Statuses</option>
-                            <option value="With VP/VM">With VP/VM</option>
-                            <option value="Active">Active</option>
-                            <option value="Completed">Completed</option>
+                            <option value="Grey">Grey (Not Started Yet)</option>
+                            <option value="Green">Green (On Track)</option>
+                            <option value="Amber">Amber (Needs Attention)</option>
+                            <option value="Red">Red (At Risk)</option>
                         </select>
                         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                     </div>
@@ -227,7 +232,7 @@ export const VPVMDashboard: React.FC = () => {
                                 <h3 className="font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">
                                     {v.name}
                                 </h3>
-                                <span className={`w-3 h-3 rounded-full flex-shrink-0 mt-1 ${getStatusDot(v.status)}`} />
+                                <span className={`w-3 h-3 rounded-full flex-shrink-0 mt-1 ${getStatusDot(v.kpi_status)}`} />
                             </div>
                             <div className="flex items-center gap-3 text-xs text-gray-500 mb-4">
                                 <span className="flex items-center gap-1">

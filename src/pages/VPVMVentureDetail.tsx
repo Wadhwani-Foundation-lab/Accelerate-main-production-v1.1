@@ -9,7 +9,6 @@ import {
     ChevronUp,
     ChevronDown,
     ArrowLeft,
-    TrendingUp,
     Users,
     Calendar,
     Sparkles,
@@ -107,7 +106,6 @@ export const VPVMVentureDetail: React.FC = () => {
     const [loading, setLoading] = useState(true);
 
     // Collapsible sections
-    const [kpiOpen, setKpiOpen] = useState(true);
     const [scorecardOpen, setScorecardOpen] = useState(false);
     const [roadmapOpen, setRoadmapOpen] = useState(true);
     const [interactionsOpen, setInteractionsOpen] = useState(false);
@@ -225,18 +223,13 @@ export const VPVMVentureDetail: React.FC = () => {
             </div>
 
             {/* KPI Section */}
-            <SectionHeader
-                icon={TrendingUp}
-                title="Key Performance Indicators"
-                open={kpiOpen}
-                onToggle={() => setKpiOpen(!kpiOpen)}
-                action={
-                    kpiEditing ? (
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setKpiEditing(false)}
-                                className="px-3 py-1.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
-                            >Cancel</button>
+            <div className="flex items-center justify-end mb-1">
+                {kpiEditing ? (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setKpiEditing(false)}
+                            className="px-3 py-1.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                        >Cancel</button>
                             <button
                                 onClick={async () => {
                                     if (!id) return;
@@ -247,6 +240,7 @@ export const VPVMVentureDetail: React.FC = () => {
                                         if (kpiForm.revenue_potential_3y) appUpdates.revenue_potential_3y = kpiForm.revenue_potential_3y;
                                         if (kpiForm.full_time_employees) appUpdates.full_time_employees = kpiForm.full_time_employees;
                                         if (kpiForm.incremental_hiring) appUpdates.incremental_hiring = parseInt(kpiForm.incremental_hiring);
+                                        if (kpiForm.kpi_status) appUpdates.kpi_status = kpiForm.kpi_status;
 
                                         if (Object.keys(appUpdates).length > 0) {
                                             await supabase.from('venture_applications').update(appUpdates).eq('venture_id', id);
@@ -283,11 +277,9 @@ export const VPVMVentureDetail: React.FC = () => {
                             <Pencil className="w-3.5 h-3.5" />
                             Edit
                         </button>
-                    )
-                }
-            />
-            {kpiOpen && (
-                <div className="grid grid-cols-4 gap-4">
+                    )}
+            </div>
+            <div className="grid grid-cols-4 gap-4">
                     <div className="bg-white border border-gray-200 rounded-xl p-4">
                         <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2">Revenue</p>
                         <div className="space-y-2">
@@ -359,7 +351,6 @@ export const VPVMVentureDetail: React.FC = () => {
                         )}
                     </div>
                 </div>
-            )}
 
             {/* Panel Scorecard */}
             <SectionHeader
@@ -555,8 +546,17 @@ export const VPVMVentureDetail: React.FC = () => {
                                     if (result?.roadmap?.roadmap_data) {
                                         setRoadmapData(result.roadmap.roadmap_data);
                                     }
-                                } catch (err) {
+                                } catch (err: any) {
                                     console.error('Error generating roadmap:', err);
+                                    // If timed out, try fetching — backend may have completed
+                                    if (err.name === 'AbortError' || err.message?.includes('Failed')) {
+                                        try {
+                                            const rm = await api.getRoadmap(id);
+                                            if (rm?.roadmap?.roadmap_data) {
+                                                setRoadmapData(rm.roadmap.roadmap_data);
+                                            }
+                                        } catch { /* still no roadmap */ }
+                                    }
                                 } finally {
                                     setGeneratingRoadmap(false);
                                 }

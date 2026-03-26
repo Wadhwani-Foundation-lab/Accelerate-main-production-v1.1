@@ -30,6 +30,7 @@ interface Venture {
     full_time_employees?: string;
     target_jobs?: number;
     incremental_hiring?: number;
+    kpi_status?: string;
 }
 
 interface StaffUser {
@@ -215,6 +216,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                     incremental_hiring: app.incremental_hiring,
                     state: app.state,
                     city: v.city || app.city,
+                    kpi_status: app.kpi_status,
                 };
             });
             setVentures(flat);
@@ -1372,7 +1374,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                         const q = vdSearch.toLowerCase();
                         if (!v.name.toLowerCase().includes(q) && !(v.founder_name || '').toLowerCase().includes(q)) return false;
                     }
-                    if (vdStatus && v.status !== vdStatus) return false;
+                    if (vdStatus && !(v.kpi_status || 'Grey (Not Started Yet)').includes(vdStatus)) return false;
                     if (vdState && (v.state || '') !== vdState) return false;
                     if (vdCity && (v.city || '') !== vdCity) return false;
                     if (vdProgram) {
@@ -1384,8 +1386,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                     return true;
                 });
 
-                const getStatusDot = (status: string) =>
-                    status === 'Active' ? 'bg-green-500' : status === 'Completed' ? 'bg-gray-400' : status === 'With VP/VM' ? 'bg-amber-500' : 'bg-gray-400';
+                const getStatusDot = (kpiStatus?: string) => {
+                    const s = kpiStatus || '';
+                    return s.includes('Green') ? 'bg-green-500' : s.includes('Amber') ? 'bg-amber-500' : s.includes('Red') ? 'bg-red-500' : 'bg-gray-400';
+                };
 
                 const shortProg = (rec?: string) => {
                     if (!rec) return '';
@@ -1459,7 +1463,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                             <select value={vdStatus} onChange={e => setVdStatus(e.target.value)}
                                 className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                 <option value="">All Statuses</option>
-                                {programStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                                <option value="Grey">Grey (Not Started Yet)</option>
+                                <option value="Green">Green (On Track)</option>
+                                <option value="Amber">Amber (Needs Attention)</option>
+                                <option value="Red">Red (At Risk)</option>
                             </select>
                             {uniqueStates.length > 0 && (
                                 <select value={vdState} onChange={e => setVdState(e.target.value)}
@@ -1516,7 +1523,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                                     }} className="font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">
                                                         {v.name}
                                                     </button>
-                                                    <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${getStatusDot(v.status)}`} />
+                                                    <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${getStatusDot(v.kpi_status)}`} />
                                                 </div>
                                                 <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5">
                                                     <span>{v.founder_name || '-'}</span>

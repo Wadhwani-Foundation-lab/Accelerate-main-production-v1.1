@@ -407,6 +407,103 @@ router.post(
 
             if (updateError) throw updateError;
 
+            // Fire-and-forget: auto-generate roadmap for the assigned VP/VM
+            (async () => {
+                try {
+                    console.log(`[AutoRoadmap] Generating roadmap for venture ${req.params.id} after VP/VM assignment`);
+                    const { data: ventureForRoadmap } = await serviceClient
+                        .from('ventures')
+                        .select('*, application:venture_applications(*), assessments:venture_assessments(*)')
+                        .eq('id', req.params.id)
+                        .single();
+
+                    if (!ventureForRoadmap) return;
+
+                    const app = ventureForRoadmap.application?.[0] || ventureForRoadmap.application || {};
+                    const assessment = (ventureForRoadmap.assessments || []).find((a: any) => a.is_current) || ventureForRoadmap.assessments?.[0] || {};
+
+                    let corporatePresentationText: string | undefined;
+                    if (app.corporate_presentation_url) {
+                        const text = await extractDocumentText(app.corporate_presentation_url);
+                        if (text) corporatePresentationText = text;
+                    }
+
+                    // Fetch panel feedback
+                    const { data: pfRows } = await serviceClient
+                        .from('panel_feedback')
+                        .select('*')
+                        .eq('venture_id', req.params.id)
+                        .order('created_at', { ascending: false })
+                        .limit(1);
+
+                    // Fetch interaction notes
+                    const { data: interactions } = await serviceClient
+                        .from('venture_interactions')
+                        .select('interaction_type, title, transcript, interaction_date')
+                        .eq('venture_id', req.params.id)
+                        .order('interaction_date', { ascending: true });
+                    const interactionNotes = (interactions || [])
+                        .map((i: any) => `[${i.interaction_date || 'N/A'}] ${i.title || i.interaction_type}: ${i.transcript || ''}`)
+                        .join('\n\n');
+
+                    const ventureData = {
+                        ...ventureForRoadmap,
+                        revenue_12m: app.revenue_12m,
+                        revenue_potential_3y: app.revenue_potential_3y,
+                        full_time_employees: app.full_time_employees,
+                        growth_focus: app.growth_focus,
+                        what_do_you_sell: app.what_do_you_sell,
+                        who_do_you_sell_to: app.who_do_you_sell_to,
+                        which_regions: app.which_regions,
+                        focus_product: app.focus_product,
+                        focus_segment: app.focus_segment,
+                        focus_geography: app.focus_geography,
+                        blockers: app.blockers,
+                        support_request: app.support_request,
+                        incremental_hiring: app.incremental_hiring,
+                        corporate_presentation_text: corporatePresentationText,
+                    };
+
+                    const roadmapData = await aiService.generateVentureRoadmap(ventureData, {
+                        vsmNotes: assessment.notes || '',
+                        aiAnalysis: assessment.ai_analysis || null,
+                        interactionNotes: interactionNotes || '',
+                        panelFeedback: pfRows?.[0] || null,
+                        panelScorecard: assessment.panel_ai_analysis?.panel_scorecard || null,
+                        gateQuestions: assessment.gate_questions || null,
+                    });
+
+                    // Mark old roadmaps as not current
+                    await serviceClient
+                        .from('venture_roadmaps')
+                        .update({ is_current: false })
+                        .eq('venture_id', req.params.id)
+                        .eq('is_current', true);
+
+                    const { count } = await serviceClient
+                        .from('venture_roadmaps')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('venture_id', req.params.id);
+
+                    await serviceClient
+                        .from('venture_roadmaps')
+                        .insert({
+                            venture_id: req.params.id,
+                            generated_by: req.user.id,
+                            generation_source: 'ai_generated',
+                            based_on_assessment_id: assessment.id || null,
+                            roadmap_data: roadmapData,
+                            roadmap_version: (count || 0) + 1,
+                            is_current: true,
+                            generation_model: 'claude-sonnet-4-5-20250929',
+                        });
+
+                    console.log(`[AutoRoadmap] Roadmap generated and saved for venture ${req.params.id}`);
+                } catch (err) {
+                    console.error(`[AutoRoadmap] Failed to auto-generate roadmap for venture ${req.params.id}:`, err);
+                }
+            })();
+
             successResponse(res, { venture: updated });
         } catch (error) {
             next(error);

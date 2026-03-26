@@ -490,13 +490,19 @@ class ApiClient {
 
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 min timeout
+
         const response = await fetch(`${API_URL}/api/ventures/${ventureId}/generate-roadmap`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${session.access_token}`
-            }
+            },
+            signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
