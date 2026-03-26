@@ -401,7 +401,7 @@ export const VPVMVentureDetail: React.FC = () => {
                                             rating === 'Green' ? { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' }
                                             : rating === 'Red' ? { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' }
                                             : { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' };
-                                        const appStyle = ratingStyle(item.app_rating || item.rating || '');
+                                        const appStyle = ratingStyle(item.application_rating || item.app_rating || item.rating || '');
                                         const panelStyle = ratingStyle(item.panel_rating || '');
                                         return (
                                             <tr key={i} className="hover:bg-gray-50/50">
@@ -409,7 +409,7 @@ export const VPVMVentureDetail: React.FC = () => {
                                                 <td className="px-3 py-3 text-center">
                                                     <span className={`inline-flex items-center gap-1.5 ${appStyle.text} font-semibold text-xs`}>
                                                         <span className={`w-2 h-2 rounded-full ${appStyle.dot}`} />
-                                                        {item.app_rating || item.rating || '-'}
+                                                        {item.application_rating || item.app_rating || item.rating || '-'}
                                                     </span>
                                                 </td>
                                                 <td className="px-3 py-3 text-center">
