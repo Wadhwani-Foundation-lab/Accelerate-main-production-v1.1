@@ -610,7 +610,7 @@ export const VSMDashboard: React.FC = () => {
 
             // Setup form state
             setVsmNotes(freshVenture.vsm_notes || '');
-            setProgram(freshVenture.program_recommendation || 'Selfserve');
+            setProgram(freshVenture.program_recommendation || '');
             setSelectedPanelist(freshVenture.assigned_panelist_id || '');
             setInternalComments(freshVenture.internal_comments || '');
             setAnalysisResult(freshVenture.ai_analysis || null);
@@ -649,11 +649,14 @@ export const VSMDashboard: React.FC = () => {
 
         setSaving(true);
         try {
+            // Selfserve stays as 'Approved' (no panel review needed), others go to Panel Review
+            const newStatus = program === 'Selfserve' ? 'Approved' : 'Panel Review';
+
             const updatePayload: any = {
                 vsm_notes: vsmNotes,
                 program_recommendation: program,
                 internal_comments: internalComments,
-                status: 'Panel Review', // Recommending to panel moves status to Panel Review
+                status: newStatus,
                 ai_analysis: analysisResult || selectedVenture.ai_analysis, // Persist AI analysis if generated
                 vsm_reviewed_at: new Date().toISOString() // Track when VSM reviewed
             };
@@ -680,7 +683,9 @@ export const VSMDashboard: React.FC = () => {
             setSelectedVenture(prev => prev ? { ...prev, ...updatePayload } : null);
 
             // Success feedback
-            toast('Recommendation submitted. Status: Pending with Panel — ' + program, 'success');
+            toast(program === 'Selfserve'
+                ? 'Recommendation submitted. Venture recommended for Self-Serve (LiftOff AI).'
+                : 'Recommendation submitted. Status: Pending with Panel — ' + program, 'success');
 
             // Navigate back to list after 1 second
             setTimeout(() => {
