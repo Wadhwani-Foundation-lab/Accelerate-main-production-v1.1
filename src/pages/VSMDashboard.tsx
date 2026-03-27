@@ -923,7 +923,7 @@ export const VSMDashboard: React.FC = () => {
                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Jobs</span>
                                 <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
                                     <Users className="w-4 h-4 text-gray-400" />
-                                    {selectedVenture.target_jobs || 'N/A'}
+                                    {selectedVenture.target_jobs ?? 'N/A'}
                                 </div>
                             </div>
                         </div>

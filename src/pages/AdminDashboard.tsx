@@ -996,7 +996,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Target Jobs</span>
                                         <div className="text-lg font-bold text-gray-900 flex items-center gap-1">
                                             <Users className="w-4 h-4 text-gray-400" />
-                                            {profileVenture.target_jobs || 'N/A'}
+                                            {profileVenture.target_jobs ?? 'N/A'}
                                         </div>
                                     </div>
                                 </div>
