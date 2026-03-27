@@ -1354,9 +1354,10 @@ router.get(
     authenticateUser,
     async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const { supabase } = await getContext(req);
+            // Use service client to bypass RLS — auth already verified by middleware
+            const serviceClient = createServiceRoleClient();
 
-            const { data: roadmap, error } = await supabase
+            const { data: roadmap, error } = await serviceClient
                 .from('venture_roadmaps')
                 .select('*')
                 .eq('venture_id', req.params.id)

@@ -132,10 +132,13 @@ export const VPVMVentureDetail: React.FC = () => {
                 // Fetch AI-generated roadmap
                 try {
                     const roadmap = await api.getRoadmap(id);
+                    console.log('[VPVMDetail] Roadmap fetch result:', roadmap?.roadmap ? 'found' : 'not found');
                     if (roadmap?.roadmap?.roadmap_data) {
                         setRoadmapData(roadmap.roadmap.roadmap_data);
                     }
-                } catch { /* no roadmap yet */ }
+                } catch (rmErr) {
+                    console.error('[VPVMDetail] Error fetching roadmap:', rmErr);
+                }
             } catch (err) {
                 console.error('Error fetching venture:', err);
             } finally {
