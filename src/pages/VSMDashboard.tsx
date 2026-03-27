@@ -635,6 +635,18 @@ export const VSMDashboard: React.FC = () => {
             return;
         }
 
+        // For Prime/Core/Select, panelist and comments are mandatory
+        if (program !== 'Selfserve') {
+            if (!selectedPanelist) {
+                toast('Please assign a panelist before submitting.', 'warning');
+                return;
+            }
+            if (!internalComments?.trim()) {
+                toast('Please add comments before submitting.', 'warning');
+                return;
+            }
+        }
+
         setSaving(true);
         try {
             const updatePayload: any = {

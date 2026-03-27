@@ -524,7 +524,7 @@ export const OpsManagerDashboard: React.FC = () => {
                         className="fixed inset-0 z-40 bg-black/30 transition-opacity"
                         onClick={() => setProfileVenture(null)}
                     />
-                    <div className="fixed inset-y-0 right-0 z-50 w-full max-w-2xl bg-white shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200">
+                    <div className="fixed inset-4 z-50 mx-auto max-w-5xl bg-white shadow-2xl overflow-y-auto rounded-2xl">
                         {/* Drawer Header */}
                         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
                             <div>
@@ -831,6 +831,95 @@ export const OpsManagerDashboard: React.FC = () => {
                                                     <p className="text-sm text-indigo-800 whitespace-pre-wrap">{profileVenture.internal_comments}</p>
                                                 </div>
                                             )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Screening SCALE Scorecard */}
+                                {profileVenture.ai_analysis?.scorecard && (
+                                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                        <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+                                            <span className="text-base font-bold text-gray-700">Screening SCALE Scorecard</span>
+                                            <span className="text-xs text-gray-400">Read Only</span>
+                                        </div>
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="border-b border-gray-200 bg-gray-50">
+                                                    <th className="text-left px-4 py-2 text-xs font-bold text-gray-500 uppercase">Dimension</th>
+                                                    <th className="text-center px-3 py-2 text-xs font-bold text-gray-500 uppercase">Rating</th>
+                                                    <th className="text-left px-4 py-2 text-xs font-bold text-gray-500 uppercase">Brief</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {profileVenture.ai_analysis.scorecard.map((item: any, i: number) => {
+                                                    const style = item.rating === 'Green' ? { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' } : item.rating === 'Red' ? { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' } : { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' };
+                                                    return (
+                                                        <tr key={i} className={style.bg}>
+                                                            <td className="px-4 py-3 font-semibold text-gray-800">{item.dimension}</td>
+                                                            <td className="px-3 py-3 text-center"><span className={`inline-flex items-center gap-1.5 ${style.text} font-semibold text-xs`}><span className={`w-2 h-2 rounded-full ${style.dot}`}/>{item.rating}</span></td>
+                                                            <td className="px-4 py-3 text-gray-600 text-xs">{item.brief}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+
+                                {/* Panel SCALE Scorecard */}
+                                {profileVenture.panel_ai_analysis?.panel_scorecard && (
+                                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                        <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+                                            <span className="text-base font-bold text-gray-700">Panel SCALE Scorecard</span>
+                                            <span className="text-xs text-gray-400">Read Only</span>
+                                        </div>
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="border-b border-gray-200 bg-gray-50">
+                                                    <th className="text-left px-4 py-2 text-xs font-bold text-gray-500 uppercase">Dimension</th>
+                                                    <th className="text-center px-3 py-2 text-xs font-bold text-gray-500 uppercase">App Rating</th>
+                                                    <th className="text-center px-3 py-2 text-xs font-bold text-gray-500 uppercase">Panel Rating</th>
+                                                    <th className="text-left px-4 py-2 text-xs font-bold text-gray-500 uppercase">Brief</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {profileVenture.panel_ai_analysis.panel_scorecard.map((item: any, i: number) => {
+                                                    const rs = (r: string) => r === 'Green' ? 'text-green-700' : r === 'Red' ? 'text-red-700' : 'text-amber-700';
+                                                    const ds = (r: string) => r === 'Green' ? 'bg-green-500' : r === 'Red' ? 'bg-red-500' : 'bg-amber-500';
+                                                    return (
+                                                        <tr key={i}>
+                                                            <td className="px-4 py-3 font-semibold text-gray-800">{item.dimension}</td>
+                                                            <td className="px-3 py-3 text-center"><span className={`inline-flex items-center gap-1 text-xs font-semibold ${rs(item.application_rating || item.rating || '')}`}><span className={`w-1.5 h-1.5 rounded-full ${ds(item.application_rating || item.rating || '')}`}/>{item.application_rating || item.rating || '-'}</span></td>
+                                                            <td className="px-3 py-3 text-center">{item.panel_rating ? <span className={`inline-flex items-center gap-1 text-xs font-semibold ${rs(item.panel_rating)}`}><span className={`w-1.5 h-1.5 rounded-full ${ds(item.panel_rating)}`}/>{item.panel_rating}</span> : '-'}</td>
+                                                            <td className="px-4 py-3 text-gray-600 text-xs">{item.panel_brief || item.brief || '-'}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+
+                                {/* Panel Gate Questions */}
+                                {profileVenture.gate_questions?.gate_questions && (
+                                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                        <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+                                            <span className="text-base font-bold text-gray-700">Panel Gate Questions</span>
+                                            <span className="text-xs text-gray-400">Read Only</span>
+                                        </div>
+                                        <div className="divide-y divide-gray-100">
+                                            {profileVenture.gate_questions.gate_questions.map((gq: any, i: number) => (
+                                                <div key={i} className="px-5 py-3 flex items-start gap-3">
+                                                    <span className="text-xs font-bold text-gray-400 mt-0.5">{i + 1}.</span>
+                                                    <div className="flex-1">
+                                                        <p className="text-sm text-gray-800">{gq.question}</p>
+                                                        {gq.remarks && <p className="text-xs text-gray-500 mt-1">{gq.remarks}</p>}
+                                                    </div>
+                                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${(gq.response || gq.answer) === 'Yes' ? 'bg-green-100 text-green-700' : (gq.response || gq.answer) === 'No' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                        {gq.response || gq.answer || '—'}
+                                                    </span>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 )}

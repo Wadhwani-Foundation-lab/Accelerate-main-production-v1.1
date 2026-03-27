@@ -186,7 +186,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                 stream: s.stream_name || '',
                 status: s.status || 'N/A'
             }));
-            setProfileVenture({ ...(full || {}), needs: mappedNeeds });
+            // Fetch panel feedback
+            let panelFeedback = null;
+            try {
+                const { data: pfData } = await supabase
+                    .from('panel_feedback')
+                    .select('*')
+                    .eq('venture_id', venture.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+                panelFeedback = pfData?.[0] || null;
+            } catch { /* no panel feedback */ }
+            setProfileVenture({ ...(full || {}), needs: mappedNeeds, panel_feedback: panelFeedback });
         } catch (err) {
             console.error('Error fetching venture profile:', err);
         } finally {
@@ -921,7 +932,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                         className="fixed inset-0 z-40 bg-black/30 transition-opacity"
                         onClick={() => setProfileVenture(null)}
                     />
-                    <div className="fixed inset-y-0 right-0 z-50 w-full max-w-2xl bg-white shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200">
+                    <div className="fixed inset-4 z-50 mx-auto max-w-5xl bg-white shadow-2xl overflow-y-auto rounded-2xl">
                         {/* Drawer Header */}
                         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
                             <div>
@@ -1341,6 +1352,73 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Panel Feedback */}
+                                {profileVenture.panel_feedback && (
+                                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                                            <FileText className="w-5 h-5 text-indigo-500" />
+                                            <span className="text-base font-bold text-gray-700">Panel Feedback</span>
+                                            <span className="text-xs text-gray-400">Read Only</span>
+                                        </div>
+                                        <div className="p-5 space-y-4">
+                                            {profileVenture.panel_feedback.business_overview && (
+                                                <div>
+                                                    <span className="text-xs font-bold text-gray-400 uppercase block mb-1">Business Overview</span>
+                                                    <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">{profileVenture.panel_feedback.business_overview}</p>
+                                                </div>
+                                            )}
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {profileVenture.panel_feedback.rating_financial_health && (
+                                                    <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                                        <span className="text-xs text-gray-400 block mb-1">Financial Health Rating</span>
+                                                        <span className="text-lg font-bold text-gray-900">{profileVenture.panel_feedback.rating_financial_health}/5</span>
+                                                        {profileVenture.panel_feedback.insights_financial_health && <p className="text-xs text-gray-500 mt-1">{profileVenture.panel_feedback.insights_financial_health}</p>}
+                                                    </div>
+                                                )}
+                                                {profileVenture.panel_feedback.rating_leadership && (
+                                                    <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                                        <span className="text-xs text-gray-400 block mb-1">Leadership Rating</span>
+                                                        <span className="text-lg font-bold text-gray-900">{profileVenture.panel_feedback.rating_leadership}/5</span>
+                                                        {profileVenture.panel_feedback.insights_leadership && <p className="text-xs text-gray-500 mt-1">{profileVenture.panel_feedback.insights_leadership}</p>}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {profileVenture.panel_feedback.proposed_expansion_idea && (
+                                                <div>
+                                                    <span className="text-xs font-bold text-gray-400 uppercase block mb-1">Proposed Expansion Idea</span>
+                                                    <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">{profileVenture.panel_feedback.proposed_expansion_idea}</p>
+                                                </div>
+                                            )}
+                                            {profileVenture.panel_feedback.expansion_idea_description && (
+                                                <div>
+                                                    <span className="text-xs font-bold text-gray-400 uppercase block mb-1">Expansion Description</span>
+                                                    <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">{profileVenture.panel_feedback.expansion_idea_description}</p>
+                                                </div>
+                                            )}
+                                            {profileVenture.panel_feedback.risks_red_flags && (
+                                                <div>
+                                                    <span className="text-xs font-bold text-gray-400 uppercase block mb-1">Risks / Red Flags</span>
+                                                    <p className="text-sm text-red-700 bg-red-50 p-3 rounded-lg border border-red-100">{profileVenture.panel_feedback.risks_red_flags}</p>
+                                                </div>
+                                            )}
+                                            {profileVenture.panel_feedback.final_recommendation && (
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-xs font-bold text-gray-400 uppercase">Final Recommendation:</span>
+                                                    <span className={`text-sm font-bold px-3 py-1 rounded-full ${profileVenture.panel_feedback.final_recommendation === 'proceed' ? 'bg-green-100 text-green-700' : profileVenture.panel_feedback.final_recommendation === 'hold' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                        {profileVenture.panel_feedback.final_recommendation}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {profileVenture.panel_feedback.additional_notes && (
+                                                <div>
+                                                    <span className="text-xs font-bold text-gray-400 uppercase block mb-1">Additional Notes</span>
+                                                    <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">{profileVenture.panel_feedback.additional_notes}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -1568,7 +1646,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ tab = 'applicati
             {ventureDetailId && (
                 <div className="fixed inset-0 z-50 flex justify-end">
                     <div className="absolute inset-0 bg-black/20" onClick={() => { setVentureDetailId(null); setVentureDetailData(null); setVentureDetailRoadmap(null); }} />
-                    <div className="relative w-full max-w-3xl bg-white shadow-2xl overflow-y-auto">
+                    <div className="fixed inset-4 z-50 mx-auto max-w-5xl bg-white shadow-2xl overflow-y-auto rounded-2xl">
                         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
                             <h2 className="text-xl font-bold text-gray-900">{ventureDetailData?.name || 'Loading...'}</h2>
                             <button onClick={() => { setVentureDetailId(null); setVentureDetailData(null); setVentureDetailRoadmap(null); }}
