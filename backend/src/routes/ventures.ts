@@ -85,6 +85,9 @@ router.post(
             const growthTarget: any = body.growth_target || {};
             const commitment: any = body.commitment || {};
 
+            console.log('[PublicApply] Commitment data received:', JSON.stringify(commitment));
+            console.log('[PublicApply] targetJobs raw:', commitment.targetJobs, 'type:', typeof commitment.targetJobs, 'parsed:', commitment.targetJobs ? parseInt(commitment.targetJobs) : null);
+
             // 1. Create venture (no user_id for public submissions)
             const { data: venture, error: ventureError } = await supabase
                 .from('ventures')
@@ -115,12 +118,12 @@ router.post(
                     founder_email: body.email,
                     founder_phone: growthCurrent.phone || null,
                     founder_designation: growthCurrent.role || null,
-                    revenue_12m: commitment.lastYearRevenue || null,
-                    revenue_potential_3y: commitment.revenuePotential || null,
+                    revenue_12m: commitment.lastYearRevenue ?? null,
+                    revenue_potential_3y: commitment.revenuePotential ?? null,
                     full_time_employees: growthCurrent.employees || null,
                     financial_condition: commitment.financialCondition || null,
-                    incremental_hiring: commitment.incrementalHiring ? parseInt(commitment.incrementalHiring) : null,
-                    target_jobs: commitment.targetJobs ? parseInt(commitment.targetJobs) : null,
+                    incremental_hiring: commitment.incrementalHiring != null && commitment.incrementalHiring !== '' ? Number(commitment.incrementalHiring) || null : null,
+                    target_jobs: commitment.targetJobs != null && commitment.targetJobs !== '' ? Number(commitment.targetJobs) : null,
                     time_commitment: commitment.timeCommitment || null,
                     second_line_team: commitment.secondLineTeam || null,
                     growth_focus: body.growth_focus ? (Array.isArray(body.growth_focus) ? body.growth_focus : body.growth_focus.split(',').filter(Boolean)) : [],
