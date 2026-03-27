@@ -249,7 +249,7 @@ Return ONLY a JSON object in this format:
   "product": {
     "relevance": "<One sentence explaining why Product matters for this specific venture's growth idea>",
     "support_status": "<Need Deep Support | Need Some Guidance | Do Not Need Help — mapped directly from the panel's stream_product_quality assessment>",
-    "end_goal": "<One sentence: what this functional area will have achieved by the end of the 12-16 week program — specific to this venture's growth idea and panel expansion plan. E.g., 'Product roadmap defined and MVP validated with 3 pilot customers in the target segment.'>",
+    "end_goal": "<One sentence stating the specific measurable outcome for this area. Do NOT start with 'By week X' — state the outcome directly, e.g. 'Product roadmap defined and MVP validated with 3 pilot customers in the target segment.'>",
     "actions": [
       {
         "id": "prod_1",
@@ -328,7 +328,7 @@ Return ONLY a JSON object in this format:
 
 12. **SCALE scorecard alignment:** Use the panel SCALE scorecard's panel_rating per dimension to inform roadmap priorities. Red panel ratings (e.g., Capital, Leadership, Venture Clarity) indicate critical gaps — include at least 1 direct remediation action per Red dimension. Green panel ratings indicate confirmed strengths — at least 1 action should build on these strengths and cite them in the context_reference. Yellow panel ratings warrant monitoring or advisory actions in the relevant functional area.
 
-13. **Per-stream end goal coherence:** Each functional area's `end_goal` must state the specific, measurable outcome that area will have achieved by the end of the 12-16 week program. It must be grounded in the panel's expansion idea, support stream status, and relevant SCALE scorecard dimension. The 5 actions within the area must collectively lead to that end goal — the final action(s) should directly validate or deliver it.
+13. **Per-stream end goal coherence:** Each functional area's `end_goal` must state the specific, measurable outcome. Do NOT prefix with "By week X" — state the outcome directly (e.g. "Product roadmap defined and MVP validated with 3 pilot customers"). It must be grounded in the panel's expansion idea, support stream status, and relevant SCALE scorecard dimension. The 5 actions within the area must collectively lead to that end goal — the final action(s) should directly validate or deliver it.
 
 Return ONLY the JSON object, no additional text.
 ```
@@ -454,7 +454,7 @@ Cross-functional dependencies should be noted in the `context_reference` field w
 | 10 | **Tone** | Professional, supportive, direct. Working document for program team and founder. No unexplained jargon. |
 | 11 | **Panel feedback integration** | Panel stream statuses drive functional area priorities. `need_deep_support` = High. Panelist risks/red flags addressed by at least 1 action. Panel expansion idea and support proposal reflected in relevant actions. |
 | 12 | **SCALE scorecard alignment** | Red panel ratings → at least 1 remediation action per Red dimension. Green panel ratings → at least 1 action building on the strength. Yellow → advisory/monitoring action. |
-| 13 | **Per-stream end goal coherence** | Each area's `end_goal` states the specific measurable outcome that area achieves by program end. Grounded in panel expansion idea and relevant SCALE dimension. The 5 actions must collectively lead to that end goal. |
+| 13 | **Per-stream end goal coherence** | Each area's `end_goal` states the specific measurable outcome. Do NOT prefix with "By week X". Grounded in panel expansion idea and relevant SCALE dimension. The 5 actions must collectively lead to that end goal. |
 
 ---
 

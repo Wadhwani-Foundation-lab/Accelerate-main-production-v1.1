@@ -504,7 +504,7 @@ Return ONLY a JSON object in this format:
   "product": {
     "relevance": "<One sentence explaining why Product matters for this specific venture's growth idea>",
     "support_status": "<Need Deep Support | Need Some Guidance | Do Not Need Help — mapped from panel stream_product_quality>",
-    "end_goal": "<One sentence: what this functional area will have achieved by end of 12-16 week program>",
+    "end_goal": "<One sentence stating the specific measurable outcome for this area. Do NOT start with 'By week X' — state the outcome directly, e.g. 'Product roadmap defined and MVP validated with 3 pilot customers.'>",
     "actions": [
       {
         "id": "prod_1",
@@ -539,7 +539,7 @@ Return ONLY a JSON object in this format:
 10. **Tone:** Professional, supportive, and direct.
 11. **Panel feedback integration:** Actions must reflect panel stream status assessments. Panelist-identified risks must be addressed. Panel expansion idea and support proposal must be incorporated.
 12. **SCALE scorecard alignment:** Red panel ratings → at least 1 remediation action per Red dimension. Green → build on strengths. Yellow → advisory/monitoring.
-13. **Per-stream end goal coherence:** Each area's end_goal must state the specific measurable outcome by program end. The 5 actions must collectively lead to it.
+13. **Per-stream end goal coherence:** Each area's end_goal must state the specific measurable outcome. Do NOT prefix with "By week X" — state the outcome directly (e.g. "Product roadmap defined and MVP validated with 3 pilot customers"). The 5 actions must collectively lead to it.
 
 Return ONLY the JSON object, no additional text.`;
 }
