@@ -2,7 +2,7 @@ import { Sentry } from './config/sentry';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { config } from './config/env';
+import { config, initConfig } from './config/env';
 import routes from './routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { logger, logRequest } from './utils/logger';
@@ -78,29 +78,33 @@ Sentry.setupExpressErrorHandler(app);
 // Error handler (must be last)
 app.use(errorHandler);
 
-// Start server
-const PORT = config.port;
-const server = app.listen(PORT, () => {
-    logger(`Server running on port ${PORT}`, 'info');
-    logger(`Environment: ${config.nodeEnv}`, 'info');
-    logger(`Frontend URL: ${config.frontendUrl}`, 'info');
-});
-
-// Handle graceful shutdown
-function gracefulShutdown(signal: string) {
-    logger(`${signal} signal received: closing HTTP server`, 'info');
-    server.close(() => {
-        logger('HTTP server closed', 'info');
-        process.exit(0);
+// Load secrets from Azure Key Vault (if configured), then start server
+initConfig().then(() => {
+    const PORT = config.port;
+    const server = app.listen(PORT, () => {
+        logger(`Server running on port ${PORT}`, 'info');
+        logger(`Environment: ${config.nodeEnv}`, 'info');
+        logger(`Frontend URL: ${config.frontendUrl}`, 'info');
     });
-    // Force exit if server hasn't closed in 10 seconds
-    setTimeout(() => {
-        logger('Forcing shutdown after timeout', 'warn');
-        process.exit(1);
-    }, 10_000).unref();
-}
 
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+    // Handle graceful shutdown
+    function gracefulShutdown(signal: string) {
+        logger(`${signal} signal received: closing HTTP server`, 'info');
+        server.close(() => {
+            logger('HTTP server closed', 'info');
+            process.exit(0);
+        });
+        setTimeout(() => {
+            logger('Forcing shutdown after timeout', 'warn');
+            process.exit(1);
+        }, 10_000).unref();
+    }
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+}).catch((err) => {
+    logger(`Failed to initialize: ${err.message}`, 'error');
+    process.exit(1);
+});
 
 export default app;
