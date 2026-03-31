@@ -18,6 +18,9 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 RUN npm ci --omit=dev
  
+ARG AZURE_KEY_VAULT_NAME
+ENV AZURE_KEY_VAULT_NAME=${AZURE_KEY_VAULT_NAME}
+
 EXPOSE 3001
- 
+
 CMD ["node", "dist/index.js"]

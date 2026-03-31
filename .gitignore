@@ -23,6 +23,10 @@ backend/.env.local
 # Secrets / credentials exports
 docs/keyvault-secrets*
 
+# Database backups (contain PII and sensitive data)
+scripts/backups/prod/*.sql
+scripts/backups/prod/*.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
